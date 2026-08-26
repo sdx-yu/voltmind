@@ -1,0 +1,1259 @@
+{
+  "@floating-ui/core@1.8.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "publisher": "atomiks",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/core",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/core/LICENSE"
+  },
+  "@floating-ui/dom@1.8.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "publisher": "atomiks",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/dom",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/dom/LICENSE"
+  },
+  "@floating-ui/utils@0.2.12": {
+    "licenses": "MIT",
+    "repository": "https://github.com/floating-ui/floating-ui",
+    "publisher": "atomiks",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/utils",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/utils/LICENSE"
+  },
+  "@tiptap/core@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/core",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/core/LICENSE.md"
+  },
+  "@tiptap/extension-blockquote@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-blockquote",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-blockquote/LICENSE.md"
+  },
+  "@tiptap/extension-bold@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-bold",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-bold/LICENSE.md"
+  },
+  "@tiptap/extension-bubble-menu@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-bubble-menu",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-bubble-menu/LICENSE.md"
+  },
+  "@tiptap/extension-bullet-list@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-bullet-list",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-bullet-list/LICENSE.md"
+  },
+  "@tiptap/extension-character-count@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-character-count",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-character-count/LICENSE.md"
+  },
+  "@tiptap/extension-code-block@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-code-block",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-code-block/LICENSE.md"
+  },
+  "@tiptap/extension-code@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-code",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-code/LICENSE.md"
+  },
+  "@tiptap/extension-document@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-document",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-document/LICENSE.md"
+  },
+  "@tiptap/extension-dropcursor@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-dropcursor",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-dropcursor/LICENSE.md"
+  },
+  "@tiptap/extension-floating-menu@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-floating-menu",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-floating-menu/LICENSE.md"
+  },
+  "@tiptap/extension-gapcursor@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-gapcursor",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-gapcursor/LICENSE.md"
+  },
+  "@tiptap/extension-hard-break@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-hard-break",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-hard-break/LICENSE.md"
+  },
+  "@tiptap/extension-heading@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-heading",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-heading/LICENSE.md"
+  },
+  "@tiptap/extension-horizontal-rule@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-horizontal-rule",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-horizontal-rule/LICENSE.md"
+  },
+  "@tiptap/extension-italic@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-italic",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-italic/LICENSE.md"
+  },
+  "@tiptap/extension-link@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-link",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-link/LICENSE.md"
+  },
+  "@tiptap/extension-list-item@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-list-item",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-list-item/LICENSE.md"
+  },
+  "@tiptap/extension-list-keymap@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-list-keymap",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-list-keymap/LICENSE.md"
+  },
+  "@tiptap/extension-list@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-list",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-list/LICENSE.md"
+  },
+  "@tiptap/extension-ordered-list@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-ordered-list",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-ordered-list/LICENSE.md"
+  },
+  "@tiptap/extension-paragraph@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-paragraph",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-paragraph/LICENSE.md"
+  },
+  "@tiptap/extension-placeholder@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-placeholder",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-placeholder/LICENSE.md"
+  },
+  "@tiptap/extension-strike@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-strike",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-strike/LICENSE.md"
+  },
+  "@tiptap/extension-text@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-text",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-text/LICENSE.md"
+  },
+  "@tiptap/extension-underline@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-underline",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extension-underline/LICENSE.md"
+  },
+  "@tiptap/extensions@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extensions",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/extensions/LICENSE.md"
+  },
+  "@tiptap/pm@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/pm",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/pm/LICENSE"
+  },
+  "@tiptap/react@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/react",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/react/LICENSE.md"
+  },
+  "@tiptap/starter-kit@3.30.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ueberdosis/tiptap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/starter-kit",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@tiptap/starter-kit/LICENSE.md"
+  },
+  "@types/node@25.9.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/docx/node_modules/@types/node",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/docx/node_modules/@types/node/LICENSE"
+  },
+  "@types/react-dom@19.2.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@types/react-dom",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@types/react-dom/LICENSE"
+  },
+  "@types/react@19.2.18": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@types/react",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@types/react/LICENSE"
+  },
+  "@types/use-sync-external-store@0.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@types/use-sync-external-store",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@types/use-sync-external-store/LICENSE"
+  },
+  "@xmldom/xmldom@0.8.15": {
+    "licenses": "MIT",
+    "repository": "https://github.com/xmldom/xmldom",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@xmldom/xmldom",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@xmldom/xmldom/LICENSE"
+  },
+  "accepts@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/accepts",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/accepts",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/accepts/LICENSE"
+  },
+  "append-field@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/LinusU/node-append-field",
+    "publisher": "Linus Unnebäck",
+    "email": "linus@folkdatorn.se",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/append-field",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/append-field/LICENSE"
+  },
+  "argparse@1.0.10": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodeca/argparse",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/argparse",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/argparse/LICENSE"
+  },
+  "base64-js@1.5.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/beatgammit/base64-js",
+    "publisher": "T. Jameson Little",
+    "email": "t.jameson.little@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/base64-js",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/base64-js/LICENSE"
+  },
+  "bi-bu-dai@0.7.0": {
+    "licenses": "UNLICENSED",
+    "private": true,
+    "path": "/Users/sundaxian/2026 /笔不怠",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/README.md"
+  },
+  "bluebird@3.4.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/petkaantonov/bluebird",
+    "publisher": "Petka Antonov",
+    "email": "petka_antonov@hotmail.com",
+    "url": "http://github.com/petkaantonov/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/bluebird",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/bluebird/LICENSE"
+  },
+  "body-parser@2.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/body-parser",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/body-parser",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/body-parser/LICENSE"
+  },
+  "buffer-from@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/LinusU/buffer-from",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/buffer-from",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/buffer-from/LICENSE"
+  },
+  "busboy@1.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mscdex/busboy",
+    "publisher": "Brian White",
+    "email": "mscdex@mscdex.net",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/busboy",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/busboy/LICENSE"
+  },
+  "bytes@3.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/bytes.js",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/bytes",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/bytes/LICENSE"
+  },
+  "call-bind-apply-helpers@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/call-bind-apply-helpers",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/call-bind-apply-helpers",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/call-bind-apply-helpers/LICENSE"
+  },
+  "call-bound@1.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/call-bound",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/call-bound",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/call-bound/LICENSE"
+  },
+  "concat-stream@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/maxogden/concat-stream",
+    "publisher": "Max Ogden",
+    "email": "max@maxogden.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/concat-stream",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/concat-stream/LICENSE"
+  },
+  "content-disposition@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-disposition",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/content-disposition",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/content-disposition/LICENSE"
+  },
+  "content-type@1.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-type",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/content-type",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/content-type/LICENSE"
+  },
+  "content-type@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-type",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/negotiator/node_modules/content-type",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/negotiator/node_modules/content-type/LICENSE"
+  },
+  "cookie-signature@1.2.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/node-cookie-signature",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@learnboost.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/cookie-signature",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/cookie-signature/LICENSE"
+  },
+  "cookie@0.7.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/cookie",
+    "publisher": "Roman Shtylman",
+    "email": "shtylman@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/cookie",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/cookie/LICENSE"
+  },
+  "core-util-is@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/isaacs/core-util-is",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/core-util-is",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/core-util-is/LICENSE"
+  },
+  "cors@2.8.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/cors",
+    "publisher": "Troy Goode",
+    "email": "troygoode@gmail.com",
+    "url": "https://github.com/troygoode/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/cors",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/cors/LICENSE"
+  },
+  "csstype@3.2.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/frenic/csstype",
+    "publisher": "Fredrik Nicol",
+    "email": "fredrik.nicol@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/csstype",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/csstype/LICENSE"
+  },
+  "debug@4.4.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/debug-js/debug",
+    "publisher": "Josh Junon",
+    "url": "https://github.com/qix-",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/debug",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/debug/LICENSE"
+  },
+  "depd@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dougwilson/nodejs-depd",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/depd",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/depd/LICENSE"
+  },
+  "diff@8.0.4": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/kpdecker/jsdiff",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/diff",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/diff/LICENSE"
+  },
+  "dingbat-to-unicode@1.0.1": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/mwilliamson/dingbat-to-unicode",
+    "publisher": "Michael Williamson",
+    "email": "mike@zwobble.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/dingbat-to-unicode",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/dingbat-to-unicode/README.md"
+  },
+  "docx@9.7.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dolanmiu/docx",
+    "publisher": "Dolan Miu",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/docx",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/docx/LICENSE"
+  },
+  "duck@0.1.12": {
+    "licenses": "BSD*",
+    "repository": "https://github.com/mwilliamson/duck.js",
+    "publisher": "Michael Williamson",
+    "email": "mike@zwobble.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/duck",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/duck/LICENSE"
+  },
+  "dunder-proto@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/dunder-proto",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/dunder-proto",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/dunder-proto/LICENSE"
+  },
+  "ee-first@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonathanong/ee-first",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/ee-first",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/ee-first/LICENSE"
+  },
+  "encodeurl@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/encodeurl",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/encodeurl",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/encodeurl/LICENSE"
+  },
+  "es-define-property@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-define-property",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/es-define-property",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/es-define-property/LICENSE"
+  },
+  "es-errors@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-errors",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/es-errors",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/es-errors/LICENSE"
+  },
+  "es-object-atoms@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-object-atoms",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/es-object-atoms",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/es-object-atoms/LICENSE"
+  },
+  "escape-html@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/component/escape-html",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/escape-html",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/escape-html/LICENSE"
+  },
+  "etag@1.8.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/etag",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/etag",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/etag/LICENSE"
+  },
+  "express@5.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/express",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/express",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/express/LICENSE"
+  },
+  "fast-equals@5.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/planttheidea/fast-equals",
+    "publisher": "Tony Quetano",
+    "email": "tony.quetano@planttheidea.com",
+    "url": "https://www.planttheidea.com/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/fast-equals",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/fast-equals/LICENSE"
+  },
+  "finalhandler@2.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/finalhandler",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/finalhandler",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/finalhandler/LICENSE"
+  },
+  "forwarded@0.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/forwarded",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/forwarded",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/forwarded/LICENSE"
+  },
+  "fresh@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/fresh",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/fresh",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/fresh/LICENSE"
+  },
+  "function-bind@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Raynos/function-bind",
+    "publisher": "Raynos",
+    "email": "raynos2@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/function-bind",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/function-bind/LICENSE"
+  },
+  "get-intrinsic@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/get-intrinsic",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/get-intrinsic",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/get-intrinsic/LICENSE"
+  },
+  "get-proto@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/get-proto",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/get-proto",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/get-proto/LICENSE"
+  },
+  "gopd@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/gopd",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/gopd",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/gopd/LICENSE"
+  },
+  "has-symbols@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/has-symbols",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "url": "http://ljharb.codes",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/has-symbols",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/has-symbols/LICENSE"
+  },
+  "hash.js@1.1.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/indutny/hash.js",
+    "publisher": "Fedor Indutny",
+    "email": "fedor@indutny.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/hash.js",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/hash.js/README.md"
+  },
+  "hasown@2.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/hasOwn",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/hasown",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/hasown/LICENSE"
+  },
+  "http-errors@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/http-errors",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/http-errors",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/http-errors/LICENSE"
+  },
+  "iconv-lite@0.7.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/iconv-lite",
+    "publisher": "Alexander Shtuchkin",
+    "email": "ashtuchkin@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/iconv-lite",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/iconv-lite/LICENSE"
+  },
+  "immediate@3.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/calvinmetcalf/immediate",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/immediate",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/immediate/LICENSE.txt"
+  },
+  "inherits@2.0.4": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/inherits",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/inherits",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/inherits/LICENSE"
+  },
+  "ipaddr.js@1.9.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/whitequark/ipaddr.js",
+    "publisher": "whitequark",
+    "email": "whitequark@whitequark.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/ipaddr.js",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/ipaddr.js/LICENSE"
+  },
+  "is-promise@4.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/then/is-promise",
+    "publisher": "ForbesLindesay",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/is-promise",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/is-promise/LICENSE"
+  },
+  "isarray@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/isarray",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/isarray",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/isarray/README.md"
+  },
+  "jszip@3.10.1": {
+    "licenses": "(MIT OR GPL-3.0-or-later)",
+    "repository": "https://github.com/Stuk/jszip",
+    "publisher": "Stuart Knightley",
+    "email": "stuart@stuartk.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/jszip",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/jszip/LICENSE.markdown"
+  },
+  "lie@3.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/calvinmetcalf/lie",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/lie",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/lie/license.md"
+  },
+  "linkifyjs@4.3.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nfrasser/linkifyjs",
+    "publisher": "Nick Frasser",
+    "url": "https://nfrasser.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/linkifyjs",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/linkifyjs/LICENSE"
+  },
+  "lop@0.4.2": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/mwilliamson/lop",
+    "publisher": "Michael Williamson",
+    "email": "mike@zwobble.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/lop",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/lop/LICENSE"
+  },
+  "lucide-react@0.542.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/lucide-icons/lucide",
+    "publisher": "Eric Fennis",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/lucide-react",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/lucide-react/LICENSE"
+  },
+  "mammoth@1.12.1": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/mwilliamson/mammoth.js",
+    "publisher": "Michael Williamson",
+    "email": "mike@zwobble.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/mammoth",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/mammoth/LICENSE"
+  },
+  "math-intrinsics@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/math-intrinsics",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/math-intrinsics",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/math-intrinsics/LICENSE"
+  },
+  "media-typer@0.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/media-typer",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/media-typer",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/media-typer/LICENSE"
+  },
+  "media-typer@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/media-typer",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/media-typer",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/media-typer/LICENSE"
+  },
+  "merge-descriptors@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/merge-descriptors",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/merge-descriptors",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/merge-descriptors/license"
+  },
+  "mime-db@1.52.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-db",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/mime-db",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/mime-db/LICENSE"
+  },
+  "mime-db@1.54.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-db",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/mime-db",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/mime-db/LICENSE"
+  },
+  "mime-types@2.1.35": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-types",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/mime-types",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/mime-types/LICENSE"
+  },
+  "mime-types@3.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-types",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/mime-types",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/mime-types/LICENSE"
+  },
+  "minimalistic-assert@1.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/calvinmetcalf/minimalistic-assert",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/minimalistic-assert",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/minimalistic-assert/LICENSE"
+  },
+  "ms@2.1.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/vercel/ms",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/ms",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/ms/license.md"
+  },
+  "multer@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/multer",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/multer",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/LICENSE"
+  },
+  "nanoid@5.1.16": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ai/nanoid",
+    "publisher": "Andrey Sitnik",
+    "email": "andrey@sitnik.es",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/nanoid",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/nanoid/LICENSE"
+  },
+  "negotiator@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/negotiator",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/negotiator",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/negotiator/LICENSE"
+  },
+  "object-assign@4.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/object-assign",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/object-assign",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/object-assign/license"
+  },
+  "object-inspect@1.13.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/object-inspect",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/object-inspect",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/object-inspect/LICENSE"
+  },
+  "on-finished@2.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/on-finished",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/on-finished",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/on-finished/LICENSE"
+  },
+  "once@1.4.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/once",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/once",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/once/LICENSE"
+  },
+  "option@0.2.4": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/mwilliamson/node-options",
+    "publisher": "Michael Williamson",
+    "email": "mike@zwobble.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/option",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/option/LICENSE"
+  },
+  "orderedmap@2.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/marijnh/orderedmap",
+    "publisher": "Marijn Haverbeke",
+    "email": "marijn@haverbeke.berlin",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/orderedmap",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/orderedmap/LICENSE"
+  },
+  "pako@1.0.11": {
+    "licenses": "(MIT AND Zlib)",
+    "repository": "https://github.com/nodeca/pako",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/pako",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/pako/LICENSE"
+  },
+  "parseurl@1.3.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/parseurl",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/parseurl",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/parseurl/LICENSE"
+  },
+  "path-is-absolute@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/path-is-absolute",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/path-is-absolute",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/path-is-absolute/license"
+  },
+  "path-to-regexp@8.4.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/path-to-regexp",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/path-to-regexp",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/path-to-regexp/LICENSE"
+  },
+  "process-nextick-args@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/calvinmetcalf/process-nextick-args",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/process-nextick-args",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/process-nextick-args/license.md"
+  },
+  "prosemirror-changeset@2.4.2": {
+    "licenses": "MIT",
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-changeset",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-changeset",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-changeset/LICENSE"
+  },
+  "prosemirror-commands@1.7.2": {
+    "licenses": "MIT",
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-commands",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-commands",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-commands/LICENSE"
+  },
+  "prosemirror-dropcursor@1.8.3": {
+    "licenses": "MIT",
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-dropcursor",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-dropcursor",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-dropcursor/LICENSE"
+  },
+  "prosemirror-gapcursor@1.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-gapcursor",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-gapcursor",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-gapcursor/LICENSE"
+  },
+  "prosemirror-history@1.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-history",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-history",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-history/LICENSE"
+  },
+  "prosemirror-inputrules@1.5.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-inputrules",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-inputrules",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-inputrules/LICENSE"
+  },
+  "prosemirror-keymap@1.2.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-keymap",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-keymap",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-keymap/LICENSE"
+  },
+  "prosemirror-model@1.25.11": {
+    "licenses": "MIT",
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-model",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-model",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-model/LICENSE"
+  },
+  "prosemirror-schema-list@1.5.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-schema-list",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-schema-list",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-schema-list/LICENSE"
+  },
+  "prosemirror-state@1.4.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-state",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-state",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-state/LICENSE"
+  },
+  "prosemirror-tables@1.8.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ProseMirror/prosemirror-tables",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-tables",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-tables/LICENSE"
+  },
+  "prosemirror-transform@1.12.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/prosemirror/prosemirror-transform",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-transform",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-transform/LICENSE"
+  },
+  "prosemirror-view@1.42.3": {
+    "licenses": "MIT",
+    "repository": "git+https://code.haverbeke.berlin/prosemirror/prosemirror-view",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-view",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/prosemirror-view/LICENSE"
+  },
+  "proxy-addr@2.0.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/proxy-addr",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/proxy-addr",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/proxy-addr/LICENSE"
+  },
+  "qs@6.15.3": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/ljharb/qs",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/qs",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/qs/LICENSE.md"
+  },
+  "range-parser@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/range-parser",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/range-parser",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/range-parser/LICENSE"
+  },
+  "raw-body@3.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/raw-body",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/raw-body",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/raw-body/LICENSE"
+  },
+  "react-dom@19.2.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/react/react",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/react-dom",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/react-dom/LICENSE"
+  },
+  "react@19.2.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/react/react",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/react",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/react/LICENSE"
+  },
+  "readable-stream@2.3.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/readable-stream",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/readable-stream",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/readable-stream/LICENSE"
+  },
+  "readable-stream@3.6.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/readable-stream",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/concat-stream/node_modules/readable-stream",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/concat-stream/node_modules/readable-stream/LICENSE"
+  },
+  "rope-sequence@1.3.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/marijnh/rope-sequence",
+    "publisher": "Marijn Haverbeke",
+    "email": "marijn@haverbeke.berlin",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/rope-sequence",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/rope-sequence/LICENSE"
+  },
+  "router@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/router",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/router",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/router/LICENSE"
+  },
+  "safe-buffer@5.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/feross/safe-buffer",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "http://feross.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/safe-buffer",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/safe-buffer/LICENSE"
+  },
+  "safer-buffer@2.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ChALkeR/safer-buffer",
+    "publisher": "Nikita Skovoroda",
+    "email": "chalkerx@gmail.com",
+    "url": "https://github.com/ChALkeR",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/safer-buffer",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/safer-buffer/LICENSE"
+  },
+  "sax@1.6.1": {
+    "licenses": "BlueOak-1.0.0",
+    "repository": "https://github.com/isaacs/sax-js",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/sax",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/sax/LICENSE.md"
+  },
+  "scheduler@0.27.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/facebook/react",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/scheduler",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/scheduler/LICENSE"
+  },
+  "send@1.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/send",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/send",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/send/LICENSE"
+  },
+  "serve-static@2.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/serve-static",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/serve-static",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/serve-static/LICENSE"
+  },
+  "setimmediate@1.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/YuzuJS/setImmediate",
+    "publisher": "YuzuJS",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/setimmediate",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/setimmediate/LICENSE.txt"
+  },
+  "setprototypeof@1.2.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/wesleytodd/setprototypeof",
+    "publisher": "Wes Todd",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/setprototypeof",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/setprototypeof/LICENSE"
+  },
+  "side-channel-list@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-list",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel-list",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel-list/LICENSE"
+  },
+  "side-channel-map@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-map",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel-map",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel-map/LICENSE"
+  },
+  "side-channel-weakmap@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-weakmap",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel-weakmap",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel-weakmap/LICENSE"
+  },
+  "side-channel@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/side-channel/LICENSE"
+  },
+  "sprintf-js@1.0.3": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/alexei/sprintf.js",
+    "publisher": "Alexandru Marasteanu",
+    "email": "hello@alexei.ro",
+    "url": "http://alexei.ro/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/sprintf-js",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/sprintf-js/LICENSE"
+  },
+  "statuses@2.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/statuses",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/statuses",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/statuses/LICENSE"
+  },
+  "streamsearch@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mscdex/streamsearch",
+    "publisher": "Brian White",
+    "email": "mscdex@mscdex.net",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/streamsearch",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/streamsearch/LICENSE"
+  },
+  "string_decoder@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/string_decoder",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/string_decoder",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/string_decoder/LICENSE"
+  },
+  "toidentifier@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/component/toidentifier",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/toidentifier",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/toidentifier/LICENSE"
+  },
+  "type-is@1.6.18": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/type-is",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/type-is",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/multer/node_modules/type-is/LICENSE"
+  },
+  "type-is@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/type-is",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/type-is",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/type-is/LICENSE"
+  },
+  "typedarray@0.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/substack/typedarray",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/typedarray",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/typedarray/LICENSE"
+  },
+  "underscore@1.13.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jashkenas/underscore",
+    "publisher": "Jeremy Ashkenas",
+    "email": "jeremy@documentcloud.org",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/underscore",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/underscore/LICENSE"
+  },
+  "undici-types@7.24.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/undici",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/docx/node_modules/undici-types",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/docx/node_modules/undici-types/LICENSE"
+  },
+  "unpipe@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/unpipe",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/unpipe",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/unpipe/LICENSE"
+  },
+  "use-sync-external-store@1.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/facebook/react",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/use-sync-external-store",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/use-sync-external-store/LICENSE"
+  },
+  "util-deprecate@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/util-deprecate",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/util-deprecate",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/util-deprecate/LICENSE"
+  },
+  "vary@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/vary",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/vary",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/vary/LICENSE"
+  },
+  "w3c-keyname@2.2.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/marijnh/w3c-keyname",
+    "publisher": "Marijn Haverbeke",
+    "email": "marijn@haverbeke.berlin",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/w3c-keyname",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/w3c-keyname/LICENSE"
+  },
+  "wrappy@1.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/wrappy",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/wrappy",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/wrappy/LICENSE"
+  },
+  "xml-js@1.6.11": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nashwaan/xml-js",
+    "publisher": "Yousuf Almarzooqi",
+    "email": "ysf953@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/xml-js",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/xml-js/LICENSE"
+  },
+  "xml@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dylang/node-xml",
+    "publisher": "Dylan Greene",
+    "url": "https://github.com/dylang",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/xml",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/xml/LICENSE"
+  },
+  "xmlbuilder@10.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/oozcitak/xmlbuilder-js",
+    "publisher": "Ozgur Ozcitak",
+    "email": "oozcitak@gmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/xmlbuilder",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/xmlbuilder/LICENSE"
+  },
+  "zod@4.4.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/colinhacks/zod",
+    "publisher": "Colin McDonnell",
+    "email": "zod@colinhacks.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/zod",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/zod/LICENSE"
+  }
+}

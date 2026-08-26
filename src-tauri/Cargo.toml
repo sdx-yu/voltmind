@@ -1,0 +1,17 @@
+[package]
+name = "bibudai"
+version = "0.7.0"
+description = "笔不怠——笔耕不怠，写尽所思。"
+authors = ["笔不怠"]
+edition = "2021"
+
+[lib]
+name = "bibudai_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"

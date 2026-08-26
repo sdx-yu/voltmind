@@ -1,0 +1,180 @@
+import type {
+  AiContextItem,
+  AiTaskResult,
+  CandidateChange,
+  ContinuityIssue,
+  DeliveryCheckRun,
+  DeliveryRule,
+  DeliveryTemplate,
+  Entity,
+  EntityState,
+  Foreshadow,
+  KnowledgeFact,
+  KnowledgeGrant,
+  ManuscriptNode,
+  Mention,
+  Project,
+  ProvenanceBundle,
+  ProvenanceEvent,
+  ProvenanceExportRecord,
+  ProvenanceVerification,
+  ReadAloudPreferences,
+  Revision,
+  ReplaceBatch,
+  ReplaceMatch,
+  ReplaceScope,
+  SceneDocument,
+  SearchResult,
+  Series,
+  SeriesCanonEntry,
+  SeriesCanonOverride,
+  StyleSample,
+  SyncApplyResult,
+  SyncConflict,
+  SyncDrillResult,
+  SyncPackageInspection,
+  SyncProjectStatus,
+  SyncTransferPackage,
+  WritingStats,
+} from '../../shared/types'
+
+let sessionReady: Promise<void> | null = null
+
+async function ensureSession() {
+  if (!sessionReady) {
+    sessionReady = fetch('/api/session', { method: 'POST', credentials: 'include' }).then((response) => {
+      if (!response.ok) throw new Error('无法连接本地数据服务')
+    })
+  }
+  return sessionReady
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  await ensureSession()
+  let response = await fetch(path, {
+    ...init,
+    credentials: 'include',
+    headers: init.body instanceof FormData ? init.headers : { 'Content-Type': 'application/json', ...init.headers },
+  })
+  if (response.status === 401) {
+    sessionReady = null
+    await ensureSession()
+    response = await fetch(path, {
+      ...init,
+      credentials: 'include',
+      headers: init.body instanceof FormData ? init.headers : { 'Content-Type': 'application/json', ...init.headers },
+    })
+  }
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` })) as { error?: string }
+    throw new Error(error.error || `请求失败：HTTP ${response.status}`)
+  }
+  const contentType = response.headers.get('content-type') ?? ''
+  return (contentType.includes('application/json') ? response.json() : response.text()) as Promise<T>
+}
+
+export const api = {
+  health: () => request<{ ok: boolean; integrity: string; rescueMode: boolean; reason?: string }>('/api/health'),
+  rescueStatus: () => request<{ rescueMode: true; reason: string; snapshots: Array<{ fileName: string; createdAt: string; byteSize: number; integrity: 'ok' | 'failed' }> }>('/api/rescue/status'),
+  restoreDatabaseSnapshot: (fileName: string) => request<{ restoredFrom: string; preserved: string[]; integrity: 'ok' }>('/api/rescue/restore', { method: 'POST', body: JSON.stringify({ fileName }) }),
+  listProjects: (trash = false) => request<Project[]>(`/api/projects${trash ? '?trash=1' : ''}`),
+  createProject: (title: string, description = '') => request<Project>('/api/projects', { method: 'POST', body: JSON.stringify({ title, description }) }),
+  updateProject: (id: string, patch: Partial<Project>) => request<Project>(`/api/projects/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  trashProject: (id: string) => request<Project>(`/api/projects/${id}`, { method: 'DELETE' }),
+  restoreProject: (id: string) => request<Project>(`/api/projects/${id}/restore`, { method: 'POST' }),
+  listNodes: (projectId: string, trash = false) => request<ManuscriptNode[]>(`/api/projects/${projectId}/tree${trash ? '?trash=1' : ''}`),
+  createNode: (projectId: string, input: { parentId: string | null; type: ManuscriptNode['type']; title: string; sortKey?: number }) => request<ManuscriptNode>(`/api/projects/${projectId}/nodes`, { method: 'POST', body: JSON.stringify(input) }),
+  updateNode: (id: string, patch: Partial<ManuscriptNode>) => request<ManuscriptNode>(`/api/nodes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  trashNode: (id: string) => request<ManuscriptNode>(`/api/nodes/${id}`, { method: 'DELETE' }),
+  restoreNode: (id: string, parentId?: string | null) => request<ManuscriptNode>(`/api/nodes/${id}/restore`, { method: 'POST', body: JSON.stringify(parentId === undefined ? {} : { parentId }) }),
+  splitScene: (id: string, offset: number) => request<ManuscriptNode>(`/api/nodes/${id}/split`, { method: 'POST', body: JSON.stringify({ offset }) }),
+  mergeNextScene: (id: string) => request<{ node: ManuscriptNode; mergedNodeId: string }>(`/api/nodes/${id}/merge-next`, { method: 'POST' }),
+  getScene: (id: string) => request<SceneDocument>(`/api/scenes/${id}`),
+  saveScene: (id: string, contentJson: Record<string, unknown>, plainText: string, sourceType = 'human', sourceTaskId: string | null = null) => request<SceneDocument>(`/api/scenes/${id}`, { method: 'PUT', body: JSON.stringify({ contentJson, plainText, sourceType, sourceTaskId }) }),
+  listRevisions: (id: string) => request<Revision[]>(`/api/scenes/${id}/revisions`),
+  restoreRevision: (id: string, revisionId: string) => request<SceneDocument>(`/api/scenes/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
+  completeScene: (id: string) => request<{ node: ManuscriptNode; candidates: CandidateChange[]; issues: ContinuityIssue[] }>(`/api/scenes/${id}/complete`, { method: 'POST' }),
+  search: (projectId: string, query: string) => request<SearchResult[]>(`/api/projects/${projectId}/search?q=${encodeURIComponent(query)}`),
+  previewReplace: (projectId: string, query: string, replacement: string, scopes: ReplaceScope[]) => request<ReplaceMatch[]>(`/api/projects/${projectId}/replace/preview`, { method: 'POST', body: JSON.stringify({ query, replacement, scopes }) }),
+  applyReplace: (projectId: string, query: string, replacement: string, scopes: ReplaceScope[]) => request<ReplaceBatch>(`/api/projects/${projectId}/replace`, { method: 'POST', body: JSON.stringify({ query, replacement, scopes }) }),
+  undoReplace: (id: string) => request<ReplaceBatch>(`/api/replace-batches/${id}/undo`, { method: 'POST' }),
+  listEntities: (projectId: string, trash = false) => request<Entity[]>(`/api/projects/${projectId}/entities${trash ? '?trash=1' : ''}`),
+  createEntity: (projectId: string, input: Pick<Entity, 'type' | 'canonicalName'> & Partial<Entity>) => request<Entity>(`/api/projects/${projectId}/entities`, { method: 'POST', body: JSON.stringify(input) }),
+  updateEntity: (id: string, patch: Partial<Entity>) => request<Entity>(`/api/entities/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  trashEntity: (id: string) => request<Entity>(`/api/entities/${id}`, { method: 'DELETE' }),
+  restoreEntity: (id: string) => request<Entity>(`/api/entities/${id}/restore`, { method: 'POST' }),
+  listForeshadows: (projectId: string, trash = false) => request<Foreshadow[]>(`/api/projects/${projectId}/foreshadows${trash ? '?trash=1' : ''}`),
+  createForeshadow: (projectId: string, input: { title: string; summary?: string; importance?: Foreshadow['importance']; plannedPayoff?: string; nodeId?: string | null; evidence?: string; note?: string }) => request<Foreshadow>(`/api/projects/${projectId}/foreshadows`, { method: 'POST', body: JSON.stringify(input) }),
+  updateForeshadow: (id: string, patch: Partial<Foreshadow>) => request<Foreshadow>(`/api/foreshadows/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  transitionForeshadow: (id: string, input: { action: Foreshadow['status']; nodeId?: string | null; evidence?: string; note?: string }) => request<Foreshadow>(`/api/foreshadows/${id}/transitions`, { method: 'POST', body: JSON.stringify(input) }),
+  trashForeshadow: (id: string) => request<Foreshadow>(`/api/foreshadows/${id}`, { method: 'DELETE' }),
+  listKnowledge: (projectId: string, trash = false) => request<KnowledgeFact[]>(`/api/projects/${projectId}/knowledge${trash ? '?trash=1' : ''}`),
+  createKnowledge: (projectId: string, input: { title: string; detail?: string; keywords: string[]; firstRevealedNodeId?: string | null; privacyLevel?: KnowledgeFact['privacyLevel'] }) => request<KnowledgeFact>(`/api/projects/${projectId}/knowledge`, { method: 'POST', body: JSON.stringify(input) }),
+  updateKnowledge: (id: string, patch: Partial<KnowledgeFact>) => request<KnowledgeFact>(`/api/knowledge/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  trashKnowledge: (id: string) => request<KnowledgeFact>(`/api/knowledge/${id}`, { method: 'DELETE' }),
+  grantKnowledge: (id: string, entityId: string, input: { knownFromNodeId: string; sourceNodeId?: string | null; evidence?: string; note?: string }) => request<KnowledgeGrant>(`/api/knowledge/${id}/grants/${entityId}`, { method: 'PUT', body: JSON.stringify(input) }),
+  revokeKnowledge: (id: string, entityId: string) => request<{ ok: boolean }>(`/api/knowledge/${id}/grants/${entityId}`, { method: 'DELETE' }),
+  listSeries: () => request<Series[]>('/api/series'),
+  createSeries: (projectId: string, name: string, description = '') => request<Series>('/api/series', { method: 'POST', body: JSON.stringify({ projectId, name, description }) }),
+  getProjectSeries: (projectId: string) => request<Series | null>(`/api/projects/${projectId}/series`),
+  updateSeries: (id: string, actorProjectId: string, patch: { name?: string; description?: string }) => request<Series>(`/api/series/${id}`, { method: 'PATCH', body: JSON.stringify({ actorProjectId, ...patch }) }),
+  addProjectToSeries: (seriesId: string, projectId: string, actorProjectId: string) => request<Series>(`/api/series/${seriesId}/projects/${projectId}`, { method: 'PUT', body: JSON.stringify({ actorProjectId }) }),
+  removeProjectFromSeries: (seriesId: string, projectId: string, actorProjectId: string) => request<{ ok: boolean }>(`/api/series/${seriesId}/projects/${projectId}?actorProjectId=${encodeURIComponent(actorProjectId)}`, { method: 'DELETE' }),
+  listSeriesCanon: (projectId: string) => request<SeriesCanonEntry[]>(`/api/projects/${projectId}/series-canon`),
+  createSeriesCanon: (seriesId: string, actorProjectId: string, entry: Pick<SeriesCanonEntry, 'type' | 'canonicalName'> & Partial<SeriesCanonEntry>) => request<SeriesCanonEntry>(`/api/series/${seriesId}/canon`, { method: 'POST', body: JSON.stringify({ actorProjectId, entry }) }),
+  updateSeriesCanon: (id: string, actorProjectId: string, patch: Partial<SeriesCanonEntry>) => request<SeriesCanonEntry>(`/api/series-canon/${id}`, { method: 'PATCH', body: JSON.stringify({ actorProjectId, patch }) }),
+  trashSeriesCanon: (id: string, actorProjectId: string) => request<SeriesCanonEntry>(`/api/series-canon/${id}?actorProjectId=${encodeURIComponent(actorProjectId)}`, { method: 'DELETE' }),
+  saveSeriesCanonOverride: (id: string, projectId: string, input: Pick<SeriesCanonOverride, 'canonicalName' | 'aliases' | 'summary' | 'privacyLevel'>) => request<SeriesCanonOverride>(`/api/series-canon/${id}/overrides/${projectId}`, { method: 'PUT', body: JSON.stringify(input) }),
+  deleteSeriesCanonOverride: (id: string, projectId: string) => request<{ ok: boolean }>(`/api/series-canon/${id}/overrides/${projectId}`, { method: 'DELETE' }),
+  listStyleSamples: (projectId: string, trash = false) => request<StyleSample[]>(`/api/projects/${projectId}/style-samples${trash ? '?trash=1' : ''}`),
+  createProjectStyleSample: (projectId: string, input: Pick<StyleSample, 'title' | 'content'> & Partial<StyleSample>) => request<StyleSample>(`/api/projects/${projectId}/style-samples`, { method: 'POST', body: JSON.stringify(input) }),
+  createSeriesStyleSample: (seriesId: string, actorProjectId: string, sample: Pick<StyleSample, 'title' | 'content'> & Partial<StyleSample>) => request<StyleSample>(`/api/series/${seriesId}/style-samples`, { method: 'POST', body: JSON.stringify({ actorProjectId, sample }) }),
+  updateStyleSample: (id: string, projectId: string, patch: Partial<StyleSample>) => request<StyleSample>(`/api/style-samples/${id}`, { method: 'PATCH', body: JSON.stringify({ projectId, patch }) }),
+  trashStyleSample: (id: string, projectId: string) => request<StyleSample>(`/api/style-samples/${id}?projectId=${encodeURIComponent(projectId)}`, { method: 'DELETE' }),
+  setStyleSamplePreference: (id: string, projectId: string, enabled: boolean) => request<StyleSample>(`/api/style-samples/${id}/preferences/${projectId}`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
+  listEntityMentions: (id: string) => request<Mention[]>(`/api/entities/${id}/mentions`),
+  listStates: (id: string) => request<EntityState[]>(`/api/entities/${id}/states`),
+  createState: (id: string, input: Partial<EntityState> & Pick<EntityState, 'attributeKey' | 'value'>) => request<EntityState>(`/api/entities/${id}/states`, { method: 'POST', body: JSON.stringify(input) }),
+  listMentions: (sceneId: string) => request<Mention[]>(`/api/scenes/${sceneId}/mentions`),
+  currentStates: (sceneId: string) => request<EntityState[]>(`/api/scenes/${sceneId}/current-states`),
+  suggestMentions: (sceneId: string) => request<Array<Omit<Mention, 'id' | 'createdAt'>>>(`/api/scenes/${sceneId}/mention-suggestions`),
+  createMention: (sceneId: string, input: Omit<Mention, 'id' | 'nodeId' | 'createdAt'>) => request<Mention>(`/api/scenes/${sceneId}/mentions`, { method: 'POST', body: JSON.stringify(input) }),
+  listCandidates: (projectId: string, status = 'pending') => request<CandidateChange[]>(`/api/projects/${projectId}/candidates?status=${status}`),
+  createCandidate: (projectId: string, input: Partial<CandidateChange>) => request<CandidateChange>(`/api/projects/${projectId}/candidates`, { method: 'POST', body: JSON.stringify(input) }),
+  resolveCandidate: (id: string, status: CandidateChange['status'], modifiedAfter?: unknown) => request<CandidateChange>(`/api/candidates/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status, modifiedAfter }) }),
+  checkScene: (sceneId: string) => request<ContinuityIssue[]>(`/api/scenes/${sceneId}/check`),
+  ignoreIssue: (sceneId: string, issue: ContinuityIssue, reason = '') => request<{ ok: boolean }>(`/api/scenes/${sceneId}/check/exceptions`, { method: 'POST', body: JSON.stringify({ rule: issue.rule, quote: issue.currentEvidence.quote, reason }) }),
+  getSetting: <T>(projectId: string, key: string) => request<{ value: T }>(`/api/projects/${projectId}/settings/${key}`),
+  setSetting: (projectId: string, key: string, value: unknown) => request<{ ok: boolean }>(`/api/projects/${projectId}/settings/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+  stats: (projectId: string) => request<WritingStats>(`/api/projects/${projectId}/stats`),
+  getReadAloudPreferences: (projectId: string) => request<ReadAloudPreferences>(`/api/projects/${projectId}/read-aloud-preferences`),
+  saveReadAloudPreferences: (projectId: string, patch: Partial<Pick<ReadAloudPreferences, 'voiceUri' | 'rate' | 'pitch'>>) => request<ReadAloudPreferences>(`/api/projects/${projectId}/read-aloud-preferences`, { method: 'PUT', body: JSON.stringify(patch) }),
+  listDeliveryTemplates: (projectId: string) => request<DeliveryTemplate[]>(`/api/projects/${projectId}/delivery/templates`),
+  setDeliveryRule: (projectId: string, ruleId: string, enabled: boolean, config: Record<string, unknown> = {}) => request<DeliveryRule>(`/api/projects/${projectId}/delivery/rules/${ruleId}`, { method: 'PUT', body: JSON.stringify({ enabled, config }) }),
+  runDeliveryCheck: (projectId: string, templateId: string, chapterIds: string[]) => request<DeliveryCheckRun>(`/api/projects/${projectId}/delivery/checks`, { method: 'POST', body: JSON.stringify({ templateId, chapterIds }) }),
+  listDeliveryChecks: (projectId: string) => request<DeliveryCheckRun[]>(`/api/projects/${projectId}/delivery/checks`),
+  importProject: (input: { title: string; chapters: Array<{ title: string; text: string; contentJson: Record<string, unknown> }>; original: { fileName: string; mimeType: string; byteSize: number; contentHash: string; contentBase64: string } }) => request<Project>('/api/import', { method: 'POST', body: JSON.stringify(input) }),
+  getAiSettings: () => request<{ baseUrl: string; model: string; hasApiKey: boolean; credentialStore: 'system_keychain' | 'protected_file' }>('/api/ai/settings'),
+  saveAiSettings: (settings: { baseUrl: string; model: string; apiKey: string }) => request<{ baseUrl: string; model: string; hasApiKey: boolean; credentialStore: 'system_keychain' | 'protected_file' }>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+  testAi: (settings?: { baseUrl: string; model: string; apiKey: string }) => request<{ ok: boolean; message: string }>('/api/ai/test', { method: 'POST', body: JSON.stringify(settings ?? {}) }),
+  getContext: (projectId: string, sceneId: string) => request<AiContextItem[]>(`/api/projects/${projectId}/scenes/${sceneId}/context`),
+  runAiTask: (input: { projectId: string; nodeId: string; taskType: string; instruction: string; selectedContextIds: string[] }) => request<AiTaskResult>('/api/ai/tasks', { method: 'POST', body: JSON.stringify(input) }),
+  listProvenance: (projectId: string, nodeId?: string) => request<ProvenanceEvent[]>(`/api/projects/${projectId}/provenance${nodeId ? `?nodeId=${encodeURIComponent(nodeId)}` : ''}`),
+  listProvenanceExports: (projectId: string) => request<ProvenanceExportRecord[]>(`/api/projects/${projectId}/provenance/exports`),
+  recordAiDecision: (projectId: string, nodeId: string, taskId: string, decision: 'accepted' | 'rejected' | 'undone') => request<ProvenanceEvent>(`/api/projects/${projectId}/provenance/ai-decisions`, { method: 'POST', body: JSON.stringify({ nodeId, taskId, decision }) }),
+  exportProvenance: (projectId: string, format: 'json' | 'html', includeTextExcerpts: boolean) => request<{ fileName: string; mimeType: string; content: string; manifestHash: string; eventCount: number }>(`/api/projects/${projectId}/provenance/exports`, { method: 'POST', body: JSON.stringify({ format, includeTextExcerpts }) }),
+  verifyProvenance: (bundle: ProvenanceBundle | unknown) => request<ProvenanceVerification>('/api/provenance/verify', { method: 'POST', body: JSON.stringify(bundle) }),
+  getSyncStatus: (projectId: string) => request<SyncProjectStatus>(`/api/projects/${projectId}/sync`),
+  initializeSync: (projectId: string, deviceName: string) => request<{ status: SyncProjectStatus; recoveryPhrase: string }>(`/api/projects/${projectId}/sync/initialize`, { method: 'POST', body: JSON.stringify({ deviceName }) }),
+  exportSyncPackage: (projectId: string, recoveryPhrase: string) => request<SyncTransferPackage>(`/api/projects/${projectId}/sync/export`, { method: 'POST', body: JSON.stringify({ recoveryPhrase }) }),
+  inspectSyncPackage: (syncPackage: unknown, recoveryPhrase: string) => request<SyncPackageInspection>('/api/sync/inspect', { method: 'POST', body: JSON.stringify({ package: syncPackage, recoveryPhrase }) }),
+  importSyncPackage: (syncPackage: unknown, recoveryPhrase: string, deviceName: string) => request<SyncApplyResult>('/api/sync/import', { method: 'POST', body: JSON.stringify({ package: syncPackage, recoveryPhrase, deviceName }) }),
+  listSyncConflicts: (projectId: string) => request<SyncConflict[]>(`/api/projects/${projectId}/sync/conflicts`),
+  resolveSyncConflict: (projectId: string, conflictId: string, resolution: 'keep_local' | 'use_remote' | 'acknowledge_remote') => request<SyncConflict>(`/api/projects/${projectId}/sync/conflicts/${conflictId}/resolve`, { method: 'POST', body: JSON.stringify({ resolution }) }),
+  runSyncDrill: () => request<SyncDrillResult>('/api/sync/drill', { method: 'POST' }),
+  restoreBackup: (archive: unknown) => request<Project>('/api/backups/restore', { method: 'POST', body: JSON.stringify(archive) }),
+}
+
+export function downloadUrl(path: string) {
+  return path
+}
