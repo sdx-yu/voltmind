@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4efe5" />
+  <title>笔不怠 · 移动真机验收</title>
+  <style>
+    :root { color-scheme: light; font-family: ui-serif, "Noto Serif SC", "Songti SC", serif; color: #28231d; background: #ece5d8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: max(24px, env(safe-area-inset-top)) 16px max(40px, env(safe-area-inset-bottom)); }
+    main { width: min(680px, 100%); margin: auto; }
+    header, section { background: #fffdf8; border: 1px solid #d8ccbb; border-radius: 18px; padding: 20px; margin-bottom: 14px; box-shadow: 0 8px 30px #59472b12; }
+    h1 { margin: 0 0 6px; font-size: 27px; font-weight: 650; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    p { line-height: 1.65; margin: 7px 0; }
+    .slogan { color: #725b3b; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .probe { background: #f5f0e7; border-radius: 10px; padding: 10px; overflow-wrap: anywhere; }
+    .probe b { display: block; font: 12px ui-sans-serif, system-ui; color: #806b4f; margin-bottom: 4px; }
+    label.check { display: flex; gap: 11px; align-items: flex-start; padding: 13px 0; border-top: 1px solid #e8dfd1; line-height: 1.5; }
+    label.check:first-of-type { border-top: 0; }
+    input[type="checkbox"] { width: 22px; height: 22px; flex: none; accent-color: #6f4c2e; }
+    input[type="text"] { width: 100%; border: 1px solid #cdbfae; border-radius: 10px; padding: 12px; margin: 6px 0 12px; font: 16px ui-sans-serif, system-ui; background: white; }
+    button { width: 100%; border: 0; border-radius: 12px; padding: 14px; color: #fff; background: #62452e; font-size: 16px; font-weight: 650; }
+    button:disabled { opacity: .45; }
+    .notice { font-family: ui-sans-serif, system-ui; font-size: 13px; color: #725f49; }
+    .ok { color: #267344; } .bad { color: #a33b30; }
+    @media (max-width: 410px) { .grid { grid-template-columns: 1fr; } header, section { padding: 17px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>笔不怠 · 移动真机验收</h1>
+    <p class="slogan">笔耕不怠，写尽所思。</p>
+    <p class="notice">此页只采集设备环境、布尔结果和脱敏截图文件名，不读取或保存正文。请分别在 360 / 390 / 430px 真机视口完成。</p>
+  </header>
+
+  <section>
+    <h2>自动环境探针</h2>
+    <div class="grid" id="probes"></div>
+    <p id="probe-status" class="notice">正在检查本地服务与 PWA…</p>
+  </section>
+
+  <section>
+    <h2>人工闭环</h2>
+    <label class="check"><input data-check="imeComposition" type="checkbox" /><span>中文输入法组合输入通过：拼音候选期间没有重复保存、丢字或光标跳动。</span></label>
+    <label class="check"><input data-check="offlineReopen" type="checkbox" /><span>离线重开通过：成功联网打开一次后断网、关闭页面并重新打开，仍可进入移动工作台。</span></label>
+    <label class="check"><input data-check="weakNetworkSave" type="checkbox" /><span>弱网保存通过：高延迟/短时断网期间编辑，恢复网络后内容仍在且没有重复条目。</span></label>
+    <label class="check"><input data-check="pwaUpdate" type="checkbox" /><span>PWA 更新通过：部署新版本后能出现更新并切换，新旧缓存没有白屏。</span></label>
+    <label class="check"><input data-check="encryptedHandoff" type="checkbox" /><span>加密接力通过：真机导出/接收接力包，错误口令被拒绝，正确口令可恢复。</span></label>
+
+    <label for="revision">源码提交（7–40 位 Git SHA）</label>
+    <input id="revision" type="text" inputmode="text" autocomplete="off" placeholder="例如 0123abcd" maxlength="40" />
+    <label for="screenshot">脱敏截图引用（只填文件名/证据编号）</label>
+    <input id="screenshot" type="text" autocomplete="off" placeholder="例如 ios-390-offline.png" maxlength="160" />
+    <button id="export" type="button">导出本机证据 JSON</button>
+    <p id="result" class="notice"></p>
+  </section>
+</main>
+<script>
+  const runtime = {
+    userAgent: navigator.userAgent,
+    secureContext: window.isSecureContext,
+    serviceWorkerSupported: 'serviceWorker' in navigator,
+    serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
+    cacheStorageSupported: 'caches' in window,
+    indexedDbSupported: 'indexedDB' in window,
+    touchPoints: navigator.maxTouchPoints || 0,
+    online: navigator.onLine,
+    healthOk: false,
+  }
+  const viewport = { width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio }
+  const probeRows = [
+    ['视口', `${viewport.width} × ${viewport.height} @${viewport.devicePixelRatio}`],
+    ['安全上下文', runtime.secureContext ? '是' : '否'],
+    ['触控点', String(runtime.touchPoints)],
+    ['Service Worker', runtime.serviceWorkerSupported ? (runtime.serviceWorkerControlled ? '已接管' : '支持/未接管') : '不支持'],
+    ['Cache Storage', runtime.cacheStorageSupported ? '支持' : '不支持'],
+    ['当前网络', runtime.online ? '在线' : '离线'],
+  ]
+  document.querySelector('#probes').innerHTML = probeRows.map(([name, value]) => `<div class="probe"><b>${name}</b>${value}</div>`).join('')
+
+  Promise.allSettled([
+    fetch('/api/health', { cache: 'no-store' }).then((response) => response.json()).then((body) => { runtime.healthOk = body.ok === true }),
+    navigator.serviceWorker?.ready,
+  ]).then(() => {
+    runtime.serviceWorkerControlled = Boolean(navigator.serviceWorker?.controller)
+    const passed = runtime.healthOk && runtime.secureContext && runtime.serviceWorkerSupported && runtime.touchPoints > 0
+    const status = document.querySelector('#probe-status')
+    status.className = `notice ${passed ? 'ok' : 'bad'}`
+    status.textContent = passed ? '环境探针通过；继续完成人工闭环。' : '环境探针未通过；请使用 HTTPS 真机浏览器并确认本地服务健康。'
+  })
+
+  document.querySelector('#export').addEventListener('click', () => {
+    const sourceRevision = document.querySelector('#revision').value.trim()
+    const screenshotReference = document.querySelector('#screenshot').value.trim()
+    const checks = Object.fromEntries([...document.querySelectorAll('[data-check]')].map((input) => [input.dataset.check, input.checked]))
+    const result = document.querySelector('#result')
+    if (!/^[a-f0-9]{7,40}$/i.test(sourceRevision) || !screenshotReference) {
+      result.className = 'notice bad'; result.textContent = '请填写有效 Git SHA 和脱敏截图引用。'; return
+    }
+    const evidence = {
+      schemaVersion: 'g4-mobile-device-v1', appVersion: '1.6.0', generatedAt: new Date().toISOString(),
+      sourceRevision, viewport, runtime, checks, screenshotReference,
+      manuscriptContentRecorded: false,
+    }
+    const blob = new Blob([`${JSON.stringify(evidence, null, 2)}\n`], { type: 'application/json' })
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob)
+    link.download = `g4-mobile-${viewport.width}-${Date.now()}.json`; link.click(); URL.revokeObjectURL(link.href)
+    result.className = 'notice ok'; result.textContent = '证据已导出。请与脱敏截图一同交给发布负责人复核。'
+  })
+</script>
+</body>
+</html>

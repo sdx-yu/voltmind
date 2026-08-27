@@ -203,3 +203,15 @@
 | 正式 macOS 分发 | 外部验证 | G4-MAC-DISTRIBUTION | 缺 Developer ID、Gatekeeper 接受和 stapled 公证票据 |
 | Windows 与移动真机 | 外部验证 | G4-WINDOWS/G4-MOBILE | 缺 Windows x64 签名包、安装/卸载/IME/恢复矩阵与移动真机矩阵 |
 | 真实种子作者 | 外部验证 | R1-SEED | 真实波次仍未开始；需至少 5 名两周、3 名四周且人工复核 |
+
+## G4-B 外部门执行工具包追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| Windows sidecar 构建 | 工程通过/待 Windows | `node-runtime-core.mjs`、`fetch-node-runtime.mjs`、`build-sidecar.mjs` | Node 官方 ZIP SHA-256 校验、`node.exe` SEA、Windows x64 target triple 单测 |
+| macOS 正式分发执行器 | 工程通过/待凭据 | `scripts/g4/macos-release.mjs` | 完整 Xcode、Developer ID、公证凭据硬前检；codesign/Gatekeeper/stapler/DMG 结果与制品哈希证据 |
+| Windows 正式分发执行器 | 工程通过/待主机凭据 | `scripts/g4/windows-release.mjs`、`tauri.windows.conf.json` | 私钥/有效期/代码签名 EKU、RFC 3161、NSIS/MSI 与 Authenticode 指纹复核 |
+| Windows 真机矩阵 | 工程通过/待 Windows | `scripts/g4/windows-matrix.ps1` | x64、安装包哈希、签名、安装/卸载、微软拼音、搜狗拼音、强退恢复与脱敏截图引用 |
+| 移动真机矩阵 | 工程通过/待真机 | `mobile-acceptance.html`、`mobile-matrix-core.mjs` | 360/390/430px、iOS Safari/Android Chrome、安全触控 PWA 与五项闭环；伪桌面/缺项负例单测 |
+| 真实作者启动 | 工程与台本通过/待外部波次 | `SEED_WAVE_LAUNCH_KIT.md`、R1-C 执行台 | 招募/同意/安全交付/支持/删除/停机与 2/4 周节奏；未发送邀请、未创建虚构样本 |
+| 外部门结论 | 外部验证 | G4-A 七门决策 | 当前环境不满足身份、平台、设备、人员与时间条件，公开发布继续 NO-GO |

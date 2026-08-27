@@ -19,7 +19,13 @@
     "desktop:prepare": "npm run build && npm run sidecar:build",
     "desktop:dev": "npm run desktop:prepare && node scripts/run-tauri.mjs dev",
     "desktop:build": "npm run desktop:prepare && node scripts/run-tauri.mjs build --bundles app,dmg",
+    "release:macos": "node scripts/g4/macos-release.mjs",
+    "release:macos:preflight": "node scripts/g4/macos-release.mjs --preflight-only",
+    "release:windows": "node scripts/g4/windows-release.mjs",
+    "release:windows:preflight": "node scripts/g4/windows-release.mjs --preflight-only",
+    "release:mobile:verify": "node scripts/g4/verify-mobile-matrix.mjs",
     "release:materials": "mkdir -p release && cyclonedx-npm --omit dev --output-file release/bom.cdx.json --spec-version 1.6 && license-checker --production --json --out release/third-party-licenses.json",
+    "release:checksums": "node scripts/update-release-checksums.mjs",
     "release:readiness": "node scripts/check-release-readiness.mjs"
   },
   "dependencies": {

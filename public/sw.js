@@ -1,6 +1,6 @@
 const CURRENT_SHELL = 'bbd-shell-v1.6.0'
 const SHELL_PREFIX = 'bbd-shell-'
-const CORE = ['/', '/?mobile=1', '/manifest.webmanifest', '/pwa-192.png', '/pwa-512.png']
+const CORE = ['/', '/?mobile=1', '/mobile-acceptance.html', '/manifest.webmanifest', '/pwa-192.png', '/pwa-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

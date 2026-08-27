@@ -3,9 +3,10 @@ import path from 'node:path'
 import process from 'node:process'
 import { execFileSync } from 'node:child_process'
 import { build } from 'esbuild'
+import { resolveNodeRuntime } from './node-runtime-core.mjs'
 
 const root = process.cwd()
-const runtimeNode = path.join(root, '.tooling', 'node-runtime', 'bin', 'node')
+const runtimeNode = resolveNodeRuntime(root, process.platform, process.arch).runtimeExecutable
 if (!fs.existsSync(runtimeNode)) throw new Error('缺少已校验的 Node 官方运行时，请先执行 scripts/fetch-node-runtime.mjs')
 const staging = path.join(root, '.tooling', 'sidecar')
 const binaries = path.join(root, 'src-tauri', 'binaries')

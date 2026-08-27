@@ -23,17 +23,22 @@ npm run dev
 npm run check
 ```
 
-## macOS 桌面构建
+## 桌面构建与正式发布前检
 
 ```bash
 npm run desktop:build
 npm run release:materials
+npm run release:checksums
+npm run release:macos:preflight
+# Windows x64 主机：npm run release:windows:preflight
 ```
 
 - Tauri/Rust 工具链存放在项目 `.tooling/`，不会修改全局 shell 配置；
 - sidecar 使用 SHA-256 校验过的 Node 官方运行时，终端用户无需安装 Node；
 - 构建物位于 `src-tauri/target/release/bundle/`；RC1 交付副本与 SBOM 位于 `release/`；
-- 当前为 Apple Silicon ad-hoc 签名内测包，尚未 Developer ID 签名或 Apple 公证。
+- 当前为 Apple Silicon ad-hoc 签名内测包，尚未 Developer ID 签名或 Apple 公证；正式凭据到位后使用 `npm run release:macos`；
+- Windows x64 已具备官方 Node runtime sidecar、NSIS/MSI、证书前检和 Authenticode 复核脚本，必须在 Windows 主机执行；
+- 移动真机打开 `/mobile-acceptance.html` 采集证据，使用 `npm run release:mobile:verify -- <三个 JSON>` 汇总。
 
 ## 文档
 
@@ -82,6 +87,8 @@ npm run release:materials
 - [R1-A 真实验证基础设施](docs/implementation/R1A_PLAN.md)
 - [R1-B 受控种子研究台](docs/implementation/R1B_PLAN.md)
 - [R1-C 受控两周波次执行](docs/implementation/R1C_PLAN.md)
+- [G4-B 外部门执行工具包](docs/implementation/G4B_PLAN.md)
+- [种子作者波次启动包](docs/user/SEED_WAVE_LAUNCH_KIT.md)
 - [移动收集与审阅指南](docs/user/MOBILE_COMPANION.md)
 - [角色化审阅接力指南](docs/user/ROLE_REVIEW.md)
 - [安静冲刺与小组目标指南](docs/user/QUIET_SPRINTS.md)
