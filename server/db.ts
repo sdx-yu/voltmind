@@ -66,7 +66,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 15)
+    backupBeforeMigration(databasePath, 16)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -1025,6 +1025,53 @@ export class AppDatabase {
           );
         `)
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(15, nowIso())
+      })
+    }
+    if (version < 16) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE research_waves (
+            id TEXT PRIMARY KEY,
+            display_code TEXT NOT NULL UNIQUE,
+            kind TEXT NOT NULL CHECK(kind IN ('external_controlled','engineering_rehearsal')),
+            status TEXT NOT NULL CHECK(status IN ('draft','recruiting','active','paused','review','closed','cancelled')),
+            window_start TEXT NOT NULL,
+            window_end TEXT NOT NULL,
+            target_participants INTEGER NOT NULL,
+            quotas_json TEXT NOT NULL,
+            readiness_json TEXT NOT NULL,
+            protocol_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+
+          CREATE TABLE research_wave_events (
+            id TEXT PRIMARY KEY,
+            wave_id TEXT NOT NULL REFERENCES research_waves(id) ON DELETE CASCADE,
+            sequence INTEGER NOT NULL,
+            event_type TEXT NOT NULL CHECK(event_type IN ('created','status_changed','incident_opened','incident_resolved','participant_linked')),
+            payload_json TEXT NOT NULL,
+            previous_hash TEXT,
+            event_hash TEXT NOT NULL UNIQUE,
+            occurred_at TEXT NOT NULL,
+            UNIQUE(wave_id, sequence)
+          );
+          CREATE INDEX idx_research_wave_events_wave ON research_wave_events(wave_id, sequence);
+
+          CREATE TABLE research_wave_incidents (
+            id TEXT PRIMARY KEY,
+            wave_id TEXT NOT NULL REFERENCES research_waves(id) ON DELETE CASCADE,
+            code TEXT NOT NULL CHECK(code IN ('onboarding_blocked','support_request','recovery_failed','data_loss','privacy_request','protocol_deviation')),
+            severity TEXT NOT NULL CHECK(severity IN ('low','medium','high','critical')),
+            opened_at TEXT NOT NULL,
+            resolved_at TEXT
+          );
+          CREATE INDEX idx_research_wave_incidents_wave ON research_wave_incidents(wave_id, opened_at DESC);
+
+          ALTER TABLE research_cohort_participants ADD COLUMN wave_id TEXT REFERENCES research_waves(id);
+          CREATE INDEX idx_research_cohort_participants_wave ON research_cohort_participants(wave_id, first_received_at);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(16, nowIso())
       })
     }
     const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()

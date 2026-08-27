@@ -87,7 +87,7 @@ export function ResearchWorkspace({ projects, onBack, onOpenCohort, notify }: Pr
   if (!status) return <div className="workspace-loading"><span className="brand-mark">笔</span><p>正在读取验证计划…</p></div>
   const allConfirmed = Object.values(confirmations).every(Boolean)
   return <main className="research-workspace">
-    <header className="workspace-topbar research-topbar"><div className="workspace-title"><button className="icon-button" onClick={onBack} aria-label="返回书架"><ArrowLeft size={18}/></button><span className="mini-brand">笔</span><div><strong>R1 真实作者验证</strong><small>1.5.0 · 本机证据准备</small></div></div><span className="gate-badge no-go" aria-label="公开发布 NO-GO"><TriangleAlert size={14}/><span>公开发布 </span>NO-GO</span></header>
+    <header className="workspace-topbar research-topbar"><div className="workspace-title"><button className="icon-button" onClick={onBack} aria-label="返回书架"><ArrowLeft size={18}/></button><span className="mini-brand">笔</span><div><strong>R1 真实作者验证</strong><small>1.6.0 · 本机证据准备</small></div></div><span className="gate-badge no-go" aria-label="公开发布 NO-GO"><TriangleAlert size={14}/><span>公开发布 </span>NO-GO</span></header>
     <section className="research-content">
       <header className="page-header"><div><span className="eyebrow">真实验证，不造数据</span><h1>验证它是否真的减少翻资料、返工和穿帮</h1><p>这里建立可校验的本机研究记录。没有自动上传；本机测试、自动化测试和导出动作都不能替代真实作者与真实周期。</p></div><button className="button ghost" onClick={onOpenCohort}><FlaskConical size={16}/>研究负责人工作台</button></header>
 

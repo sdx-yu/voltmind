@@ -20,6 +20,7 @@ import { TemplateService } from './template.js'
 import { VisualService } from './visual.js'
 import { ResearchService, buildReleaseReadiness, buildSupportBundle } from './research.js'
 import { ResearchCohortService } from './researchCohort.js'
+import { ResearchWaveService } from './researchWave.js'
 import type { VisualSelectedField } from '../shared/types.js'
 import { newId, nowIso, sha256 } from './utils.js'
 
@@ -48,6 +49,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   const visuals = new VisualService(database)
   const research = new ResearchService(database)
   const researchCohort = new ResearchCohortService(database)
+  const researchWaves = new ResearchWaveService(database)
   const sessionToken = randomBytes(24).toString('hex')
   const allowedOrigins = new Set([`http://${config.host}:4318`, `http://${config.host}:${config.port}`])
 
@@ -478,8 +480,9 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
       segment: z.enum(['web_serial', 'revision_novel', 'ai_assisted', 'other_target']),
       attestation: z.object({ targetAuthorConfirmed: z.boolean(), independentParticipantConfirmed: z.boolean(), manuscriptRightsConfirmed: z.boolean(), realUseConfirmed: z.boolean() }).strict(),
       retentionUntil: z.iso.datetime(),
+      waveId: z.string().uuid().nullable().optional(),
     }).strict().parse(req.body)
-    res.status(201).json(researchCohort.importBundle({ researchPackage: input.package, evidenceClass: input.evidenceClass, segment: input.segment, attestation: input.attestation, retentionUntil: input.retentionUntil }))
+    res.status(201).json(researchCohort.importBundle({ researchPackage: input.package, evidenceClass: input.evidenceClass, segment: input.segment, attestation: input.attestation, retentionUntil: input.retentionUntil, waveId: input.waveId }))
   }))
   app.delete('/api/research-cohort/participants/:hash', route(async (req, res) => {
     z.object({ confirm: z.literal(true) }).strict().parse(req.body)
@@ -490,6 +493,28 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     res.json(researchCohort.purgeExpired())
   }))
   app.get('/api/research-cohort/export', route(async (_req, res) => res.json(researchCohort.exportBundle())))
+  app.get('/api/research-waves/status', route(async (_req, res) => res.json(researchWaves.getStatus())))
+  app.post('/api/research-waves', route(async (req, res) => {
+    const input = z.object({
+      kind: z.enum(['external_controlled', 'engineering_rehearsal']), windowStart: z.iso.datetime(), windowEnd: z.iso.datetime(), targetParticipants: z.number().int().min(1).max(10),
+      quotas: z.object({ web_serial: z.number().int().nonnegative(), revision_novel: z.number().int().nonnegative(), ai_assisted: z.number().int().nonnegative(), other_target: z.number().int().nonnegative() }).strict(),
+      readiness: z.object({ protocolReviewed: z.boolean(), controlledRosterReady: z.boolean(), deletionContactReady: z.boolean(), supportRouteRehearsed: z.boolean() }).strict(),
+    }).strict().parse(req.body)
+    res.status(201).json(researchWaves.createWave(input))
+  }))
+  app.post('/api/research-waves/:id/transition', route(async (req, res) => {
+    const next = z.object({ next: z.enum(['draft', 'recruiting', 'active', 'paused', 'review', 'closed', 'cancelled']) }).strict().parse(req.body).next
+    res.json(researchWaves.transition(param(req, 'id'), next))
+  }))
+  app.post('/api/research-waves/:id/incidents', route(async (req, res) => {
+    const input = z.object({ code: z.enum(['onboarding_blocked', 'support_request', 'recovery_failed', 'data_loss', 'privacy_request', 'protocol_deviation']), severity: z.enum(['low', 'medium', 'high', 'critical']) }).strict().parse(req.body)
+    res.status(201).json(researchWaves.reportIncident(param(req, 'id'), input.code, input.severity))
+  }))
+  app.post('/api/research-waves/:id/incidents/:incidentId/resolve', route(async (req, res) => {
+    z.object({ confirm: z.literal(true) }).strict().parse(req.body)
+    res.json(researchWaves.resolveIncident(param(req, 'id'), param(req, 'incidentId')))
+  }))
+  app.get('/api/research-waves/:id/kit', route(async (req, res) => res.json(researchWaves.exportKit(param(req, 'id')))))
 
   app.get('/api/mobile/inbox', route(async (req, res) => res.json(database.listMobileInbox(req.query.projectId ? String(req.query.projectId) : undefined))))
   app.post('/api/mobile/inbox', route(async (req, res) => {
@@ -573,10 +598,10 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写|strict continuation|consent receipt changed|was deleted/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|semantic verification|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project/i.test(message) ? 400 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写|strict continuation|consent receipt changed|was deleted|cannot change waves|target is already full|segment quota is already full|Invalid research wave transition|Closed research wave/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|semantic verification|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project|frozen wave window|accepts only|not accepting packages/i.test(message) ? 400 : 500
     return res.status(status).json({ error: message })
   })
-  return { app, database, ai, sync, reviews, sprints, templates, visuals, research, researchCohort }
+  return { app, database, ai, sync, reviews, sprints, templates, visuals, research, researchCohort, researchWaves }
 }
 
 function route(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {

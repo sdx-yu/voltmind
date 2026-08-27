@@ -10,6 +10,7 @@ import { getConfig } from '../../server/config.js'
 import { AppDatabase } from '../../server/db.js'
 import { RESEARCH_CONSENT_HASH } from '../../server/research.js'
 import { ResearchCohortService } from '../../server/researchCohort.js'
+import { ResearchWaveService } from '../../server/researchWave.js'
 import { sha256 } from '../../server/utils.js'
 
 describe('R1-B controlled cohort evidence', () => {
@@ -22,12 +23,12 @@ describe('R1-B controlled cohort evidence', () => {
 
   it('backs up schema v14 before creating the three coordinator tables', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DELETE FROM schema_migrations WHERE version=15;')
+    db.db.exec('DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DELETE FROM schema_migrations WHERE version IN (15,16);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 15 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 16 })
     expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name LIKE 'research_cohort_%'").get()).toMatchObject({ count: 3 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v14-to-v15-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v14-to-v16-'))).toBe(true)
   })
 
   it('never counts fixtures and requires all four attestations for an external sample', () => {
@@ -81,14 +82,37 @@ describe('R1-B controlled cohort evidence', () => {
     const bundle = buildBundle('R1-000000000030', twoWeeks)
     await request(result.app).post('/api/research-cohort/import').set('Cookie', cookie).send({ package: bundle, evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate() }).expect(201)
     const status = (await request(result.app).get('/api/research-cohort/status').set('Cookie', cookie).expect(200)).body
-    expect(status).toMatchObject({ appVersion: '1.5.0', aggregate: { engineeringFixtures: 1, externalAttestedParticipants: 0 }, privacy: { storesRawResearchPackages: false, fixturesCountTowardGates: false } })
+    expect(status).toMatchObject({ appVersion: '1.6.0', aggregate: { engineeringFixtures: 1, externalAttestedParticipants: 0 }, privacy: { storesRawResearchPackages: false, fixturesCountTowardGates: false } })
     const support = (await request(result.app).get('/api/support/bundle').set('Cookie', cookie).expect(200)).body
     expect(support.manifest.counts.cohortParticipants).toBe(1)
+  })
+
+  it('assigns only matching evidence to immutable waves and rolls back a failed late assignment', () => {
+    const db = database('wave-assignment'); const cohort = new ResearchCohortService(db); const waves = new ResearchWaveService(db)
+    const rehearsal = waves.createWave({ kind: 'engineering_rehearsal', windowStart: '2026-01-01T00:00:00.000Z', windowEnd: '2026-01-15T00:00:00.000Z', targetParticipants: 2, quotas: { web_serial: 2, revision_novel: 0, ai_assisted: 0, other_target: 0 }, readiness: waveReadiness }, '2026-01-01T00:00:00.000Z')
+    waves.transition(rehearsal.id, 'recruiting', '2026-01-01T00:00:00.000Z')
+    const assigned = cohort.importBundle({ researchPackage: buildBundle('R1-000000000040', twoWeeks), evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate(), waveId: rehearsal.id })
+    expect(assigned.participant.waveId).toBe(rehearsal.id)
+    expect(JSON.stringify(db.db.prepare('SELECT payload_json FROM research_wave_events WHERE wave_id=? AND event_type=?').get(rehearsal.id, 'participant_linked'))).not.toContain(assigned.participant.participantCodeHash)
+    expect(waves.getStatus().externalExecution).toMatchObject({ waveCount: 0, participantCount: 0, status: 'not_started' })
+
+    const external = waves.createWave({ kind: 'external_controlled', windowStart: '2026-01-01T00:00:00.000Z', windowEnd: '2026-01-15T00:00:00.000Z', targetParticipants: 5, quotas: { web_serial: 2, revision_novel: 1, ai_assisted: 1, other_target: 1 }, readiness: waveReadiness }, '2026-01-01T00:00:00.000Z')
+    waves.transition(external.id, 'recruiting', '2026-01-01T00:00:00.000Z')
+    expect(() => cohort.importBundle({ researchPackage: buildBundle('R1-000000000041', twoWeeks), evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate(), waveId: external.id })).toThrow(/attested external evidence/i)
+    const real = cohort.importBundle({ researchPackage: buildBundle('R1-000000000042', twoWeeks), evidenceClass: 'external_attested', segment: 'revision_novel', attestation: fullAttestation, retentionUntil: futureDate(), waveId: external.id })
+    expect(real.participant.waveId).toBe(external.id)
+    expect(() => cohort.importBundle({ researchPackage: buildBundle('R1-000000000044', twoWeeks), evidenceClass: 'external_attested', segment: 'revision_novel', attestation: fullAttestation, retentionUntil: futureDate(), waveId: external.id })).toThrow(/segment quota/i)
+
+    const unassignedCode = 'R1-000000000043'; cohort.importBundle({ researchPackage: buildBundle(unassignedCode, twoWeeks), evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate() })
+    expect(() => cohort.importBundle({ researchPackage: buildBundle(unassignedCode, twoWeeks, { firstTaskType: 'fact_lookup' }), evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate(), waveId: rehearsal.id })).toThrow(/strict continuation/i)
+    expect(cohort.getStatus().participants.find((participant) => participant.participantCodeHash === participantHashForTest(unassignedCode))?.waveId).toBeNull()
+    expect(() => cohort.importBundle({ researchPackage: buildBundle('R1-000000000040', twoWeeks), evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate(), waveId: external.id })).toThrow(/cannot change waves/i)
   })
 })
 
 const noAttestation: CohortAttestation = { targetAuthorConfirmed: false, independentParticipantConfirmed: false, manuscriptRightsConfirmed: false, realUseConfirmed: false }
 const fullAttestation: CohortAttestation = { targetAuthorConfirmed: true, independentParticipantConfirmed: true, manuscriptRightsConfirmed: true, realUseConfirmed: true }
+const waveReadiness = { protocolReviewed: true, controlledRosterReady: true, deletionContactReady: true, supportRouteRehearsed: true }
 const twoWeeks = ['2026-01-03T12:00:00.000Z', '2026-01-12T12:00:00.000Z']
 const fourWeeks = [...twoWeeks, '2026-01-19T12:00:00.000Z', '2026-01-26T12:00:00.000Z']
 
@@ -119,4 +143,5 @@ function appendEvent(events: ResearchBundleEvent[], eventType: ResearchBundleEve
 }
 function futureDate() { return new Date(Date.now() + 90 * 86_400_000).toISOString() }
 function weekBucket(value: string) { const date = new Date(value); const day = (date.getUTCDay() + 6) % 7; date.setUTCDate(date.getUTCDate() - day); return date.toISOString().slice(0, 10) }
+function participantHashForTest(code: string) { return sha256(`r1b-cohort-v1|${code}`) }
 function stableStringify(value: unknown): string { if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`; if (value && typeof value === 'object') return `{${Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`).join(',')}}`; return JSON.stringify(value) }

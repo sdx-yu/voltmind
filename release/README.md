@@ -28,6 +28,8 @@
 - `笔不怠_1.4.0_aarch64.app.zip`：R1-A 应用压缩包；
 - `笔不怠_1.5.0_aarch64.dmg`：R1-B 受控种子研究台 macOS Apple Silicon 内测镜像；
 - `笔不怠_1.5.0_aarch64.app.zip`：R1-B 应用压缩包；
+- `笔不怠_1.6.0_aarch64.dmg`：R1-C 受控两周波次执行 macOS Apple Silicon 内测镜像；
+- `笔不怠_1.6.0_aarch64.app.zip`：R1-C 应用压缩包；
 - `SHA256SUMS`：各版本应用包和上述物料的 SHA-256 校验。
 
 本目录不包含签名私钥或 API Key。macOS 内测包当前仅为 ad-hoc 签名，正式对外分发前仍需 Developer ID 签名与 Apple 公证。

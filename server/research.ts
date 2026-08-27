@@ -21,7 +21,7 @@ import { jsonParse, newId, nowIso, sha256 } from './utils.js'
 
 type Row = Record<string, unknown>
 
-export const APP_VERSION = '1.5.0'
+export const APP_VERSION = '1.6.0'
 export const RESEARCH_CONSENT_VERSION = 'r1-consent-v1' as const
 export const RESEARCH_CONSENT_TEXT = '我自愿参加笔不怠 R1 本地验证。我确认使用自己拥有权利的稿件；应用只在本机记录任务类型、耗时、完成情况、难度、预估节省时间和预定义问题码，不记录或上传正文、书名、正典、Prompt、密钥与设备路径；只有我主动导出研究包时数据才会离开本机；我可以随时退出并清除当前数据库中的研究记录。已有历史数据库快照按备份策略保留，需要由我另行管理；已交给研究负责人的副本需要另行联系删除。'
 export const RESEARCH_CONSENT_HASH = sha256(RESEARCH_CONSENT_TEXT)
@@ -212,6 +212,7 @@ export function buildSupportBundle(database: AppDatabase, config: AppConfig): Su
       activeSprints: count("SELECT COUNT(*) AS count FROM sprint_sessions WHERE status IN ('running','paused')"),
       researchTasks: count('SELECT COUNT(*) AS count FROM research_tasks'),
       cohortParticipants: count('SELECT COUNT(*) AS count FROM research_cohort_participants'),
+      researchWaves: count('SELECT COUNT(*) AS count FROM research_waves'),
     },
     privacy: { containsManuscriptText: false, containsTitlesOrIds: false, containsPaths: false, containsPromptsOrSecrets: false },
   }
@@ -225,7 +226,7 @@ export function buildReleaseReadiness(database: AppDatabase, config: AppConfig):
     publicRelease: 'NO-GO',
     engineering: [
       { gate: '数据库完整性', status: database.integrityCheck() === 'ok' ? 'pass' : 'not_run', evidence: database.integrityCheck() },
-      { gate: 'R1 数据迁移', status: schemaVersion === 15 ? 'pass' : 'not_run', evidence: `schema v${schemaVersion}` },
+      { gate: 'R1 数据迁移', status: schemaVersion === 16 ? 'pass' : 'not_run', evidence: `schema v${schemaVersion}` },
       { gate: '回环地址隔离', status: ['127.0.0.1', 'localhost', '::1'].includes(config.host) ? 'pass' : 'not_run', evidence: config.host },
       { gate: '生产静态资源', status: config.production && fs.existsSync(config.staticDir) ? 'pass' : 'not_run', evidence: config.production ? '已检查生产资源目录' : '开发模式不计入发布证据' },
     ],

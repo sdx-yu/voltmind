@@ -12,6 +12,7 @@ import type {
 import { AppDatabase } from './db.js'
 import { APP_VERSION, parseResearchBundle } from './research.js'
 import { jsonParse, newId, nowIso, sha256 } from './utils.js'
+import { ResearchWaveService } from './researchWave.js'
 
 type Row = Record<string, unknown>
 
@@ -39,19 +40,23 @@ export class ResearchCohortService {
     segment: CohortSegment
     attestation: CohortAttestation
     retentionUntil: string
+    waveId?: string | null
   }): CohortImportResult {
     const parsed = parseResearchBundle(input.researchPackage)
     if (!parsed.inspection.ok) throw new Error('Research package failed integrity or semantic verification')
     const { bundle } = parsed; const participantCodeHash = participantHash(bundle.manifest.participantCode); const receivedAt = nowIso()
     if (this.hasDeletionReceipt(participantCodeHash)) throw new Error('Research participant was deleted and cannot be re-imported')
     const existing = this.database.db.prepare('SELECT * FROM research_cohort_participants WHERE participant_code_hash=?').get(participantCodeHash) as Row | undefined
-    if (existing) return this.updateExisting(existing, bundle, receivedAt)
+    if (existing) return this.updateExisting(existing, bundle, input.waveId ?? null, receivedAt)
     validateNewParticipantInput(input, receivedAt)
+    const waves = new ResearchWaveService(this.database)
+    if (input.waveId) waves.validateAssignment(input.waveId, input.evidenceClass, input.segment, bundle.manifest.consent.consentedAt)
     const id = newId(); const summary = summarize(bundle)
     this.database.transaction(() => {
-      this.database.db.prepare(`INSERT INTO research_cohort_participants(id,participant_code_hash,consent_receipt_hash,evidence_class,segment,attestation_json,retention_until,first_received_at,latest_received_at)
-        VALUES(?,?,?,?,?,?,?,?,?)`).run(id, participantCodeHash, bundle.manifest.consent.receiptHash, input.evidenceClass, input.segment, JSON.stringify(input.attestation), input.retentionUntil, receivedAt, receivedAt)
+      this.database.db.prepare(`INSERT INTO research_cohort_participants(id,participant_code_hash,consent_receipt_hash,evidence_class,segment,attestation_json,retention_until,first_received_at,latest_received_at,wave_id)
+        VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, participantCodeHash, bundle.manifest.consent.receiptHash, input.evidenceClass, input.segment, JSON.stringify(input.attestation), input.retentionUntil, receivedAt, receivedAt, input.waveId ?? null)
       this.insertSubmission(id, bundle, summary, receivedAt)
+      if (input.waveId) waves.recordParticipantLinked(input.waveId, participantCodeHash, receivedAt)
     })
     const status = this.getStatus(receivedAt); const participant = status.participants.find((item) => item.participantCodeHash === participantCodeHash)!
     return { disposition: 'imported', participant, aggregate: status.aggregate }
@@ -85,22 +90,37 @@ export class ResearchCohortService {
       appVersion: APP_VERSION,
       thresholds: { twoWeekParticipants: 5, fourWeekParticipants: 3, coreLoopParticipants: 3, dataLossReports: 0 },
       aggregate: status.aggregate,
-      participants: status.participants.map(({ retentionUntil: _retentionUntil, firstReceivedAt: _firstReceivedAt, latestReceivedAt: _latestReceivedAt, ...participant }) => participant),
+      participants: status.participants.map(({ waveId: _waveId, retentionUntil: _retentionUntil, firstReceivedAt: _firstReceivedAt, latestReceivedAt: _latestReceivedAt, ...participant }) => participant),
       privacy: { containsParticipantCodes: false, containsManuscriptText: false, containsTitlesOrIds: false, containsPromptsOrSecrets: false, containsRawPackages: false },
     }
     return { format: 'bbd-cohort-v1', manifest, manifestHash: sha256(stableStringify(manifest)) }
   }
 
-  private updateExisting(row: Row, bundle: ResearchBundle, receivedAt: string): CohortImportResult {
+  private updateExisting(row: Row, bundle: ResearchBundle, waveId: string | null, receivedAt: string): CohortImportResult {
     if (String(row.consent_receipt_hash) !== bundle.manifest.consent.receiptHash) throw new Error('Research consent receipt changed for an existing participant')
-    const participantId = String(row.id)
-    if (this.database.db.prepare('SELECT 1 FROM research_cohort_submissions WHERE manifest_hash=?').get(bundle.manifestHash)) return this.resultFor(String(row.participant_code_hash), 'unchanged', receivedAt)
+    const participantId = String(row.id); const existingWaveId = row.wave_id ? String(row.wave_id) : null; const waves = new ResearchWaveService(this.database)
+    if (existingWaveId && waveId && existingWaveId !== waveId) throw new Error('Research participant cannot change waves')
+    const pendingWaveId = !existingWaveId && waveId ? waveId : null
+    if (pendingWaveId) waves.validateAssignment(pendingWaveId, String(row.evidence_class) as CohortEvidenceClass, String(row.segment) as CohortSegment, bundle.manifest.consent.consentedAt)
+    const linkPendingWave = () => {
+      if (!pendingWaveId) return
+      this.database.db.prepare('UPDATE research_cohort_participants SET wave_id=? WHERE id=?').run(pendingWaveId, participantId)
+      waves.recordParticipantLinked(pendingWaveId, String(row.participant_code_hash), receivedAt)
+    }
+    if (this.database.db.prepare('SELECT 1 FROM research_cohort_submissions WHERE manifest_hash=?').get(bundle.manifestHash)) {
+      if (pendingWaveId) this.database.transaction(linkPendingWave)
+      return this.resultFor(String(row.participant_code_hash), 'unchanged', receivedAt)
+    }
     const latest = this.database.db.prepare('SELECT * FROM research_cohort_submissions WHERE participant_id=? ORDER BY event_count DESC,received_at DESC LIMIT 1').get(participantId) as Row
     const previousHashes = jsonParse(String(latest.event_hashes_json), []) as string[]; const nextHashes = bundle.manifest.events.map((event) => event.eventHash)
-    if (nextHashes.length === previousHashes.length && nextHashes.every((hash, index) => hash === previousHashes[index])) return this.resultFor(String(row.participant_code_hash), 'unchanged', receivedAt)
+    if (nextHashes.length === previousHashes.length && nextHashes.every((hash, index) => hash === previousHashes[index])) {
+      if (pendingWaveId) this.database.transaction(linkPendingWave)
+      return this.resultFor(String(row.participant_code_hash), 'unchanged', receivedAt)
+    }
     if (nextHashes.length <= previousHashes.length || !previousHashes.every((hash, index) => nextHashes[index] === hash)) throw new Error('Research event chain is not a strict continuation')
     const summary = summarize(bundle)
     this.database.transaction(() => {
+      linkPendingWave()
       this.insertSubmission(participantId, bundle, summary, receivedAt)
       this.database.db.prepare('UPDATE research_cohort_participants SET latest_received_at=? WHERE id=?').run(receivedAt, participantId)
     })
@@ -125,7 +145,7 @@ export class ResearchCohortService {
     const submissionCount = Number((this.database.db.prepare('SELECT COUNT(*) AS count FROM research_cohort_submissions WHERE participant_id=?').get(String(row.id)) as Row).count)
     const observedWeekBuckets = Number(latest.observed_week_buckets); const activeSpanDays = Number(latest.active_span_days); const completedCoreLoops = Number(latest.completed_core_loops)
     return {
-      participantCodeHash: String(row.participant_code_hash), evidenceClass: String(row.evidence_class) as CohortEvidenceClass, segment: String(row.segment) as CohortSegment, retentionUntil: String(row.retention_until), expired: Date.parse(String(row.retention_until)) <= Date.parse(at), firstReceivedAt: String(row.first_received_at), latestReceivedAt: String(row.latest_received_at), submissionCount,
+      participantCodeHash: String(row.participant_code_hash), waveId: row.wave_id ? String(row.wave_id) : null, evidenceClass: String(row.evidence_class) as CohortEvidenceClass, segment: String(row.segment) as CohortSegment, retentionUntil: String(row.retention_until), expired: Date.parse(String(row.retention_until)) <= Date.parse(at), firstReceivedAt: String(row.first_received_at), latestReceivedAt: String(row.latest_received_at), submissionCount,
       observedWeekBuckets, activeSpanDays, completedTasks: Number(latest.completed_tasks), completedCoreLoops, reportedMinutesSaved: Number(latest.reported_minutes_saved), dataLossReports: Number(latest.data_loss_reports), falsePositiveReports: Number(latest.false_positive_reports), missedFactReports: Number(latest.missed_fact_reports), completedOutcomes: Number(latest.completed_outcomes), abandonedOutcomes: Number(latest.abandoned_outcomes),
       twoWeekQualified: observedWeekBuckets >= 2 && activeSpanDays >= 8, fourWeekQualified: observedWeekBuckets >= 4 && activeSpanDays >= 22, coreLoopQualified: observedWeekBuckets >= 2 && activeSpanDays >= 8 && completedCoreLoops >= 2,
     }

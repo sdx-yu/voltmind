@@ -866,6 +866,7 @@ export interface CohortAttestation {
 
 export interface CohortParticipantSummary {
   participantCodeHash: string
+  waveId: string | null
   evidenceClass: CohortEvidenceClass
   segment: CohortSegment
   retentionUntil: string
@@ -944,8 +945,74 @@ export interface CohortBundle {
     appVersion: string
     thresholds: { twoWeekParticipants: 5; fourWeekParticipants: 3; coreLoopParticipants: 3; dataLossReports: 0 }
     aggregate: CohortAggregate
-    participants: Array<Omit<CohortParticipantSummary, 'retentionUntil' | 'firstReceivedAt' | 'latestReceivedAt'>>
+    participants: Array<Omit<CohortParticipantSummary, 'waveId' | 'retentionUntil' | 'firstReceivedAt' | 'latestReceivedAt'>>
     privacy: { containsParticipantCodes: false; containsManuscriptText: false; containsTitlesOrIds: false; containsPromptsOrSecrets: false; containsRawPackages: false }
+  }
+  manifestHash: string
+}
+
+export type ResearchWaveKind = 'external_controlled' | 'engineering_rehearsal'
+export type ResearchWaveStatus = 'draft' | 'recruiting' | 'active' | 'paused' | 'review' | 'closed' | 'cancelled'
+export type ResearchWaveIncidentCode = 'onboarding_blocked' | 'support_request' | 'recovery_failed' | 'data_loss' | 'privacy_request' | 'protocol_deviation'
+export type ResearchWaveIncidentSeverity = 'low' | 'medium' | 'high' | 'critical'
+
+export interface ResearchWaveReadiness {
+  protocolReviewed: boolean
+  controlledRosterReady: boolean
+  deletionContactReady: boolean
+  supportRouteRehearsed: boolean
+}
+
+export interface ResearchWaveIncident {
+  id: string
+  code: ResearchWaveIncidentCode
+  severity: ResearchWaveIncidentSeverity
+  openedAt: string
+  resolvedAt: string | null
+}
+
+export interface ResearchWaveSummary {
+  id: string
+  displayCode: string
+  kind: ResearchWaveKind
+  status: ResearchWaveStatus
+  windowStart: string
+  windowEnd: string
+  targetParticipants: number
+  quotas: Record<CohortSegment, number>
+  readiness: ResearchWaveReadiness
+  protocolHash: string
+  createdAt: string
+  updatedAt: string
+  participantCount: number
+  twoWeekQualified: number
+  coreLoopQualified: number
+  openIncidents: number
+  openCriticalIncidents: number
+  incidents: ResearchWaveIncident[]
+  evidenceClass: 'external_evidence' | 'engineering_only'
+  r1Decision: 'NO-GO'
+}
+
+export interface ResearchWaveStatusResponse {
+  protocolVersion: 'r1c-wave-v1'
+  appVersion: string
+  waves: ResearchWaveSummary[]
+  externalExecution: { waveCount: number; activeWaveCount: number; participantCount: number; twoWeekQualified: number; status: 'not_started' | 'running' | 'review_required' }
+  privacy: { storesNamesOrContacts: false; sendsInvitations: false; rehearsalsCountAsExternal: false; automaticR1Go: false }
+}
+
+export interface ResearchWaveKit {
+  format: 'bbd-wave-kit-v1'
+  manifest: {
+    formatVersion: 1
+    protocolVersion: 'r1c-wave-v1'
+    exportedAt: string
+    appVersion: string
+    wave: Pick<ResearchWaveSummary, 'displayCode' | 'kind' | 'windowStart' | 'windowEnd' | 'targetParticipants' | 'quotas' | 'protocolHash'>
+    participantChecklist: string[]
+    coordinatorBoundary: string[]
+    privacy: { containsNamesOrContacts: false; containsParticipantCodes: false; containsManuscriptText: false; containsTitlesOrIds: false; containsPromptsOrSecrets: false }
   }
   manifestHash: string
 }
@@ -958,7 +1025,7 @@ export interface SupportBundle {
     appVersion: string
     runtime: { platform: string; arch: string; nodeMajor: number; packaged: boolean }
     database: { schemaVersion: number; integrity: string; byteSize: number; snapshotCount: number; validSnapshotCount: number }
-    counts: { projects: number; scenes: number; revisions: number; pendingCanonCandidates: number; unresolvedSyncConflicts: number; activeSprints: number; researchTasks: number; cohortParticipants: number }
+    counts: { projects: number; scenes: number; revisions: number; pendingCanonCandidates: number; unresolvedSyncConflicts: number; activeSprints: number; researchTasks: number; cohortParticipants: number; researchWaves: number }
     privacy: { containsManuscriptText: false; containsTitlesOrIds: false; containsPaths: false; containsPromptsOrSecrets: false }
   }
   manifestHash: string

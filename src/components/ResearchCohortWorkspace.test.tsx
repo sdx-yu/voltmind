@@ -5,17 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResearchCohortStatus } from '../../shared/types'
 import { ResearchCohortWorkspace } from './ResearchCohortWorkspace'
 
-const mocks = vi.hoisted(() => ({ getResearchCohortStatus: vi.fn(), inspectResearch: vi.fn(), importResearchCohortPackage: vi.fn(), deleteResearchCohortParticipant: vi.fn(), purgeExpiredResearchCohort: vi.fn(), exportResearchCohort: vi.fn() }))
+const mocks = vi.hoisted(() => ({ getResearchCohortStatus: vi.fn(), getResearchWaveStatus: vi.fn(), inspectResearch: vi.fn(), importResearchCohortPackage: vi.fn(), deleteResearchCohortParticipant: vi.fn(), purgeExpiredResearchCohort: vi.fn(), exportResearchCohort: vi.fn() }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
 describe('ResearchCohortWorkspace', () => {
   beforeEach(() => {
-    vi.clearAllMocks(); mocks.getResearchCohortStatus.mockResolvedValue(emptyStatus); mocks.inspectResearch.mockResolvedValue(inspection); mocks.importResearchCohortPackage.mockResolvedValue({ disposition: 'imported', participant: {}, aggregate: emptyStatus.aggregate })
+    vi.clearAllMocks(); mocks.getResearchCohortStatus.mockResolvedValue(emptyStatus); mocks.getResearchWaveStatus.mockResolvedValue({ waves: [] }); mocks.inspectResearch.mockResolvedValue(inspection); mocks.importResearchCohortPackage.mockResolvedValue({ disposition: 'imported', participant: {}, aggregate: emptyStatus.aggregate })
   })
   afterEach(() => cleanup())
 
   it('keeps the R1 decision NO-GO and visibly separates fixtures from real evidence', async () => {
-    render(<ResearchCohortWorkspace onBack={vi.fn()} notify={vi.fn()}/>)
+    render(<ResearchCohortWorkspace onBack={vi.fn()} onOpenWaves={vi.fn()} notify={vi.fn()}/>)
     expect(await screen.findByLabelText('R1 决策 NO-GO')).toBeInTheDocument()
     expect(screen.getByText('把真实样本与工程夹具彻底分开')).toBeInTheDocument()
     expect(screen.getByText(/工程夹具只验证研究台，永不进入/)).toBeInTheDocument()
@@ -23,7 +23,7 @@ describe('ResearchCohortWorkspace', () => {
   })
 
   it('preflights a package and requires every external attestation before import', async () => {
-    const user = userEvent.setup(); render(<ResearchCohortWorkspace onBack={vi.fn()} notify={vi.fn()}/>)
+    const user = userEvent.setup(); render(<ResearchCohortWorkspace onBack={vi.fn()} onOpenWaves={vi.fn()} notify={vi.fn()}/>)
     const file = new File(['{}'], 'author.bbd-research', { type: 'application/json' }); Object.defineProperty(file, 'text', { value: vi.fn().mockResolvedValue(JSON.stringify(researchPackage)) })
     await user.upload(await screen.findByLabelText('选择研究包'), file)
     expect(await screen.findByText('author.bbd-research')).toBeInTheDocument()
@@ -37,7 +37,7 @@ describe('ResearchCohortWorkspace', () => {
 
 const zeroGate = (required: number) => ({ current: 0, required, met: required === 0 })
 const emptyStatus: ResearchCohortStatus = {
-  protocolVersion: 'r1b-cohort-v1', appVersion: '1.5.0', participants: [], deletionReceipts: 0,
+  protocolVersion: 'r1b-cohort-v1', appVersion: '1.6.0', participants: [], deletionReceipts: 0,
   privacy: { storesRawResearchPackages: false, storesParticipantCodes: false, containsManuscriptText: false, fixturesCountTowardGates: false, automaticR1Go: false },
   aggregate: { externalAttestedParticipants: 0, engineeringFixtures: 0, expiredParticipants: 0, twoWeekQualified: 0, fourWeekQualified: 0, coreLoopQualified: 0, completedTasks: 0, completedCoreLoops: 0, reportedMinutesSaved: 0, dataLossReports: 0, falsePositiveReports: 0, missedFactReports: 0, taskCompletionRate: 0, segments: { web_serial: 0, revision_novel: 0, ai_assisted: 0, other_target: 0 }, gates: { twoWeek: zeroGate(5) as { current: number; required: 5; met: boolean }, fourWeek: zeroGate(3) as { current: number; required: 3; met: boolean }, coreLoop: zeroGate(3) as { current: number; required: 3; met: boolean }, zeroDataLoss: zeroGate(0) as { current: number; required: 0; met: boolean }, pilotThresholdMet: false, humanReviewRequired: true, r1Decision: 'NO-GO' } },
 }
