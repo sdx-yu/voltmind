@@ -24,6 +24,8 @@
 - `笔不怠_1.2.0_aarch64.app.zip`：V2-P 应用压缩包；
 - `笔不怠_1.3.0_aarch64.dmg`：V2-V macOS Apple Silicon 安装镜像；
 - `笔不怠_1.3.0_aarch64.app.zip`：V2-V 应用压缩包；
+- `笔不怠_1.4.0_aarch64.dmg`：R1-A 本机验证基础设施 macOS Apple Silicon 内测镜像；
+- `笔不怠_1.4.0_aarch64.app.zip`：R1-A 应用压缩包；
 - `SHA256SUMS`：各版本应用包和上述物料的 SHA-256 校验。
 
 本目录不包含签名私钥或 API Key。macOS 内测包当前仅为 ad-hoc 签名，正式对外分发前仍需 Developer ID 签名与 Apple 公证。

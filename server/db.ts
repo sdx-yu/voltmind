@@ -66,7 +66,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 13)
+    backupBeforeMigration(databasePath, 14)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -928,6 +928,54 @@ export class AppDatabase {
           CREATE INDEX idx_visual_events_project ON visual_events(project_id, created_at, id);
         `)
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(13, nowIso())
+      })
+    }
+    if (version < 14) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE research_enrollments (
+            id TEXT PRIMARY KEY,
+            participant_code TEXT NOT NULL UNIQUE,
+            consent_version TEXT NOT NULL,
+            consent_text_hash TEXT NOT NULL,
+            consent_receipt_hash TEXT NOT NULL UNIQUE,
+            confirmations_json TEXT NOT NULL,
+            consented_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+
+          CREATE TABLE research_tasks (
+            id TEXT PRIMARY KEY,
+            enrollment_id TEXT NOT NULL REFERENCES research_enrollments(id) ON DELETE CASCADE,
+            project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+            project_scope_hash TEXT NOT NULL,
+            task_type TEXT NOT NULL CHECK(task_type IN ('canon_loop','fact_lookup','restore_drill','legacy_import','weekly_reflection')),
+            status TEXT NOT NULL CHECK(status IN ('active','completed','abandoned')),
+            started_at TEXT NOT NULL,
+            completed_at TEXT,
+            duration_seconds INTEGER,
+            goal_achieved INTEGER,
+            difficulty INTEGER,
+            minutes_saved INTEGER,
+            issue_codes_json TEXT NOT NULL DEFAULT '[]'
+          );
+          CREATE INDEX idx_research_tasks_enrollment ON research_tasks(enrollment_id, started_at DESC);
+
+          CREATE TABLE research_events (
+            id TEXT PRIMARY KEY,
+            enrollment_id TEXT NOT NULL REFERENCES research_enrollments(id) ON DELETE CASCADE,
+            sequence INTEGER NOT NULL,
+            event_type TEXT NOT NULL CHECK(event_type IN ('consented','task_started','task_completed')),
+            payload_json TEXT NOT NULL,
+            previous_hash TEXT,
+            event_hash TEXT NOT NULL UNIQUE,
+            occurred_at TEXT NOT NULL,
+            UNIQUE(enrollment_id, sequence)
+          );
+          CREATE INDEX idx_research_events_enrollment ON research_events(enrollment_id, sequence);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(14, nowIso())
       })
     }
     const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()

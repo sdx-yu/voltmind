@@ -22,12 +22,12 @@ describe('V2-V canon-bound visual anchors and storyboards', () => {
 
   it('backs up v12 before migration v13 and creates the visual data model', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DELETE FROM schema_migrations WHERE version=13;')
+    db.db.exec('DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DELETE FROM schema_migrations WHERE version IN (13,14);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 13 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 14 })
     expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND (name LIKE 'visual_%' OR name LIKE 'storyboard%')").get()).toMatchObject({ count: 6 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v12-to-v13-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v12-to-v14-'))).toBe(true)
   })
 
   it('reads only explicitly selected non-private canon fields and marks accepted bindings stale after canon changes', () => {

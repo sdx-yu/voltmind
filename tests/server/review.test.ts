@@ -26,11 +26,11 @@ describe('V2-R encrypted role review relay', () => {
 
   it('backs up v9 and creates the isolated v10 review schema through v11', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DELETE FROM schema_migrations WHERE version IN (10,11,12,13);')
+    db.db.exec('DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DELETE FROM schema_migrations WHERE version IN (10,11,12,13,14);')
     db.close(); databases.pop(); db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 13 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 14 })
     expect(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_feedback'").get()).toMatchObject({ name: 'review_feedback' })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v9-to-v13-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v9-to-v14-'))).toBe(true)
   })
 
   it('encrypts assignment metadata and rejects wrong phrases and tampering', () => {

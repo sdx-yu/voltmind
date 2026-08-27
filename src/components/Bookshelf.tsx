@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { BookOpen, FileArchive, FileKey2, FileUp, MessageSquareText, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { BookOpen, FileArchive, FileKey2, FileUp, FlaskConical, MessageSquareText, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import type { Project } from '../../shared/types'
 import { api } from '../lib/api'
 import { formatRelativeTime, readWritingFile, splitChapters, textToTiptap } from '../lib/text'
@@ -13,10 +13,11 @@ interface Props {
   onOpen: (project: Project) => void
   onRefresh: () => Promise<void>
   onOpenReview: () => void
+  onOpenResearch: () => void
   notify: (type: 'success' | 'error', message: string) => void
 }
 
-export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, notify }: Props) {
+export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, onOpenResearch, notify }: Props) {
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
@@ -123,6 +124,7 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
     <header className="bookshelf-header">
       <div className="brand"><span className="brand-mark">笔</span><div><h1>笔不怠</h1><p>笔耕不怠，写尽所思。</p></div></div>
       <div className="header-actions">
+        <button className="button ghost" disabled={busy} onClick={onOpenResearch}><FlaskConical size={17} />R1 真实验证</button>
         <button className="button ghost" disabled={busy} onClick={onOpenReview}><MessageSquareText size={17} />打开审阅任务</button>
         <input ref={syncRef} hidden type="file" accept=".bbd-sync,application/json" onChange={(event) => event.target.files?.[0] && void previewSyncRestore(event.target.files[0])} />
         <button className="button ghost" disabled={busy} onClick={() => syncRef.current?.click()}><FileKey2 size={17} />接力恢复</button>

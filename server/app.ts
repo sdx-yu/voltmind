@@ -18,6 +18,7 @@ import { ReviewService } from './review.js'
 import { SprintService } from './sprint.js'
 import { TemplateService } from './template.js'
 import { VisualService } from './visual.js'
+import { ResearchService, buildReleaseReadiness, buildSupportBundle } from './research.js'
 import type { VisualSelectedField } from '../shared/types.js'
 import { newId, nowIso, sha256 } from './utils.js'
 
@@ -44,6 +45,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   const sprints = new SprintService(database)
   const templates = new TemplateService(database)
   const visuals = new VisualService(database)
+  const research = new ResearchService(database)
   const sessionToken = randomBytes(24).toString('hex')
   const allowedOrigins = new Set([`http://${config.host}:4318`, `http://${config.host}:${config.port}`])
 
@@ -448,6 +450,25 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.post('/api/storyboard-cards/:id/move', route(async (req, res) => res.json(visuals.moveStoryboardCard(param(req, 'id'), z.object({ direction: z.enum(['up', 'down']) }).parse(req.body).direction))))
   app.delete('/api/storyboard-cards/:id', route(async (req, res) => res.json(visuals.deleteStoryboardCard(param(req, 'id')))))
 
+  app.get('/api/research/status', route(async (_req, res) => res.json(research.getStatus())))
+  app.post('/api/research/enroll', route(async (req, res) => {
+    const input = z.object({ adultOrAuthorized: z.literal(true), manuscriptRights: z.literal(true), localOnlyUnderstood: z.literal(true), voluntary: z.literal(true) }).strict().parse(req.body)
+    res.status(201).json(research.enroll(input))
+  }))
+  app.post('/api/research/tasks', route(async (req, res) => {
+    const input = z.object({ projectId: z.string(), taskType: z.enum(['canon_loop', 'fact_lookup', 'restore_drill', 'legacy_import', 'weekly_reflection']) }).strict().parse(req.body)
+    res.status(201).json(research.startTask(input.projectId, input.taskType))
+  }))
+  app.post('/api/research/tasks/:id/complete', route(async (req, res) => {
+    const input = z.object({ outcome: z.enum(['completed', 'abandoned']), goalAchieved: z.boolean(), difficulty: z.number().int().min(1).max(5), minutesSaved: z.number().int().min(0).max(480), issueCodes: z.array(z.enum(['hard_to_find', 'false_positive', 'missed_fact', 'confusing_candidate', 'slow', 'recovery_failed', 'data_loss'])).max(7) }).strict().parse(req.body)
+    res.json(research.completeTask(param(req, 'id'), input))
+  }))
+  app.delete('/api/research/enrollment', route(async (_req, res) => res.json(research.withdraw())))
+  app.get('/api/research/export', route(async (_req, res) => res.json(research.exportBundle())))
+  app.post('/api/research/inspect', route(async (req, res) => res.json(research.verifyBundle(z.object({ package: z.unknown() }).strict().parse(req.body).package))))
+  app.get('/api/support/bundle', route(async (_req, res) => res.json(buildSupportBundle(database, config))))
+  app.get('/api/release/readiness', route(async (_req, res) => res.json(buildReleaseReadiness(database, config))))
+
   app.get('/api/mobile/inbox', route(async (req, res) => res.json(database.listMobileInbox(req.query.projectId ? String(req.query.projectId) : undefined))))
   app.post('/api/mobile/inbox', route(async (req, res) => {
     const input = z.object({ id: z.string().min(8).max(100), projectId: z.string().nullable(), targetNodeId: z.string().nullable(), kind: z.enum(['inspiration', 'scene_idea', 'review_note']), content: z.string().trim().min(1).max(10000), originDeviceId: z.string().max(100).nullable().default(null), createdAt: z.iso.datetime() }).parse(req.body)
@@ -530,10 +551,10 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private/i.test(message) ? 403 : /must be|invalid|too many|unsupported|another project/i.test(message) ? 400 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project/i.test(message) ? 400 : 500
     return res.status(status).json({ error: message })
   })
-  return { app, database, ai, sync, reviews, sprints, templates, visuals }
+  return { app, database, ai, sync, reviews, sprints, templates, visuals, research }
 }
 
 function route(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
@@ -793,6 +814,7 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
 function cleanupProject(database: AppDatabase, projectId: string) {
   database.db.exec('PRAGMA foreign_keys=OFF')
   try {
+    database.db.prepare('UPDATE research_tasks SET project_id=NULL WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM visual_events WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM storyboard_cards WHERE storyboard_id IN (SELECT id FROM storyboards WHERE project_id=?)').run(projectId)
     database.db.prepare('DELETE FROM storyboards WHERE project_id=?').run(projectId)

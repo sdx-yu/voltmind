@@ -759,6 +759,121 @@ export interface Storyboard {
   updatedAt: string
 }
 
+export type ResearchTaskType = 'canon_loop' | 'fact_lookup' | 'restore_drill' | 'legacy_import' | 'weekly_reflection'
+export type ResearchIssueCode = 'hard_to_find' | 'false_positive' | 'missed_fact' | 'confusing_candidate' | 'slow' | 'recovery_failed' | 'data_loss'
+
+export interface ResearchConsent {
+  version: 'r1-consent-v1'
+  text: string
+  textHash: string
+}
+
+export interface ResearchEnrollment {
+  id: string
+  participantCode: string
+  consentVersion: ResearchConsent['version']
+  consentTextHash: string
+  consentReceiptHash: string
+  consentedAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ResearchTask {
+  id: string
+  taskType: ResearchTaskType
+  projectScopeHash: string
+  status: 'active' | 'completed' | 'abandoned'
+  startedAt: string
+  completedAt: string | null
+  durationSeconds: number | null
+  goalAchieved: boolean | null
+  difficulty: number | null
+  minutesSaved: number | null
+  issueCodes: ResearchIssueCode[]
+}
+
+export interface ResearchProgress {
+  completedTasks: number
+  completedCoreLoops: number
+  observedWeekBuckets: number
+  reportedMinutesSaved: number
+  dataLossReports: number
+  lastActivityAt: string | null
+}
+
+export interface ResearchStatus {
+  consent: ResearchConsent
+  enrollment: ResearchEnrollment | null
+  tasks: ResearchTask[]
+  progress: ResearchProgress
+  privacy: {
+    localOnlyUntilExplicitExport: true
+    excludesManuscriptText: true
+    excludesProjectIdentity: true
+    exportDoesNotCompleteR1Gate: true
+  }
+}
+
+export interface ResearchBundleEvent {
+  sequence: number
+  eventType: 'consented' | 'task_started' | 'task_completed'
+  payload: Record<string, unknown>
+  previousHash: string | null
+  eventHash: string
+  occurredAt: string
+}
+
+export interface ResearchBundle {
+  format: 'bbd-research-v1'
+  manifest: {
+    formatVersion: 1
+    exportedAt: string
+    participantCode: string
+    consent: { version: ResearchConsent['version']; textHash: string; receiptHash: string; consentedAt: string }
+    privacy: {
+      containsManuscriptText: false
+      containsProjectTitlesOrIds: false
+      containsPromptsOrSecrets: false
+      localUntilExplicitExport: true
+    }
+    tasks: ResearchTask[]
+    events: ResearchBundleEvent[]
+    progress: ResearchProgress
+  }
+  manifestHash: string
+}
+
+export interface ResearchBundleInspection {
+  ok: boolean
+  manifestHashValid: boolean
+  eventChainValid: boolean
+  participantCode: string
+  completedTasks: number
+  message: string
+}
+
+export interface SupportBundle {
+  format: 'bbd-support-v1'
+  manifest: {
+    formatVersion: 1
+    generatedAt: string
+    appVersion: string
+    runtime: { platform: string; arch: string; nodeMajor: number; packaged: boolean }
+    database: { schemaVersion: number; integrity: string; byteSize: number; snapshotCount: number; validSnapshotCount: number }
+    counts: { projects: number; scenes: number; revisions: number; pendingCanonCandidates: number; unresolvedSyncConflicts: number; activeSprints: number; researchTasks: number }
+    privacy: { containsManuscriptText: false; containsTitlesOrIds: false; containsPaths: false; containsPromptsOrSecrets: false }
+  }
+  manifestHash: string
+}
+
+export interface ReleaseReadiness {
+  appVersion: string
+  publicRelease: 'NO-GO'
+  engineering: Array<{ gate: string; status: 'pass' | 'not_run'; evidence: string }>
+  external: Array<{ gate: string; status: 'required'; evidence: string }>
+}
+
 export interface Entity {
   id: string
   projectId: string
