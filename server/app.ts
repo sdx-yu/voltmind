@@ -406,7 +406,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved/i.test(message) ? 409 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验/i.test(message) ? 422 : 500
     return res.status(status).json({ error: message })
   })
   return { app, database, ai, sync }

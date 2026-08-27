@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { createHash, randomUUID } from 'node:crypto'
 import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
@@ -32,15 +33,19 @@ describe('V1-S encrypted handoff protocol', () => {
   it('encrypts all manuscript metadata and rejects wrong keys, missing chunks and tampering', () => {
     const db = database('crypto'); const sync = new SyncService(db); const project = db.createProject('密文中的书名')
     const scene = db.listNodes(project.id).find((node) => node.type === 'scene')!; db.saveScene(scene.id, doc('不能出现在信封里的正文'), '不能出现在信封里的正文')
+    const attachment = Buffer.from('original source bytes'); const attachmentHash = createHash('sha256').update(attachment).digest('hex')
+    db.db.prepare('INSERT INTO imported_sources(id,project_id,file_name,mime_type,byte_size,content_hash,content_base64,created_at) VALUES(?,?,?,?,?,?,?,?)').run(randomUUID(), project.id, '原稿.txt', 'text/plain', attachment.length, attachmentHash, attachment.toString('base64'), new Date().toISOString())
     const { recoveryPhrase } = sync.initialize(project.id, '离线电脑 A')
     const transfer = sync.exportPackage(project.id, recoveryPhrase)
     const serialized = JSON.stringify(transfer)
     expect(serialized).not.toContain('密文中的书名'); expect(serialized).not.toContain('不能出现在信封里的正文')
-    expect(sync.inspectPackage(transfer, recoveryPhrase)).toMatchObject({ valid: true, projectTitle: '密文中的书名', sceneCount: 1 })
+    expect(sync.inspectPackage(transfer, recoveryPhrase)).toMatchObject({ valid: true, projectTitle: '密文中的书名', sceneCount: 1, attachmentCount: 1 })
     expect(() => sync.inspectPackage(transfer, '0000-0000-0000-0000-0000-0000-0000-0000-0000-0000-0000-0000')).toThrow()
     expect(() => sync.inspectPackage({ ...transfer, chunks: transfer.chunks.slice(1) }, recoveryPhrase)).toThrow(/分块|chunk|缺失/i)
     const tampered = structuredClone(transfer); tampered.chunks[0].data = `${tampered.chunks[0].data.slice(0, -2)}AA`
     expect(() => sync.inspectPackage(tampered, recoveryPhrase)).toThrow(/哈希|hash|损坏/i)
+    const restored = database('crypto-restore'); new SyncService(restored).importPackage(transfer, recoveryPhrase, '恢复设备')
+    expect(restored.db.prepare('SELECT content_hash FROM imported_sources WHERE project_id=?').get(project.id)).toMatchObject({ content_hash: attachmentHash })
   })
 
   it('bootstraps two isolated replicas, converges concurrent text and makes business forks explicit', () => {

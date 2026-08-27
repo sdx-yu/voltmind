@@ -244,9 +244,11 @@ export class SyncService {
   }
 
   private captureAttachments(projectId: string): SyncAttachmentPayload[] {
-    return (this.database.db.prepare('SELECT * FROM imported_sources WHERE project_id=? ORDER BY created_at,rowid').all(projectId) as Row[]).map((row) => ({
+    const attachments = (this.database.db.prepare('SELECT * FROM imported_sources WHERE project_id=? ORDER BY created_at,rowid').all(projectId) as Row[]).map((row) => ({
       id: String(row.id), projectId, address: `sha256:${String(row.content_hash)}`, fileName: String(row.file_name), mimeType: String(row.mime_type), byteSize: Number(row.byte_size), contentHash: String(row.content_hash), contentBase64: String(row.content_base64), createdAt: String(row.created_at),
     }))
+    for (const attachment of attachments) { const bytes = Buffer.from(attachment.contentBase64, 'base64'); if (bytes.length !== attachment.byteSize || sha256(bytes) !== attachment.contentHash) throw new Error('本地附件内容寻址校验失败，已取消导出') }
+    return attachments
   }
 
   private writeAttachments(projectId: string, attachments: SyncAttachmentPayload[]) {
