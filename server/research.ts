@@ -21,7 +21,7 @@ import { jsonParse, newId, nowIso, sha256 } from './utils.js'
 
 type Row = Record<string, unknown>
 
-export const APP_VERSION = '1.4.0'
+export const APP_VERSION = '1.5.0'
 export const RESEARCH_CONSENT_VERSION = 'r1-consent-v1' as const
 export const RESEARCH_CONSENT_TEXT = '我自愿参加笔不怠 R1 本地验证。我确认使用自己拥有权利的稿件；应用只在本机记录任务类型、耗时、完成情况、难度、预估节省时间和预定义问题码，不记录或上传正文、书名、正典、Prompt、密钥与设备路径；只有我主动导出研究包时数据才会离开本机；我可以随时退出并清除当前数据库中的研究记录。已有历史数据库快照按备份策略保留，需要由我另行管理；已交给研究负责人的副本需要另行联系删除。'
 export const RESEARCH_CONSENT_HASH = sha256(RESEARCH_CONSENT_TEXT)
@@ -34,8 +34,8 @@ const taskSchema = z.object({
   taskType: z.enum(taskTypes),
   projectScopeHash: z.string().length(64),
   status: z.enum(['active', 'completed', 'abandoned']),
-  startedAt: z.string(),
-  completedAt: z.string().nullable(),
+  startedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
   durationSeconds: z.number().int().nonnegative().nullable(),
   goalAchieved: z.boolean().nullable(),
   difficulty: z.number().int().min(1).max(5).nullable(),
@@ -52,7 +52,7 @@ const progressSchema = z.object({
   lastActivityAt: z.string().nullable(),
 }).strict()
 
-const eventBase = { sequence: z.number().int().positive(), previousHash: z.string().length(64).nullable(), eventHash: z.string().length(64), occurredAt: z.string() }
+const eventBase = { sequence: z.number().int().positive(), previousHash: z.string().length(64).nullable(), eventHash: z.string().length(64), occurredAt: z.iso.datetime() }
 const eventSchema = z.discriminatedUnion('eventType', [
   z.object({ ...eventBase, eventType: z.literal('consented'), payload: z.object({ participantCode: z.string().regex(/^R1-[A-F0-9]{12}$/), consentReceiptHash: z.string().length(64) }).strict() }).strict(),
   z.object({ ...eventBase, eventType: z.literal('task_started'), payload: z.object({ taskId: z.string().uuid(), taskType: z.enum(taskTypes), projectScopeHash: z.string().length(64) }).strict() }).strict(),
@@ -63,9 +63,9 @@ const researchBundleSchema = z.object({
   format: z.literal('bbd-research-v1'),
   manifest: z.object({
     formatVersion: z.literal(1),
-    exportedAt: z.string(),
+    exportedAt: z.iso.datetime(),
     participantCode: z.string().regex(/^R1-[A-F0-9]{12}$/),
-    consent: z.object({ version: z.literal(RESEARCH_CONSENT_VERSION), textHash: z.string().length(64), receiptHash: z.string().length(64), consentedAt: z.string() }).strict(),
+    consent: z.object({ version: z.literal(RESEARCH_CONSENT_VERSION), textHash: z.string().length(64), receiptHash: z.string().length(64), consentedAt: z.iso.datetime() }).strict(),
     privacy: z.object({ containsManuscriptText: z.literal(false), containsProjectTitlesOrIds: z.literal(false), containsPromptsOrSecrets: z.literal(false), localUntilExplicitExport: z.literal(true) }).strict(),
     tasks: z.array(taskSchema).max(1000),
     events: z.array(eventSchema).max(3000),
@@ -157,16 +157,7 @@ export class ResearchService {
   }
 
   verifyBundle(input: unknown): ResearchBundleInspection {
-    const bundle = researchBundleSchema.parse(input) as ResearchBundle
-    assertNoForbiddenFields(bundle.manifest)
-    const manifestHashValid = sha256(stableStringify(bundle.manifest)) === bundle.manifestHash
-    let previousHash: string | null = null; let eventChainValid = true
-    for (const [index, event] of bundle.manifest.events.entries()) {
-      if (event.sequence !== index + 1 || event.previousHash !== previousHash || event.eventHash !== hashEvent(event)) { eventChainValid = false; break }
-      previousHash = event.eventHash
-    }
-    const ok = manifestHashValid && eventChainValid
-    return { ok, manifestHashValid, eventChainValid, participantCode: bundle.manifest.participantCode, completedTasks: bundle.manifest.progress.completedTasks, message: ok ? '研究包完整，仍需研究负责人核对真实参与资格与周期' : '研究包校验失败' }
+    return parseResearchBundle(input).inspection
   }
 
   private getEnrollment(): ResearchEnrollment | null {
@@ -220,6 +211,7 @@ export function buildSupportBundle(database: AppDatabase, config: AppConfig): Su
       unresolvedSyncConflicts: count("SELECT COUNT(*) AS count FROM sync_conflicts WHERE status='pending'"),
       activeSprints: count("SELECT COUNT(*) AS count FROM sprint_sessions WHERE status IN ('running','paused')"),
       researchTasks: count('SELECT COUNT(*) AS count FROM research_tasks'),
+      cohortParticipants: count('SELECT COUNT(*) AS count FROM research_cohort_participants'),
     },
     privacy: { containsManuscriptText: false, containsTitlesOrIds: false, containsPaths: false, containsPromptsOrSecrets: false },
   }
@@ -233,7 +225,7 @@ export function buildReleaseReadiness(database: AppDatabase, config: AppConfig):
     publicRelease: 'NO-GO',
     engineering: [
       { gate: '数据库完整性', status: database.integrityCheck() === 'ok' ? 'pass' : 'not_run', evidence: database.integrityCheck() },
-      { gate: 'R1 数据迁移', status: schemaVersion === 14 ? 'pass' : 'not_run', evidence: `schema v${schemaVersion}` },
+      { gate: 'R1 数据迁移', status: schemaVersion === 15 ? 'pass' : 'not_run', evidence: `schema v${schemaVersion}` },
       { gate: '回环地址隔离', status: ['127.0.0.1', 'localhost', '::1'].includes(config.host) ? 'pass' : 'not_run', evidence: config.host },
       { gate: '生产静态资源', status: config.production && fs.existsSync(config.staticDir) ? 'pass' : 'not_run', evidence: config.production ? '已检查生产资源目录' : '开发模式不计入发布证据' },
     ],
@@ -243,6 +235,23 @@ export function buildReleaseReadiness(database: AppDatabase, config: AppConfig):
       { gate: 'Windows x64 签名矩阵', status: 'required', evidence: '需要 Windows 真机、代码签名证书与中文输入法矩阵' },
       { gate: '移动真机与弱网矩阵', status: 'required', evidence: '需要 iOS/Android 真机、HTTPS 入口与更新/恢复演练' },
     ],
+  }
+}
+
+export function parseResearchBundle(input: unknown): { bundle: ResearchBundle; inspection: ResearchBundleInspection } {
+  const bundle = researchBundleSchema.parse(input) as ResearchBundle
+  assertNoForbiddenFields(bundle.manifest)
+  const manifestHashValid = sha256(stableStringify(bundle.manifest)) === bundle.manifestHash
+  let previousHash: string | null = null; let eventChainValid = true
+  for (const [index, event] of bundle.manifest.events.entries()) {
+    if (event.sequence !== index + 1 || event.previousHash !== previousHash || event.eventHash !== hashEvent(event)) { eventChainValid = false; break }
+    previousHash = event.eventHash
+  }
+  const semanticValid = validateBundleSemantics(bundle)
+  const ok = manifestHashValid && eventChainValid && semanticValid
+  return {
+    bundle,
+    inspection: { ok, manifestHashValid, eventChainValid, semanticValid, participantCode: bundle.manifest.participantCode, completedTasks: bundle.manifest.progress.completedTasks, message: ok ? '研究包完整，仍需研究负责人核对真实参与资格与周期' : '研究包校验失败' },
   }
 }
 
@@ -268,6 +277,38 @@ function progress(tasks: ResearchTask[]): ResearchProgress {
     dataLossReports: resolved.filter((task) => task.issueCodes.includes('data_loss')).length,
     lastActivityAt: tasks.map((task) => task.completedAt ?? task.startedAt).sort().at(-1) ?? null,
   }
+}
+
+function validateBundleSemantics(bundle: ResearchBundle): boolean {
+  const { consent, events, participantCode, progress: declaredProgress, tasks } = bundle.manifest
+  if (consent.textHash !== RESEARCH_CONSENT_HASH || events.length < 1 || new Set(tasks.map((task) => task.id)).size !== tasks.length) return false
+  const consentEvents = events.filter((event) => event.eventType === 'consented')
+  if (consentEvents.length !== 1) return false
+  const consentEvent = consentEvents[0]
+  if (consentEvent.sequence !== 1 || consentEvent.occurredAt !== consent.consentedAt || consentEvent.payload.participantCode !== participantCode || consentEvent.payload.consentReceiptHash !== consent.receiptHash) return false
+  const taskById = new Map(tasks.map((task) => [task.id, task]))
+  const started = new Map<string, ResearchBundleEvent[]>(); const completed = new Map<string, ResearchBundleEvent[]>()
+  for (const event of events) {
+    if (event.eventType === 'consented') continue
+    const taskId = typeof event.payload.taskId === 'string' ? event.payload.taskId : ''
+    const target = event.eventType === 'task_started' ? started : completed
+    target.set(taskId, [...(target.get(taskId) ?? []), event])
+    if (!taskById.has(taskId)) return false
+  }
+  for (const task of tasks) {
+    const start = started.get(task.id) ?? []; const finish = completed.get(task.id) ?? []
+    if (start.length !== 1 || start[0].occurredAt !== task.startedAt || start[0].payload.taskType !== task.taskType || start[0].payload.projectScopeHash !== task.projectScopeHash) return false
+    if (new Set(task.issueCodes).size !== task.issueCodes.length) return false
+    if (task.status === 'active') {
+      if (finish.length || task.completedAt !== null || task.durationSeconds !== null || task.goalAchieved !== null || task.difficulty !== null || task.minutesSaved !== null || task.issueCodes.length) return false
+      continue
+    }
+    const event = finish[0]
+    if (finish.length !== 1 || !event || event.occurredAt !== task.completedAt || event.payload.outcome !== task.status || event.payload.goalAchieved !== task.goalAchieved || event.payload.difficulty !== task.difficulty || event.payload.minutesSaved !== task.minutesSaved || event.payload.durationSeconds !== task.durationSeconds || stableStringify(event.payload.issueCodes) !== stableStringify(task.issueCodes)) return false
+    if (task.completedAt === null || task.durationSeconds === null || task.goalAchieved === null || task.difficulty === null || task.minutesSaved === null) return false
+    if (task.status === 'abandoned' && task.goalAchieved) return false
+  }
+  return stableStringify(progress(tasks)) === stableStringify(declaredProgress)
 }
 
 function weekBucket(value: string): string {

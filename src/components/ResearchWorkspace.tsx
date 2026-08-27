@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, Download, FileHeart, FlaskConical, ShieldCheck
 import type { Project, ReleaseReadiness, ResearchIssueCode, ResearchStatus, ResearchTaskType } from '../../shared/types'
 import { api } from '../lib/api'
 
-type Props = { projects: Project[]; onBack: () => void; notify: (type: 'success' | 'error', message: string) => void }
+type Props = { projects: Project[]; onBack: () => void; onOpenCohort: () => void; notify: (type: 'success' | 'error', message: string) => void }
 
 const taskLabels: Record<ResearchTaskType, string> = {
   canon_loop: '完成场景—确认候选—推进正典',
@@ -16,7 +16,7 @@ const issueLabels: Record<ResearchIssueCode, string> = {
   hard_to_find: '入口或信息难找', false_positive: '出现误报', missed_fact: '遗漏事实', confusing_candidate: '候选难理解', slow: '处理过慢', recovery_failed: '恢复失败', data_loss: '发生数据丢失',
 }
 
-export function ResearchWorkspace({ projects, onBack, notify }: Props) {
+export function ResearchWorkspace({ projects, onBack, onOpenCohort, notify }: Props) {
   const [status, setStatus] = useState<ResearchStatus | null>(null)
   const [readiness, setReadiness] = useState<ReleaseReadiness | null>(null)
   const [busy, setBusy] = useState(false)
@@ -87,9 +87,9 @@ export function ResearchWorkspace({ projects, onBack, notify }: Props) {
   if (!status) return <div className="workspace-loading"><span className="brand-mark">笔</span><p>正在读取验证计划…</p></div>
   const allConfirmed = Object.values(confirmations).every(Boolean)
   return <main className="research-workspace">
-    <header className="workspace-topbar research-topbar"><div className="workspace-title"><button className="icon-button" onClick={onBack} aria-label="返回书架"><ArrowLeft size={18}/></button><span className="mini-brand">笔</span><div><strong>R1 真实作者验证</strong><small>1.4.0 · 本机证据准备</small></div></div><span className="gate-badge no-go" aria-label="公开发布 NO-GO"><TriangleAlert size={14}/><span>公开发布 </span>NO-GO</span></header>
+    <header className="workspace-topbar research-topbar"><div className="workspace-title"><button className="icon-button" onClick={onBack} aria-label="返回书架"><ArrowLeft size={18}/></button><span className="mini-brand">笔</span><div><strong>R1 真实作者验证</strong><small>1.5.0 · 本机证据准备</small></div></div><span className="gate-badge no-go" aria-label="公开发布 NO-GO"><TriangleAlert size={14}/><span>公开发布 </span>NO-GO</span></header>
     <section className="research-content">
-      <header className="page-header"><div><span className="eyebrow">真实验证，不造数据</span><h1>验证它是否真的减少翻资料、返工和穿帮</h1><p>这里建立可校验的本机研究记录。没有自动上传；本机测试、自动化测试和导出动作都不能替代真实作者与真实周期。</p></div></header>
+      <header className="page-header"><div><span className="eyebrow">真实验证，不造数据</span><h1>验证它是否真的减少翻资料、返工和穿帮</h1><p>这里建立可校验的本机研究记录。没有自动上传；本机测试、自动化测试和导出动作都不能替代真实作者与真实周期。</p></div><button className="button ghost" onClick={onOpenCohort}><FlaskConical size={16}/>研究负责人工作台</button></header>
 
       {!status.enrollment ? <section className="research-consent panel-card"><div className="section-title"><ShieldCheck size={22}/><div><h2>知情同意</h2><p>版本 {status.consent.version} · 文本 SHA-256 {status.consent.textHash.slice(0, 12)}…</p></div></div><p className="consent-copy">{status.consent.text}</p><div className="consent-checks">
         <CheckBox checked={confirmations.adultOrAuthorized} onChange={(value) => setConfirmations((current) => ({ ...current, adultOrAuthorized: value }))}>我已成年或有权自行作出参与决定</CheckBox>

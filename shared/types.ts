@@ -848,9 +848,106 @@ export interface ResearchBundleInspection {
   ok: boolean
   manifestHashValid: boolean
   eventChainValid: boolean
+  semanticValid: boolean
   participantCode: string
   completedTasks: number
   message: string
+}
+
+export type CohortEvidenceClass = 'external_attested' | 'engineering_fixture'
+export type CohortSegment = 'web_serial' | 'revision_novel' | 'ai_assisted' | 'other_target'
+
+export interface CohortAttestation {
+  targetAuthorConfirmed: boolean
+  independentParticipantConfirmed: boolean
+  manuscriptRightsConfirmed: boolean
+  realUseConfirmed: boolean
+}
+
+export interface CohortParticipantSummary {
+  participantCodeHash: string
+  evidenceClass: CohortEvidenceClass
+  segment: CohortSegment
+  retentionUntil: string
+  expired: boolean
+  firstReceivedAt: string
+  latestReceivedAt: string
+  submissionCount: number
+  observedWeekBuckets: number
+  activeSpanDays: number
+  completedTasks: number
+  completedCoreLoops: number
+  reportedMinutesSaved: number
+  dataLossReports: number
+  falsePositiveReports: number
+  missedFactReports: number
+  completedOutcomes: number
+  abandonedOutcomes: number
+  twoWeekQualified: boolean
+  fourWeekQualified: boolean
+  coreLoopQualified: boolean
+}
+
+export interface CohortAggregate {
+  externalAttestedParticipants: number
+  engineeringFixtures: number
+  expiredParticipants: number
+  twoWeekQualified: number
+  fourWeekQualified: number
+  coreLoopQualified: number
+  completedTasks: number
+  completedCoreLoops: number
+  reportedMinutesSaved: number
+  dataLossReports: number
+  falsePositiveReports: number
+  missedFactReports: number
+  taskCompletionRate: number
+  segments: Record<CohortSegment, number>
+  gates: {
+    twoWeek: { current: number; required: 5; met: boolean }
+    fourWeek: { current: number; required: 3; met: boolean }
+    coreLoop: { current: number; required: 3; met: boolean }
+    zeroDataLoss: { current: number; required: 0; met: boolean }
+    pilotThresholdMet: boolean
+    humanReviewRequired: true
+    r1Decision: 'NO-GO'
+  }
+}
+
+export interface ResearchCohortStatus {
+  protocolVersion: 'r1b-cohort-v1'
+  appVersion: string
+  participants: CohortParticipantSummary[]
+  aggregate: CohortAggregate
+  deletionReceipts: number
+  privacy: {
+    storesRawResearchPackages: false
+    storesParticipantCodes: false
+    containsManuscriptText: false
+    fixturesCountTowardGates: false
+    automaticR1Go: false
+  }
+}
+
+export interface CohortImportResult {
+  disposition: 'imported' | 'updated' | 'unchanged'
+  participant: CohortParticipantSummary
+  aggregate: CohortAggregate
+}
+
+export interface CohortBundle {
+  format: 'bbd-cohort-v1'
+  manifest: {
+    formatVersion: 1
+    protocolVersion: 'r1b-cohort-v1'
+    exportedAt: string
+    appVersion: string
+    thresholds: { twoWeekParticipants: 5; fourWeekParticipants: 3; coreLoopParticipants: 3; dataLossReports: 0 }
+    aggregate: CohortAggregate
+    participants: Array<Omit<CohortParticipantSummary, 'retentionUntil' | 'firstReceivedAt' | 'latestReceivedAt'>>
+    privacy: { containsParticipantCodes: false; containsManuscriptText: false; containsTitlesOrIds: false; containsPromptsOrSecrets: false; containsRawPackages: false }
+  }
+  manifestHash: string
 }
 
 export interface SupportBundle {
@@ -861,7 +958,7 @@ export interface SupportBundle {
     appVersion: string
     runtime: { platform: string; arch: string; nodeMajor: number; packaged: boolean }
     database: { schemaVersion: number; integrity: string; byteSize: number; snapshotCount: number; validSnapshotCount: number }
-    counts: { projects: number; scenes: number; revisions: number; pendingCanonCandidates: number; unresolvedSyncConflicts: number; activeSprints: number; researchTasks: number }
+    counts: { projects: number; scenes: number; revisions: number; pendingCanonCandidates: number; unresolvedSyncConflicts: number; activeSprints: number; researchTasks: number; cohortParticipants: number }
     privacy: { containsManuscriptText: false; containsTitlesOrIds: false; containsPaths: false; containsPromptsOrSecrets: false }
   }
   manifestHash: string

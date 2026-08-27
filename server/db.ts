@@ -66,7 +66,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 14)
+    backupBeforeMigration(databasePath, 15)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -976,6 +976,55 @@ export class AppDatabase {
           CREATE INDEX idx_research_events_enrollment ON research_events(enrollment_id, sequence);
         `)
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(14, nowIso())
+      })
+    }
+    if (version < 15) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE research_cohort_participants (
+            id TEXT PRIMARY KEY,
+            participant_code_hash TEXT NOT NULL UNIQUE,
+            consent_receipt_hash TEXT NOT NULL UNIQUE,
+            evidence_class TEXT NOT NULL CHECK(evidence_class IN ('external_attested','engineering_fixture')),
+            segment TEXT NOT NULL CHECK(segment IN ('web_serial','revision_novel','ai_assisted','other_target')),
+            attestation_json TEXT NOT NULL,
+            retention_until TEXT NOT NULL,
+            first_received_at TEXT NOT NULL,
+            latest_received_at TEXT NOT NULL
+          );
+
+          CREATE TABLE research_cohort_submissions (
+            id TEXT PRIMARY KEY,
+            participant_id TEXT NOT NULL REFERENCES research_cohort_participants(id) ON DELETE CASCADE,
+            manifest_hash TEXT NOT NULL UNIQUE,
+            event_head_hash TEXT NOT NULL,
+            event_hashes_json TEXT NOT NULL,
+            event_count INTEGER NOT NULL,
+            exported_at TEXT NOT NULL,
+            received_at TEXT NOT NULL,
+            observed_week_buckets INTEGER NOT NULL,
+            active_span_days INTEGER NOT NULL,
+            completed_tasks INTEGER NOT NULL,
+            completed_core_loops INTEGER NOT NULL,
+            reported_minutes_saved INTEGER NOT NULL,
+            data_loss_reports INTEGER NOT NULL,
+            false_positive_reports INTEGER NOT NULL,
+            missed_fact_reports INTEGER NOT NULL,
+            completed_outcomes INTEGER NOT NULL,
+            abandoned_outcomes INTEGER NOT NULL,
+            UNIQUE(participant_id, event_head_hash)
+          );
+          CREATE INDEX idx_research_cohort_submissions_participant ON research_cohort_submissions(participant_id, event_count DESC, received_at DESC);
+
+          CREATE TABLE research_cohort_deletion_receipts (
+            id TEXT PRIMARY KEY,
+            tombstone_hash TEXT NOT NULL UNIQUE,
+            reason TEXT NOT NULL CHECK(reason IN ('participant_request','retention_expired')),
+            removed_submission_count INTEGER NOT NULL,
+            removed_at TEXT NOT NULL
+          );
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(15, nowIso())
       })
     }
     const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()

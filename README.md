@@ -2,7 +2,7 @@
 
 **笔耕不怠，写尽所思。**
 
-中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R～V2-V 与 R1-A 已完成本机工程验证；R1 真实作者与公开发布仍为 NO-GO，当前版本为 1.4.0。
+中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R～V2-V、R1-A 与 R1-B 执行台已完成本机工程验证；真实种子作者、跨平台正式分发与 R1 公开发布仍为 NO-GO，当前版本为 1.5.0。
 
 ## 开发
 
@@ -48,12 +48,14 @@ npm run release:materials
 - [架构决策 ADR-007](docs/adr/ADR-007-declarative-local-template-packages.md)
 - [架构决策 ADR-008](docs/adr/ADR-008-canon-before-visual-assets.md)
 - [架构决策 ADR-009](docs/adr/ADR-009-local-consented-research-evidence.md)
+- [架构决策 ADR-010](docs/adr/ADR-010-attested-cohort-evidence.md)
 - [bbd-sync-v1 协议与威胁模型](docs/implementation/SYNC_PROTOCOL_V1.md)
 - [bbd-review-v1 协议与威胁模型](docs/implementation/REVIEW_PROTOCOL_V1.md)
 - [bbd-sprint-v1 协议与威胁模型](docs/implementation/SPRINT_PROTOCOL_V1.md)
 - [bbd-template-v1 协议与威胁模型](docs/implementation/TEMPLATE_PROTOCOL_V1.md)
 - [bbd-visual-v1 协议与威胁模型](docs/implementation/VISUAL_ASSET_PROTOCOL_V1.md)
 - [bbd-research-v1 最小披露研究协议](docs/implementation/RESEARCH_PROTOCOL_V1.md)
+- [r1b-cohort-v1 受控种子证据协议](docs/implementation/COHORT_PROTOCOL_V1.md)
 - [V2-R 角色化审阅接力](docs/implementation/V2R_PLAN.md)
 - [V2-F 安静冲刺与小组目标](docs/implementation/V2F_PLAN.md)
 - [V2-P 本地插件与结构模板包](docs/implementation/V2P_PLAN.md)
@@ -72,13 +74,16 @@ npm run release:materials
 - [V2-P 本地插件与结构模板包验收报告](归档/2026-08-27/笔不怠V2-P本地插件与结构模板包验收报告_v1.2.0.md)
 - [V2-V 视觉锚点与故事板验收报告](归档/2026-08-27/笔不怠V2-V视觉锚点与故事板验收报告_v1.3.0.md)
 - [R1-A 真实验证基础设施验收报告](归档/2026-08-27/笔不怠R1-A真实验证基础设施验收报告_v1.4.0.md)
+- [R1-B 受控种子研究台验收报告](归档/2026-08-27/笔不怠R1-B受控种子研究台验收报告_v1.5.0.md)
 - [下一阶段 R1 真实作者验证与公开发布门](docs/implementation/R1_PLAN.md)
 - [R1-A 真实验证基础设施](docs/implementation/R1A_PLAN.md)
+- [R1-B 受控种子研究台](docs/implementation/R1B_PLAN.md)
 - [移动收集与审阅指南](docs/user/MOBILE_COMPANION.md)
 - [角色化审阅接力指南](docs/user/ROLE_REVIEW.md)
 - [安静冲刺与小组目标指南](docs/user/QUIET_SPRINTS.md)
 - [本地结构模板指南](docs/user/LOCAL_TEMPLATES.md)
 - [视觉锚点与故事板指南](docs/user/VISUAL_STORYBOARDS.md)
 - [真实作者验证指南](docs/user/REAL_AUTHOR_VALIDATION.md)
+- [受控种子研究台指南](docs/user/RESEARCH_COORDINATOR.md)
 - [备份与恢复指南](docs/user/BACKUP_AND_RECOVERY.md)
 - [隐私说明](docs/user/PRIVACY.md)

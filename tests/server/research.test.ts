@@ -18,14 +18,14 @@ describe('R1 local research evidence and release readiness', () => {
   function database(name: string) { const result = new AppDatabase(path.join(dir, `${name}.sqlite`)); databases.push(result); return result }
   async function cookie(app: ReturnType<typeof createApp>['app']) { return (await request(app).post('/api/session').expect(200)).headers['set-cookie'][0].split(';')[0] }
 
-  it('backs up v13 before migration v14 and creates consent, task and event tables', () => {
+  it('backs up v13 before migrating through v15 and creates research and cohort tables', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DELETE FROM schema_migrations WHERE version=14;')
+    db.db.exec('DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DELETE FROM schema_migrations WHERE version IN (14,15);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 14 })
-    expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name LIKE 'research_%'").get()).toMatchObject({ count: 3 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v13-to-v14-'))).toBe(true)
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 15 })
+    expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name LIKE 'research_%'").get()).toMatchObject({ count: 6 })
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v13-to-v15-'))).toBe(true)
   })
 
   it('requires explicit consent and exports only pseudonymous immutable task evidence', () => {
@@ -42,7 +42,7 @@ describe('R1 local research evidence and release readiness', () => {
     expect(() => research.completeTask(task.id, { outcome: 'completed', goalAchieved: true, difficulty: 2, minutesSaved: 12, issueCodes: [] })).toThrow(/resolved/i)
     const bundle = research.exportBundle(); const serialized = JSON.stringify(bundle)
     expect(bundle.manifest.progress).toMatchObject({ completedTasks: 1, completedCoreLoops: 1, reportedMinutesSaved: 12, dataLossReports: 0 })
-    expect(research.verifyBundle(bundle)).toMatchObject({ ok: true, manifestHashValid: true, eventChainValid: true, completedTasks: 1 })
+    expect(research.verifyBundle(bundle)).toMatchObject({ ok: true, manifestHashValid: true, eventChainValid: true, semanticValid: true, completedTasks: 1 })
     expect(serialized).not.toContain(project.id)
     expect(serialized).not.toContain(project.title)
     expect(serialized).not.toContain('绝不能进入研究包的正文')
@@ -76,11 +76,11 @@ describe('R1 local research evidence and release readiness', () => {
     const bundle = (await request(result.app).get('/api/research/export').set('Cookie', auth).expect(200)).body
     expect((await request(result.app).post('/api/research/inspect').set('Cookie', auth).send({ package: bundle }).expect(200)).body).toMatchObject({ ok: true, completedTasks: 1 })
     const support = (await request(result.app).get('/api/support/bundle').set('Cookie', auth).expect(200)).body
-    expect(support).toMatchObject({ format: 'bbd-support-v1', manifest: { appVersion: '1.4.0', database: { schemaVersion: 14, integrity: 'ok' }, privacy: { containsManuscriptText: false, containsPaths: false } } })
+    expect(support).toMatchObject({ format: 'bbd-support-v1', manifest: { appVersion: '1.5.0', database: { schemaVersion: 15, integrity: 'ok' }, counts: { cohortParticipants: 0 }, privacy: { containsManuscriptText: false, containsPaths: false } } })
     expect(JSON.stringify(support)).not.toContain(project.title)
     expect(JSON.stringify(support)).not.toContain(dir)
     const readiness = (await request(result.app).get('/api/release/readiness').set('Cookie', auth).expect(200)).body
-    expect(readiness).toMatchObject({ appVersion: '1.4.0', publicRelease: 'NO-GO' })
+    expect(readiness).toMatchObject({ appVersion: '1.5.0', publicRelease: 'NO-GO' })
     expect(readiness.external).toContainEqual(expect.objectContaining({ gate: '真实作者验证', status: 'required' }))
   })
 

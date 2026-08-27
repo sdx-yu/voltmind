@@ -19,6 +19,7 @@ import { SprintService } from './sprint.js'
 import { TemplateService } from './template.js'
 import { VisualService } from './visual.js'
 import { ResearchService, buildReleaseReadiness, buildSupportBundle } from './research.js'
+import { ResearchCohortService } from './researchCohort.js'
 import type { VisualSelectedField } from '../shared/types.js'
 import { newId, nowIso, sha256 } from './utils.js'
 
@@ -46,6 +47,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   const templates = new TemplateService(database)
   const visuals = new VisualService(database)
   const research = new ResearchService(database)
+  const researchCohort = new ResearchCohortService(database)
   const sessionToken = randomBytes(24).toString('hex')
   const allowedOrigins = new Set([`http://${config.host}:4318`, `http://${config.host}:${config.port}`])
 
@@ -468,6 +470,26 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.post('/api/research/inspect', route(async (req, res) => res.json(research.verifyBundle(z.object({ package: z.unknown() }).strict().parse(req.body).package))))
   app.get('/api/support/bundle', route(async (_req, res) => res.json(buildSupportBundle(database, config))))
   app.get('/api/release/readiness', route(async (_req, res) => res.json(buildReleaseReadiness(database, config))))
+  app.get('/api/research-cohort/status', route(async (_req, res) => res.json(researchCohort.getStatus())))
+  app.post('/api/research-cohort/import', route(async (req, res) => {
+    const input = z.object({
+      package: z.unknown(),
+      evidenceClass: z.enum(['external_attested', 'engineering_fixture']),
+      segment: z.enum(['web_serial', 'revision_novel', 'ai_assisted', 'other_target']),
+      attestation: z.object({ targetAuthorConfirmed: z.boolean(), independentParticipantConfirmed: z.boolean(), manuscriptRightsConfirmed: z.boolean(), realUseConfirmed: z.boolean() }).strict(),
+      retentionUntil: z.iso.datetime(),
+    }).strict().parse(req.body)
+    res.status(201).json(researchCohort.importBundle({ researchPackage: input.package, evidenceClass: input.evidenceClass, segment: input.segment, attestation: input.attestation, retentionUntil: input.retentionUntil }))
+  }))
+  app.delete('/api/research-cohort/participants/:hash', route(async (req, res) => {
+    z.object({ confirm: z.literal(true) }).strict().parse(req.body)
+    res.json(researchCohort.deleteParticipant(param(req, 'hash')))
+  }))
+  app.post('/api/research-cohort/purge-expired', route(async (req, res) => {
+    z.object({ confirm: z.literal(true) }).strict().parse(req.body)
+    res.json(researchCohort.purgeExpired())
+  }))
+  app.get('/api/research-cohort/export', route(async (_req, res) => res.json(researchCohort.exportBundle())))
 
   app.get('/api/mobile/inbox', route(async (req, res) => res.json(database.listMobileInbox(req.query.projectId ? String(req.query.projectId) : undefined))))
   app.post('/api/mobile/inbox', route(async (req, res) => {
@@ -551,10 +573,10 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project/i.test(message) ? 400 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写|strict continuation|consent receipt changed|was deleted/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|semantic verification|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project/i.test(message) ? 400 : 500
     return res.status(status).json({ error: message })
   })
-  return { app, database, ai, sync, reviews, sprints, templates, visuals, research }
+  return { app, database, ai, sync, reviews, sprints, templates, visuals, research, researchCohort }
 }
 
 function route(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
