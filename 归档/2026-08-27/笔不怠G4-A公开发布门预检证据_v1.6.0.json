@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "g4-release-readiness-v1",
+  "checkedAt": "2026-08-27T14:04:07.743Z",
+  "releaseDecision": "NO-GO",
+  "source": {
+    "branch": "main",
+    "commit": "0f99a722d7ad6f99d4e719d28665cb45106736df",
+    "trackedChanges": false
+  },
+  "versions": {
+    "package": "1.6.0",
+    "tauri": "1.6.0",
+    "cargo": "1.6.0",
+    "serviceWorker": "1.6.0",
+    "aligned": true
+  },
+  "materials": {
+    "sbom": {
+      "exists": true,
+      "valid": true,
+      "sha256": "b34fff17c7a18c7a8c988ae48cf7148133ec51249a95958111c0099570ce7367",
+      "checksumRecorded": true
+    },
+    "thirdPartyLicenses": {
+      "exists": true,
+      "valid": true,
+      "sha256": "e7506b0d95678d88b8c548de0d86fe2680336cbf5c2632adfa9985e819214709",
+      "checksumRecorded": true
+    },
+    "checksumManifest": {
+      "exists": true,
+      "artifact": "release/笔不怠_1.6.0_aarch64.dmg",
+      "artifactSha256": "99fcd4aefe69613bf89e050a80ad412e16848ecd2a57b9e5456095d39dcccea0",
+      "recordedSha256": "99fcd4aefe69613bf89e050a80ad412e16848ecd2a57b9e5456095d39dcccea0",
+      "artifactRecorded": true
+    }
+  },
+  "macOS": {
+    "appExists": true,
+    "signatureStructureValid": true,
+    "developerIdSigned": false,
+    "dmgExists": true,
+    "dmgValid": true,
+    "gatekeeperAccepted": false,
+    "notarizationStapled": false
+  },
+  "windows": {
+    "installers": [],
+    "signedInstallerVerified": false,
+    "installUninstallImeRecoveryMatrix": "pending_external_windows_x64"
+  },
+  "mobile": {
+    "realDeviceMatrix": "pending_external_devices",
+    "requiredWidths": [
+      360,
+      390,
+      430
+    ],
+    "requiredConditions": [
+      "offline",
+      "weak_network",
+      "pwa_update",
+      "encrypted_handoff"
+    ]
+  },
+  "seedValidation": {
+    "status": "pending_external_authors_and_time",
+    "minimumTwoWeekAuthors": 5,
+    "minimumFourWeekAuthors": 3,
+    "fixtureEvidenceAccepted": false
+  },
+  "privacy": {
+    "containsAuthorIdentity": false,
+    "containsContactDetails": false,
+    "containsManuscriptText": false,
+    "containsSecrets": false
+  },
+  "gates": [
+    {
+      "id": "G4-SOURCE",
+      "evidenceClass": "engineering",
+      "status": "PASS",
+      "requirement": "版本一致且受跟踪源码无改动"
+    },
+    {
+      "id": "G4-MATERIALS",
+      "evidenceClass": "engineering",
+      "status": "PASS",
+      "requirement": "SBOM、许可证和当前安装包哈希可验证"
+    },
+    {
+      "id": "G4-MAC-BUILD",
+      "evidenceClass": "engineering",
+      "status": "PASS",
+      "requirement": "macOS 应用结构与 DMG 可验证"
+    },
+    {
+      "id": "G4-MAC-DISTRIBUTION",
+      "evidenceClass": "external",
+      "status": "BLOCKED",
+      "requirement": "需要 Developer ID、Gatekeeper 接受和公证票据"
+    },
+    {
+      "id": "G4-WINDOWS",
+      "evidenceClass": "external",
+      "status": "BLOCKED",
+      "requirement": "需要 Windows x64 签名包和真机矩阵"
+    },
+    {
+      "id": "G4-MOBILE",
+      "evidenceClass": "external",
+      "status": "BLOCKED",
+      "requirement": "需要真实移动设备、弱网和 PWA 更新矩阵"
+    },
+    {
+      "id": "R1-SEED",
+      "evidenceClass": "external",
+      "status": "BLOCKED",
+      "requirement": "需要至少 5 名两周、3 名四周的真实作者证据"
+    }
+  ]
+}
