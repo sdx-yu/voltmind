@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "g4-macos-release-v1",
+  "generatedAt": "2026-08-27T14:54:17.389Z",
+  "sourceRevision": "06732024426cd0cd89cf43ac795ba6a2e6d80d01",
+  "host": {
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "checks": [
+    {
+      "id": "platform",
+      "passed": true,
+      "detail": "darwin-arm64"
+    },
+    {
+      "id": "full-xcode",
+      "passed": false,
+      "detail": "/Library/Developer/CommandLineTools"
+    },
+    {
+      "id": "developer-id-identity",
+      "passed": false,
+      "detail": "not-configured"
+    },
+    {
+      "id": "notarization-credentials",
+      "passed": false,
+      "detail": "not-configured"
+    }
+  ],
+  "credentialsRecorded": false,
+  "status": "BLOCKED",
+  "missing": [
+    "full-xcode",
+    "developer-id-identity",
+    "notarization-credentials"
+  ],
+  "artifacts": []
+}
