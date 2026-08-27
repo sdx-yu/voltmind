@@ -30,6 +30,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Crypto, SQLite migrations and encrypted package round-trips are deliberately
+    // integration-heavy. Keep a finite ceiling while allowing release checks on
+    // resource-constrained CI/desktop hosts.
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

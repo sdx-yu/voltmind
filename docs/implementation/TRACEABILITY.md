@@ -189,3 +189,17 @@
 | 本机工程回归 | 通过 | 1.6.0 自动化与发行包 | 36 文件 132 项测试、2,155 模块构建、桌面签名结构、DMG、sidecar 健康与 0 production 漏洞通过 |
 | 真实两周波次 | 外部验证 | 研究负责人产品外执行 | 当前真实波次/参与者/两周达标均为 0；需真实招募、同意、安全交付和时间流逝 |
 | 公开跨平台发布 | 外部验证 | R1 发布门 | 仍缺 Developer ID/公证、Windows 签名真机、移动真机与正式分发证据，R1 固定 NO-GO |
+
+## G4-A 公开发布门预检追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| 可复跑发布证据 | 通过 | `check-release-readiness.mjs`、`g4-release-readiness-v1` | 输出时间、分支、提交、版本、材料、平台、真实作者与七门结果；系统检查 15 秒上限 |
+| 决策不可误提升 | 通过 | `release-readiness-core.mjs` | 三项本机工程门与四项外部门分离；单元测试证明必须七门全部 PASS 才 GO |
+| 供应链物料 | 通过 | `release/bom.cdx.json`、第三方许可证、`SHA256SUMS` | CycloneDX 1.6/许可证 JSON 可解析；1.6.0 DMG 实际 SHA-256 与清单一致；生产依赖 0 漏洞 |
+| macOS 内测构建 | 通过 | 1.6.0 `.app`/DMG | 严格签名结构和 DMG 校验通过；明确识别为非 Developer ID、无 Gatekeeper 接受、无公证票据 |
+| 最小披露 | 通过 | 固定 privacy 声明、JSON 证据 | 不含作者身份、联系方式、正文或密钥；夹具证据明确不可接受 |
+| 质量门稳定性 | 通过 | `vite.config.ts` | 加密/SQLite 集成测试在资源受限宿主机使用 60 秒有限上限；37 文件 134 项测试通过 |
+| 正式 macOS 分发 | 外部验证 | G4-MAC-DISTRIBUTION | 缺 Developer ID、Gatekeeper 接受和 stapled 公证票据 |
+| Windows 与移动真机 | 外部验证 | G4-WINDOWS/G4-MOBILE | 缺 Windows x64 签名包、安装/卸载/IME/恢复矩阵与移动真机矩阵 |
+| 真实种子作者 | 外部验证 | R1-SEED | 真实波次仍未开始；需至少 5 名两周、3 名四周且人工复核 |
