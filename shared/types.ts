@@ -171,7 +171,7 @@ export interface Revision {
 }
 
 export type ProvenanceLabel = 'human' | 'ai_accepted' | 'human_after_ai' | 'import' | 'restore' | 'merge'
-export type ProvenanceEventType = 'human_edit' | 'ai_generated' | 'ai_failed' | 'ai_accepted' | 'ai_rejected' | 'ai_undone' | 'human_after_ai' | 'import' | 'restore' | 'merge' | 'replace' | 'replace_undone' | 'candidate_created' | 'candidate_accepted' | 'candidate_rejected' | 'sync_merge' | 'sync_conflict' | 'sync_conflict_resolved' | 'review_suggestion_accepted' | 'review_feedback_decided' | 'template_applied' | 'template_reverted'
+export type ProvenanceEventType = 'human_edit' | 'ai_generated' | 'ai_failed' | 'ai_accepted' | 'ai_rejected' | 'ai_undone' | 'human_after_ai' | 'import' | 'restore' | 'merge' | 'replace' | 'replace_undone' | 'candidate_created' | 'candidate_accepted' | 'candidate_rejected' | 'sync_merge' | 'sync_conflict' | 'sync_conflict_resolved' | 'review_suggestion_accepted' | 'review_feedback_decided' | 'template_applied' | 'template_reverted' | 'visual_anchor_created' | 'visual_anchor_refreshed' | 'visual_candidate_imported' | 'visual_candidate_accepted' | 'visual_candidate_rejected' | 'storyboard_updated'
 
 export interface ProvenanceEvent {
   id: string
@@ -677,6 +677,86 @@ export interface TemplateApplication {
   status: 'applied' | 'reverted'
   appliedAt: string
   revertedAt: string | null
+}
+
+export type VisualSelectedField = 'canonicalName' | 'summary' | 'aliases' | `state:${string}`
+
+export interface VisualCanonSnapshot {
+  entityId: string
+  entityType: Extract<EntityType, 'character' | 'location' | 'item'>
+  entityUpdatedAt: string
+  selectedFields: VisualSelectedField[]
+  values: Record<string, unknown>
+}
+
+export interface VisualAsset {
+  contentHash: string
+  mimeType: 'image/png' | 'image/jpeg'
+  byteSize: number
+  width: number
+  height: number
+  createdAt: string
+  url: string
+}
+
+export interface VisualCandidate {
+  id: string
+  projectId: string
+  anchorId: string
+  asset: VisualAsset
+  sourceKind: 'import'
+  sourceLabel: string
+  fileName: string
+  descriptionSnapshot: string
+  canonHash: string
+  status: 'pending' | 'accepted' | 'rejected' | 'superseded'
+  createdAt: string
+  resolvedAt: string | null
+}
+
+export interface VisualAnchor {
+  id: string
+  projectId: string
+  entityId: string
+  entityName: string
+  entityType: Extract<EntityType, 'character' | 'location' | 'item'>
+  selectedFields: VisualSelectedField[]
+  styleNote: string
+  visualDescription: string
+  canonSnapshot: VisualCanonSnapshot
+  canonHash: string
+  currentCanonHash: string
+  bindingStatus: 'unbound' | 'current' | 'stale'
+  acceptedCandidateId: string | null
+  acceptedAsset: VisualAsset | null
+  candidates: VisualCandidate[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoryboardCard {
+  id: string
+  storyboardId: string
+  position: number
+  purpose: string
+  note: string
+  anchorIds: string[]
+  asset: VisualAsset | null
+  visualDescription: string
+  canonBindings: Array<{ anchorId: string; canonHash: string }>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Storyboard {
+  id: string
+  projectId: string
+  sceneId: string
+  sceneTitle: string
+  title: string
+  cards: StoryboardCard[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Entity {

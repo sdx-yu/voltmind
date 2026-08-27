@@ -2,7 +2,7 @@
 
 **笔耕不怠，写尽所思。**
 
-中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R、V2-F 与 V2-P 已完成本机工程验证，当前版本为 1.2.0。
+中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M 与 V2-R～V2-V 已完成本机工程验证，当前版本为 1.3.0。
 
 ## 开发
 
@@ -46,13 +46,16 @@ npm run release:materials
 - [架构决策 ADR-005](docs/adr/ADR-005-offline-role-review-relay.md)
 - [架构决策 ADR-006](docs/adr/ADR-006-trustworthy-local-sprint-results.md)
 - [架构决策 ADR-007](docs/adr/ADR-007-declarative-local-template-packages.md)
+- [架构决策 ADR-008](docs/adr/ADR-008-canon-before-visual-assets.md)
 - [bbd-sync-v1 协议与威胁模型](docs/implementation/SYNC_PROTOCOL_V1.md)
 - [bbd-review-v1 协议与威胁模型](docs/implementation/REVIEW_PROTOCOL_V1.md)
 - [bbd-sprint-v1 协议与威胁模型](docs/implementation/SPRINT_PROTOCOL_V1.md)
 - [bbd-template-v1 协议与威胁模型](docs/implementation/TEMPLATE_PROTOCOL_V1.md)
+- [bbd-visual-v1 协议与威胁模型](docs/implementation/VISUAL_ASSET_PROTOCOL_V1.md)
 - [V2-R 角色化审阅接力](docs/implementation/V2R_PLAN.md)
 - [V2-F 安静冲刺与小组目标](docs/implementation/V2F_PLAN.md)
 - [V2-P 本地插件与结构模板包](docs/implementation/V2P_PLAN.md)
+- [V2-V 视觉锚点与故事板](docs/implementation/V2V_PLAN.md)
 - [MVP 实施与验收报告](归档/2026-08-26/笔不怠MVP实施与验收报告_v1.0.md)
 - [RC1 桌面交付与恢复验收报告](归档/2026-08-26/笔不怠RC1桌面交付与恢复验收报告_v0.2.0.md)
 - [V1-A 剧情控制层实施与验收报告](归档/2026-08-26/笔不怠V1-A剧情控制层实施与验收报告_v0.3.0.md)
@@ -65,10 +68,12 @@ npm run release:materials
 - [V2-R 角色化审阅接力验收报告](归档/2026-08-27/笔不怠V2-R角色化审阅接力验收报告_v1.0.0.md)
 - [V2-F 安静冲刺与小组目标验收报告](归档/2026-08-27/笔不怠V2-F安静冲刺与小组目标验收报告_v1.1.0.md)
 - [V2-P 本地插件与结构模板包验收报告](归档/2026-08-27/笔不怠V2-P本地插件与结构模板包验收报告_v1.2.0.md)
-- [下一阶段 V2-V 视觉锚点与故事板](docs/implementation/V2V_PLAN.md)
+- [V2-V 视觉锚点与故事板验收报告](归档/2026-08-27/笔不怠V2-V视觉锚点与故事板验收报告_v1.3.0.md)
+- [下一阶段 R1 真实作者验证与公开发布门](docs/implementation/R1_PLAN.md)
 - [移动收集与审阅指南](docs/user/MOBILE_COMPANION.md)
 - [角色化审阅接力指南](docs/user/ROLE_REVIEW.md)
 - [安静冲刺与小组目标指南](docs/user/QUIET_SPRINTS.md)
 - [本地结构模板指南](docs/user/LOCAL_TEMPLATES.md)
+- [视觉锚点与故事板指南](docs/user/VISUAL_STORYBOARDS.md)
 - [备份与恢复指南](docs/user/BACKUP_AND_RECOVERY.md)
 - [隐私说明](docs/user/PRIVACY.md)

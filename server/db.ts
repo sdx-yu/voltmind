@@ -66,7 +66,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 12)
+    backupBeforeMigration(databasePath, 13)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -844,6 +844,90 @@ export class AppDatabase {
           CREATE INDEX idx_template_events_project ON template_events(project_id, created_at, id);
         `)
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(12, nowIso())
+      })
+    }
+    if (version < 13) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE visual_assets (
+            content_hash TEXT PRIMARY KEY,
+            mime_type TEXT NOT NULL CHECK(mime_type IN ('image/png','image/jpeg')),
+            byte_size INTEGER NOT NULL CHECK(byte_size > 0 AND byte_size <= 10485760),
+            width INTEGER NOT NULL CHECK(width > 0 AND width <= 20000),
+            height INTEGER NOT NULL CHECK(height > 0 AND height <= 20000),
+            content_blob BLOB NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          CREATE TABLE visual_anchors (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            entity_id TEXT NOT NULL REFERENCES entities(id),
+            selected_fields_json TEXT NOT NULL,
+            style_note TEXT NOT NULL DEFAULT '',
+            visual_description TEXT NOT NULL,
+            canon_snapshot_json TEXT NOT NULL,
+            canon_hash TEXT NOT NULL,
+            accepted_candidate_id TEXT,
+            accepted_asset_hash TEXT REFERENCES visual_assets(content_hash),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT,
+            UNIQUE(project_id, entity_id)
+          );
+          CREATE INDEX idx_visual_anchors_project ON visual_anchors(project_id, updated_at DESC);
+          CREATE TABLE visual_candidates (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            anchor_id TEXT NOT NULL REFERENCES visual_anchors(id) ON DELETE CASCADE,
+            asset_hash TEXT NOT NULL REFERENCES visual_assets(content_hash),
+            source_kind TEXT NOT NULL CHECK(source_kind IN ('import')),
+            source_label TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            description_snapshot TEXT NOT NULL,
+            canon_hash TEXT NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('pending','accepted','rejected','superseded')),
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            UNIQUE(anchor_id, asset_hash, canon_hash)
+          );
+          CREATE INDEX idx_visual_candidates_anchor ON visual_candidates(anchor_id, created_at DESC);
+          CREATE TABLE storyboards (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            scene_id TEXT NOT NULL REFERENCES manuscript_nodes(id),
+            title TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(project_id, scene_id)
+          );
+          CREATE INDEX idx_storyboards_project ON storyboards(project_id, updated_at DESC);
+          CREATE TABLE storyboard_cards (
+            id TEXT PRIMARY KEY,
+            storyboard_id TEXT NOT NULL REFERENCES storyboards(id) ON DELETE CASCADE,
+            position INTEGER NOT NULL CHECK(position >= 0),
+            purpose TEXT NOT NULL,
+            note TEXT NOT NULL DEFAULT '',
+            anchor_ids_json TEXT NOT NULL DEFAULT '[]',
+            asset_hash TEXT REFERENCES visual_assets(content_hash),
+            visual_description TEXT NOT NULL DEFAULT '',
+            canon_bindings_json TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_storyboard_cards_board ON storyboard_cards(storyboard_id, position, created_at);
+          CREATE TABLE visual_events (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            anchor_id TEXT REFERENCES visual_anchors(id) ON DELETE SET NULL,
+            candidate_id TEXT REFERENCES visual_candidates(id) ON DELETE SET NULL,
+            storyboard_id TEXT REFERENCES storyboards(id) ON DELETE SET NULL,
+            event_type TEXT NOT NULL CHECK(event_type IN ('anchor_created','anchor_refreshed','candidate_imported','candidate_accepted','candidate_rejected','storyboard_created','storyboard_updated')),
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_visual_events_project ON visual_events(project_id, created_at, id);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(13, nowIso())
       })
     }
     const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()

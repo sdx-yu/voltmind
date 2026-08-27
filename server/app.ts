@@ -17,6 +17,8 @@ import { SyncService } from './sync.js'
 import { ReviewService } from './review.js'
 import { SprintService } from './sprint.js'
 import { TemplateService } from './template.js'
+import { VisualService } from './visual.js'
+import type { VisualSelectedField } from '../shared/types.js'
 import { newId, nowIso, sha256 } from './utils.js'
 
 const nodeInput = z.object({ parentId: z.string().nullable(), type: z.enum(['book', 'volume', 'chapter', 'scene']), title: z.string().trim().min(1).max(200), sortKey: z.number().int().optional() })
@@ -41,6 +43,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   const reviews = new ReviewService(database)
   const sprints = new SprintService(database)
   const templates = new TemplateService(database)
+  const visuals = new VisualService(database)
   const sessionToken = randomBytes(24).toString('hex')
   const allowedOrigins = new Set([`http://${config.host}:4318`, `http://${config.host}:${config.port}`])
 
@@ -415,6 +418,36 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.get('/api/projects/:id/template-applications', route(async (req, res) => res.json(templates.listApplications(param(req, 'id')))))
   app.post('/api/template-applications/:id/revert', route(async (req, res) => res.json(templates.revert(param(req, 'id')))))
 
+  app.get('/api/projects/:id/visual-anchors', route(async (req, res) => res.json(visuals.listAnchors(param(req, 'id')))))
+  app.post('/api/projects/:id/visual-anchors', route(async (req, res) => {
+    const input = z.object({ entityId: z.string(), selectedFields: z.array(z.string()).min(1).max(20), styleNote: z.string().max(1000).default('') }).parse(req.body)
+    res.status(201).json(visuals.createAnchor(param(req, 'id'), input.entityId, input.selectedFields as VisualSelectedField[], input.styleNote))
+  }))
+  app.patch('/api/visual-anchors/:id', route(async (req, res) => {
+    const input = z.object({ selectedFields: z.array(z.string()).min(1).max(20).optional(), styleNote: z.string().max(1000).optional() }).parse(req.body)
+    res.json(visuals.refreshAnchor(param(req, 'id'), input.selectedFields as VisualSelectedField[] | undefined, input.styleNote))
+  }))
+  app.post('/api/visual-anchors/:id/candidates', route(async (req, res) => {
+    const input = z.object({ fileName: z.string().min(1).max(240), mimeType: z.enum(['image/png', 'image/jpeg']), contentBase64: z.string().min(1).max(14_000_000), sourceLabel: z.string().max(120).default('作者本地导入') }).parse(req.body)
+    res.status(201).json(visuals.importCandidate(param(req, 'id'), input))
+  }))
+  app.post('/api/visual-candidates/:id/resolve', route(async (req, res) => res.json(visuals.resolveCandidate(param(req, 'id'), z.object({ decision: z.enum(['accepted', 'rejected']) }).parse(req.body).decision))))
+  app.get('/api/visual-assets/:hash/content', route(async (req, res) => {
+    const result = visuals.getAsset(param(req, 'hash')); if (!result) return res.status(404).json({ error: 'Visual asset not found' })
+    res.setHeader('Content-Type', result.asset.mimeType); res.setHeader('Content-Length', String(result.asset.byteSize)); res.setHeader('Cache-Control', 'private, max-age=31536000, immutable'); res.setHeader('X-Content-Type-Options', 'nosniff'); res.send(result.bytes)
+  }))
+  app.get('/api/projects/:id/storyboards', route(async (req, res) => res.json(visuals.listStoryboards(param(req, 'id')))))
+  app.post('/api/projects/:projectId/scenes/:sceneId/storyboard', route(async (req, res) => {
+    const title = z.object({ title: z.string().trim().min(1).max(160).optional() }).parse(req.body ?? {}).title
+    res.status(201).json(visuals.getOrCreateStoryboard(param(req, 'projectId'), param(req, 'sceneId'), title))
+  }))
+  app.post('/api/storyboards/:id/cards', route(async (req, res) => {
+    const input = z.object({ purpose: z.string().trim().min(1).max(160), note: z.string().max(2000).default(''), anchorIds: z.array(z.string()).max(20).default([]), assetHash: z.string().length(64).nullable().default(null), visualDescription: z.string().max(4000).default('') }).parse(req.body)
+    res.status(201).json(visuals.addStoryboardCard(param(req, 'id'), input))
+  }))
+  app.post('/api/storyboard-cards/:id/move', route(async (req, res) => res.json(visuals.moveStoryboardCard(param(req, 'id'), z.object({ direction: z.enum(['up', 'down']) }).parse(req.body).direction))))
+  app.delete('/api/storyboard-cards/:id', route(async (req, res) => res.json(visuals.deleteStoryboardCard(param(req, 'id')))))
+
   app.get('/api/mobile/inbox', route(async (req, res) => res.json(database.listMobileInbox(req.query.projectId ? String(req.query.projectId) : undefined))))
   app.post('/api/mobile/inbox', route(async (req, res) => {
     const input = z.object({ id: z.string().min(8).max(100), projectId: z.string().nullable(), targetNodeId: z.string().nullable(), kind: z.enum(['inspiration', 'scene_idea', 'review_note']), content: z.string().trim().min(1).max(10000), originDeviceId: z.string().max(100).nullable().default(null), createdAt: z.iso.datetime() }).parse(req.body)
@@ -477,12 +510,12 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   }))
 
   app.get('/api/projects/:id/backup', route(async (req, res) => {
-    const archive = exportProject(database, templates, param(req, 'id'))
+    const archive = exportProject(database, templates, visuals, param(req, 'id'))
     res.type('application/json').setHeader('Content-Disposition', `attachment; filename="project.bbd-backup"`).send(JSON.stringify(archive, null, 2))
   }))
   app.post('/api/backups/restore', route(async (req, res) => {
     const archive = backupSchema.parse(req.body)
-    const restored = importProject(database, templates, archive)
+    const restored = importProject(database, templates, visuals, archive)
     res.status(201).json(restored)
   }))
 
@@ -497,10 +530,10 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|ID collision|outside this board period|title conflict|preview is stale|already reverted|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|Sprint event|Sprint result|Template structure hash|Template package hash|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled/i.test(message) ? 403 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private/i.test(message) ? 403 : /must be|invalid|too many|unsupported|another project/i.test(message) ? 400 : 500
     return res.status(status).json({ error: message })
   })
-  return { app, database, ai, sync, reviews, sprints, templates }
+  return { app, database, ai, sync, reviews, sprints, templates, visuals }
 }
 
 function route(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
@@ -576,14 +609,14 @@ function requireFound<T>(value: T | null, label: string): T {
 }
 
 const backupPayloadSchema = z.object({
-  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(),
+  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
 })
 const backupSchema = z.object({ format: z.literal('bbd-backup-v2'), checksum: z.string().length(64), payload: backupPayloadSchema }).superRefine((archive, context) => {
   if (sha256(JSON.stringify(archive.payload)) !== archive.checksum) context.addIssue({ code: 'custom', message: '备份校验失败，文件可能已损坏或被修改' })
 })
 type Backup = z.infer<typeof backupSchema>
 
-function exportProject(database: AppDatabase, templates: TemplateService, projectId: string): Backup {
+function exportProject(database: AppDatabase, templates: TemplateService, visuals: VisualService, projectId: string): Backup {
   const project = database.getProject(projectId)
   if (!project) throw new Error('Project not found')
   const nodes = database.listNodes(projectId, true)
@@ -611,11 +644,12 @@ function exportProject(database: AppDatabase, templates: TemplateService, projec
   const sprintBoards = database.listSprintBoards(projectId).map((board) => ({ ...board, packages: database.listSprintBoardPackages(board.id) }))
   const sprint = { sessions: sprintSessions, boards: sprintBoards }
   const templateBundle = templates.exportProjectBundle(projectId)
-  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle }
+  const visualBundle = visuals.exportProjectBundle(projectId)
+  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
   return { format: 'bbd-backup-v2', checksum: sha256(JSON.stringify(payload)), payload }
 }
 
-function importProject(database: AppDatabase, templates: TemplateService, archive: Backup) {
+function importProject(database: AppDatabase, templates: TemplateService, visuals: VisualService, archive: Backup) {
   const source = archive.payload
   const project = database.createProject(`${source.project.title}（恢复）`, source.project.description)
   const idMap = new Map<string, string>(); const entityMap = new Map<string, string>(); const mentionMap = new Map<string, string>(); const candidateMap = new Map<string, string>(); const taskMap = new Map<string, string>(); const revisionMap = new Map<string, string>()
@@ -701,6 +735,7 @@ function importProject(database: AppDatabase, templates: TemplateService, archiv
       (run.results ?? []).map((result: any) => ({ ...result, nodeId: result.nodeId ? idMap.get(result.nodeId) ?? null : null })),
       run.createdAt ?? nowIso(),
     )
+    if (source.visuals) visuals.importProjectBundle(project.id, source.visuals, { entities: entityMap, nodes: idMap })
     if (source.provenance) database.replaceProvenanceForRestore(project.id, source.provenance.events, source.provenance.exports, { nodes: idMap, revisions: revisionMap, tasks: taskMap })
     for (const session of source.review ?? []) {
       const sessionId = randomBytes(16).toString('hex')
@@ -758,6 +793,11 @@ function importProject(database: AppDatabase, templates: TemplateService, archiv
 function cleanupProject(database: AppDatabase, projectId: string) {
   database.db.exec('PRAGMA foreign_keys=OFF')
   try {
+    database.db.prepare('DELETE FROM visual_events WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM storyboard_cards WHERE storyboard_id IN (SELECT id FROM storyboards WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM storyboards WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM visual_candidates WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM visual_anchors WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM template_events WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM template_applications WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM template_grants WHERE project_id=?').run(projectId)
@@ -803,5 +843,6 @@ function cleanupProject(database: AppDatabase, projectId: string) {
     for (const id of entityIds) database.db.prepare('DELETE FROM entity_states WHERE entity_id=?').run(id)
     for (const table of ['candidate_changes', 'canon_events', 'operation_log', 'project_settings', 'imported_sources', 'replace_batches', 'continuity_exceptions']) database.db.prepare(`DELETE FROM ${table} WHERE project_id=?`).run(projectId)
     database.db.prepare('DELETE FROM manuscript_nodes WHERE project_id=?').run(projectId); database.db.prepare('DELETE FROM entities WHERE project_id=?').run(projectId); database.db.prepare('DELETE FROM projects WHERE id=?').run(projectId)
+    database.db.exec(`DELETE FROM visual_assets WHERE content_hash NOT IN (SELECT asset_hash FROM visual_candidates) AND content_hash NOT IN (SELECT asset_hash FROM storyboard_cards WHERE asset_hash IS NOT NULL)`)
   } finally { database.db.exec('PRAGMA foreign_keys=ON') }
 }

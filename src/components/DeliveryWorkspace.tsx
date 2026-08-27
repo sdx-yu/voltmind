@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, CloudCog, Download, ExternalLink, FileArchive, FileCheck2, Fingerprint, Goal, LocateFixed, MessageSquareText, PackageOpen, RefreshCw, ShieldAlert, TimerReset } from 'lucide-react'
+import { AlertTriangle, Check, CloudCog, Download, ExternalLink, FileArchive, FileCheck2, Fingerprint, GalleryHorizontalEnd, Goal, LocateFixed, MessageSquareText, PackageOpen, RefreshCw, ShieldAlert, TimerReset } from 'lucide-react'
 import type { DeliveryCheckResult, DeliveryCheckRun, DeliveryRule, DeliveryTemplate, Foreshadow, ManuscriptNode, Project } from '../../shared/types'
 import { api, downloadUrl } from '../lib/api'
 
@@ -7,7 +7,7 @@ type Props = {
   project: Project
   nodes: ManuscriptNode[]
   onSelectScene: (id: string) => void
-  onOpenTool?: (tool: 'provenance' | 'sync' | 'review' | 'sprint' | 'template') => void
+  onOpenTool?: (tool: 'provenance' | 'sync' | 'review' | 'sprint' | 'template' | 'visual') => void
   notify: (type: 'success' | 'error', message: string) => void
 }
 
@@ -99,7 +99,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, onOpenTool, n
   }
 
   return <section className="delivery-workspace">
-    <header className="page-header"><div><span className="eyebrow">交付台</span><h2>把故事安全地带出去</h2><p>平台规则逐条可关闭；检查只提供有出处的提醒，不会阻止导出，也不会替你投稿。</p></div>{onOpenTool && <div className="page-header-tools"><button className="button ghost compact" onClick={() => onOpenTool('template')}><PackageOpen size={15} />结构模板</button><button className="button ghost compact" onClick={() => onOpenTool('sprint')}><TimerReset size={15} />安静冲刺</button><button className="button ghost compact" onClick={() => onOpenTool('review')}><MessageSquareText size={15} />角色审阅</button><button className="button ghost compact" onClick={() => onOpenTool('provenance')}><Fingerprint size={15} />创作来源</button><button className="button ghost compact" onClick={() => onOpenTool('sync')}><CloudCog size={15} />加密接力</button></div>}</header>
+    <header className="page-header"><div><span className="eyebrow">交付台</span><h2>把故事安全地带出去</h2><p>平台规则逐条可关闭；检查只提供有出处的提醒，不会阻止导出，也不会替你投稿。</p></div>{onOpenTool && <div className="page-header-tools"><button className="button ghost compact" onClick={() => onOpenTool('visual')}><GalleryHorizontalEnd size={15} />视觉故事板</button><button className="button ghost compact" onClick={() => onOpenTool('template')}><PackageOpen size={15} />结构模板</button><button className="button ghost compact" onClick={() => onOpenTool('sprint')}><TimerReset size={15} />安静冲刺</button><button className="button ghost compact" onClick={() => onOpenTool('review')}><MessageSquareText size={15} />角色审阅</button><button className="button ghost compact" onClick={() => onOpenTool('provenance')}><Fingerprint size={15} />创作来源</button><button className="button ghost compact" onClick={() => onOpenTool('sync')}><CloudCog size={15} />加密接力</button></div>}</header>
     <div className="delivery-summary">
       <article><span><FileCheck2 size={20} /></span><div><strong>{totalWords.toLocaleString('zh-CN')}</strong><small>全书字数{stats ? ` / ${stats.projectGoal.toLocaleString('zh-CN')}` : ''}</small></div></article>
       <article><span><Goal size={20} /></span><div><strong>{stats?.todayNet.toLocaleString('zh-CN') ?? '—'}</strong><small>今日净新增{stats ? ` / ${stats.dailyGoal}` : ''}</small></div></article>

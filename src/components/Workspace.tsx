@@ -20,9 +20,10 @@ import { SplitSceneDialog } from './SplitSceneDialog'
 import { SprintWorkspace } from './SprintWorkspace'
 import { SyncWorkspace } from './SyncWorkspace'
 import { TemplateWorkspace } from './TemplateWorkspace'
+import { VisualWorkspace } from './VisualWorkspace'
 import { WritingEditor } from './WritingEditor'
 
-type View = 'write' | 'plot' | 'canon' | 'deliver' | 'provenance' | 'sync' | 'review' | 'sprint' | 'template'
+type View = 'write' | 'plot' | 'canon' | 'deliver' | 'provenance' | 'sync' | 'review' | 'sprint' | 'template' | 'visual'
 
 export function Workspace({ project, onBack, notify }: { project: Project; onBack: () => void; notify: (type: 'success' | 'error', message: string) => void }) {
   const storedChrome = readChrome()
@@ -175,7 +176,7 @@ export function Workspace({ project, onBack, notify }: { project: Project; onBac
         <button className={view === 'write' ? 'active' : ''} onClick={() => setView('write')}><Feather size={16} />写作</button>
         <button className={view === 'plot' ? 'active' : ''} onClick={() => setView('plot')}><LayoutGrid size={16} />剧情</button>
         <button className={view === 'canon' ? 'active' : ''} onClick={() => setView('canon')}><Boxes size={16} />正典</button>
-        <button className={view === 'deliver' || view === 'provenance' || view === 'sync' || view === 'review' || view === 'sprint' || view === 'template' ? 'active' : ''} onClick={() => setView('deliver')}><Share2 size={16} />交付</button>
+        <button className={view === 'deliver' || view === 'provenance' || view === 'sync' || view === 'review' || view === 'sprint' || view === 'template' || view === 'visual' ? 'active' : ''} onClick={() => setView('deliver')}><Share2 size={16} />交付</button>
       </nav>
       <div className="topbar-actions">
         {view === 'write' && <>
@@ -207,6 +208,7 @@ export function Workspace({ project, onBack, notify }: { project: Project; onBac
     {view === 'review' && <ReviewWorkspace project={project} nodes={nodes} onSelectScene={selectScene} onChanged={async () => { await refreshTree(); setEditorEpoch((value) => value + 1) }} onBack={() => setView('deliver')} notify={notify} />}
     {view === 'sprint' && <SprintWorkspace project={project} nodes={nodes} activeSceneId={selectedId} onOpenScene={(id) => { setSelectedId(id); setFocusMode(true); setView('write') }} onBack={() => setView('deliver')} notify={notify} />}
     {view === 'template' && <TemplateWorkspace project={project} onChanged={refreshTree} onBack={() => setView('deliver')} notify={notify} />}
+    {view === 'visual' && <VisualWorkspace project={project} nodes={nodes} entities={entities} onBack={() => setView('deliver')} notify={notify} />}
     {view !== 'sprint' && <SprintWorkspace project={project} nodes={nodes} activeSceneId={selectedId} compact onOpenScene={selectScene} onOpenDetails={() => { setFocusMode(false); setView('sprint') }} notify={notify} />}
     {searching && <SearchModal projectId={project.id} initialMode={replaceMode ? 'replace' : 'search'} onClose={() => setSearching(false)} onSelect={selectScene} onChanged={async () => { await Promise.all([refreshTree(), refreshEntities()]); setEditorEpoch((value) => value + 1) }} notify={notify} />}
     {settings && <SettingsModal projectId={project.id} initialTab={settingsTab} onClose={() => setSettings(false)} onOpenTool={(tool) => { setSettings(false); setView(tool) }} notify={notify} />}

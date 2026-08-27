@@ -3,9 +3,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
   "version": 1,
-  "serialNumber": "urn:uuid:dcd93ae6-733f-47e3-aef3-b78b060a15db",
+  "serialNumber": "urn:uuid:4a952068-c6c9-4d3d-a6b7-2c8a81399596",
   "metadata": {
-    "timestamp": "2026-08-27T05:01:08.534Z",
+    "timestamp": "2026-08-27T05:57:43.364Z",
     "tools": {
       "components": [
         {
@@ -98,9 +98,9 @@
     "component": {
       "type": "application",
       "name": "bi-bu-dai",
-      "version": "1.2.0",
-      "bom-ref": "bi-bu-dai@1.2.0",
-      "purl": "pkg:npm/bi-bu-dai@1.2.0",
+      "version": "1.3.0",
+      "bom-ref": "bi-bu-dai@1.3.0",
+      "purl": "pkg:npm/bi-bu-dai@1.3.0",
       "properties": [
         {
           "name": "cdx:npm:package:constraint:engine:node",
@@ -123,7 +123,7 @@
       "name": "extension-character-count",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-character-count@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-character-count@3.30.3",
       "description": "font family extension for tiptap",
       "licenses": [
         {
@@ -174,7 +174,7 @@
       "name": "extension-placeholder",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-placeholder@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-placeholder@3.30.3",
       "description": "placeholder extension for tiptap",
       "licenses": [
         {
@@ -225,7 +225,7 @@
       "name": "react",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/react@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/react@3.30.3",
       "description": "React components for tiptap",
       "licenses": [
         {
@@ -276,7 +276,7 @@
       "name": "starter-kit",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/starter-kit@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/starter-kit@3.30.3",
       "description": "starter kit for tiptap",
       "licenses": [
         {
@@ -326,7 +326,7 @@
       "type": "library",
       "name": "cors",
       "version": "2.8.6",
-      "bom-ref": "bi-bu-dai@1.2.0|cors@2.8.6",
+      "bom-ref": "bi-bu-dai@1.3.0|cors@2.8.6",
       "author": "Troy Goode",
       "description": "Node.js CORS middleware",
       "licenses": [
@@ -381,7 +381,7 @@
       "type": "library",
       "name": "diff",
       "version": "8.0.4",
-      "bom-ref": "bi-bu-dai@1.2.0|diff@8.0.4",
+      "bom-ref": "bi-bu-dai@1.3.0|diff@8.0.4",
       "description": "A JavaScript text diff implementation.",
       "licenses": [
         {
@@ -435,7 +435,7 @@
       "type": "library",
       "name": "docx",
       "version": "9.7.1",
-      "bom-ref": "bi-bu-dai@1.2.0|docx@9.7.1",
+      "bom-ref": "bi-bu-dai@1.3.0|docx@9.7.1",
       "author": "Dolan Miu",
       "description": "Easily generate .docx files with JS/TS with a nice declarative API. Works for Node and on the Browser.",
       "licenses": [
@@ -491,7 +491,7 @@
           "name": "node",
           "group": "@types",
           "version": "25.9.5",
-          "bom-ref": "bi-bu-dai@1.2.0|docx@9.7.1|@types/node@25.9.5",
+          "bom-ref": "bi-bu-dai@1.3.0|docx@9.7.1|@types/node@25.9.5",
           "description": "TypeScript definitions for node",
           "licenses": [
             {
@@ -541,7 +541,7 @@
           "type": "library",
           "name": "undici-types",
           "version": "7.24.6",
-          "bom-ref": "bi-bu-dai@1.2.0|docx@9.7.1|undici-types@7.24.6",
+          "bom-ref": "bi-bu-dai@1.3.0|docx@9.7.1|undici-types@7.24.6",
           "description": "A stand-alone types package for Undici",
           "licenses": [
             {
@@ -593,7 +593,7 @@
       "type": "library",
       "name": "express",
       "version": "5.2.1",
-      "bom-ref": "bi-bu-dai@1.2.0|express@5.2.1",
+      "bom-ref": "bi-bu-dai@1.3.0|express@5.2.1",
       "author": "TJ Holowaychuk",
       "description": "Fast, unopinionated, minimalist web framework",
       "licenses": [
@@ -648,7 +648,7 @@
       "type": "library",
       "name": "lucide-react",
       "version": "0.542.0",
-      "bom-ref": "bi-bu-dai@1.2.0|lucide-react@0.542.0",
+      "bom-ref": "bi-bu-dai@1.3.0|lucide-react@0.542.0",
       "author": "Eric Fennis",
       "description": "A Lucide icon library package for React applications.",
       "licenses": [
@@ -699,7 +699,7 @@
       "type": "library",
       "name": "mammoth",
       "version": "1.12.1",
-      "bom-ref": "bi-bu-dai@1.2.0|mammoth@1.12.1",
+      "bom-ref": "bi-bu-dai@1.3.0|mammoth@1.12.1",
       "author": "Michael Williamson",
       "description": "Convert Word documents from docx to simple HTML and Markdown",
       "licenses": [
@@ -754,7 +754,7 @@
       "type": "library",
       "name": "multer",
       "version": "2.2.0",
-      "bom-ref": "bi-bu-dai@1.2.0|multer@2.2.0",
+      "bom-ref": "bi-bu-dai@1.3.0|multer@2.2.0",
       "description": "Middleware for handling `multipart/form-data`.",
       "licenses": [
         {
@@ -808,7 +808,7 @@
           "type": "library",
           "name": "type-is",
           "version": "1.6.18",
-          "bom-ref": "bi-bu-dai@1.2.0|multer@2.2.0|type-is@1.6.18",
+          "bom-ref": "bi-bu-dai@1.3.0|multer@2.2.0|type-is@1.6.18",
           "description": "Infer the content-type of a request.",
           "licenses": [
             {
@@ -862,7 +862,7 @@
           "type": "library",
           "name": "media-typer",
           "version": "0.3.0",
-          "bom-ref": "bi-bu-dai@1.2.0|multer@2.2.0|media-typer@0.3.0",
+          "bom-ref": "bi-bu-dai@1.3.0|multer@2.2.0|media-typer@0.3.0",
           "author": "Douglas Christopher Wilson",
           "description": "Simple RFC 6838 media type parser and formatter",
           "licenses": [
@@ -917,7 +917,7 @@
           "type": "library",
           "name": "mime-types",
           "version": "2.1.35",
-          "bom-ref": "bi-bu-dai@1.2.0|multer@2.2.0|mime-types@2.1.35",
+          "bom-ref": "bi-bu-dai@1.3.0|multer@2.2.0|mime-types@2.1.35",
           "description": "The ultimate javascript content-type utility.",
           "licenses": [
             {
@@ -971,7 +971,7 @@
           "type": "library",
           "name": "mime-db",
           "version": "1.52.0",
-          "bom-ref": "bi-bu-dai@1.2.0|multer@2.2.0|mime-db@1.52.0",
+          "bom-ref": "bi-bu-dai@1.3.0|multer@2.2.0|mime-db@1.52.0",
           "description": "Media Type Database",
           "licenses": [
             {
@@ -1027,7 +1027,7 @@
       "type": "library",
       "name": "react-dom",
       "version": "19.2.8",
-      "bom-ref": "bi-bu-dai@1.2.0|react-dom@19.2.8",
+      "bom-ref": "bi-bu-dai@1.3.0|react-dom@19.2.8",
       "description": "React package for working with the DOM.",
       "licenses": [
         {
@@ -1077,7 +1077,7 @@
       "type": "library",
       "name": "react",
       "version": "19.2.8",
-      "bom-ref": "bi-bu-dai@1.2.0|react@19.2.8",
+      "bom-ref": "bi-bu-dai@1.3.0|react@19.2.8",
       "description": "React is a JavaScript library for building user interfaces.",
       "licenses": [
         {
@@ -1131,7 +1131,7 @@
       "type": "library",
       "name": "yjs",
       "version": "13.6.32",
-      "bom-ref": "bi-bu-dai@1.2.0|yjs@13.6.32",
+      "bom-ref": "bi-bu-dai@1.3.0|yjs@13.6.32",
       "author": "Kevin Jahns",
       "description": "Shared Editing Library",
       "licenses": [
@@ -1190,7 +1190,7 @@
       "type": "library",
       "name": "zod",
       "version": "4.4.3",
-      "bom-ref": "bi-bu-dai@1.2.0|zod@4.4.3",
+      "bom-ref": "bi-bu-dai@1.3.0|zod@4.4.3",
       "author": "Colin McDonnell",
       "description": "TypeScript-first schema declaration and validation library with static type inference",
       "licenses": [
@@ -1242,7 +1242,7 @@
       "name": "extensions",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3",
       "description": "various extensions for tiptap",
       "licenses": [
         {
@@ -1293,7 +1293,7 @@
       "name": "core",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
       "description": "headless rich text editor",
       "licenses": [
         {
@@ -1344,7 +1344,7 @@
       "name": "extension-bubble-menu",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-bubble-menu@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-bubble-menu@3.30.3",
       "description": "bubble-menu extension for tiptap",
       "scope": "optional",
       "licenses": [
@@ -1396,7 +1396,7 @@
       "name": "extension-floating-menu",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-floating-menu@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-floating-menu@3.30.3",
       "description": "floating-menu extension for tiptap",
       "scope": "optional",
       "licenses": [
@@ -1448,7 +1448,7 @@
       "name": "pm",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3",
       "description": "prosemirror wrapper package for tiptap",
       "licenses": [
         {
@@ -1499,7 +1499,7 @@
       "name": "react-dom",
       "group": "@types",
       "version": "19.2.5",
-      "bom-ref": "bi-bu-dai@1.2.0|@types/react-dom@19.2.5",
+      "bom-ref": "bi-bu-dai@1.3.0|@types/react-dom@19.2.5",
       "description": "TypeScript definitions for react-dom",
       "licenses": [
         {
@@ -1550,7 +1550,7 @@
       "name": "react",
       "group": "@types",
       "version": "19.2.18",
-      "bom-ref": "bi-bu-dai@1.2.0|@types/react@19.2.18",
+      "bom-ref": "bi-bu-dai@1.3.0|@types/react@19.2.18",
       "description": "TypeScript definitions for react",
       "licenses": [
         {
@@ -1601,7 +1601,7 @@
       "name": "use-sync-external-store",
       "group": "@types",
       "version": "0.0.6",
-      "bom-ref": "bi-bu-dai@1.2.0|@types/use-sync-external-store@0.0.6",
+      "bom-ref": "bi-bu-dai@1.3.0|@types/use-sync-external-store@0.0.6",
       "description": "TypeScript definitions for use-sync-external-store",
       "licenses": [
         {
@@ -1651,7 +1651,7 @@
       "type": "library",
       "name": "fast-equals",
       "version": "5.4.1",
-      "bom-ref": "bi-bu-dai@1.2.0|fast-equals@5.4.1",
+      "bom-ref": "bi-bu-dai@1.3.0|fast-equals@5.4.1",
       "author": "Tony Quetano",
       "description": "A blazing fast equality comparison, either shallow or deep",
       "licenses": [
@@ -1706,7 +1706,7 @@
       "type": "library",
       "name": "use-sync-external-store",
       "version": "1.6.0",
-      "bom-ref": "bi-bu-dai@1.2.0|use-sync-external-store@1.6.0",
+      "bom-ref": "bi-bu-dai@1.3.0|use-sync-external-store@1.6.0",
       "description": "Backwards compatible shim for React's useSyncExternalStore. Works with any React that supports hooks.",
       "licenses": [
         {
@@ -1757,7 +1757,7 @@
       "name": "extension-blockquote",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-blockquote@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-blockquote@3.30.3",
       "description": "blockquote extension for tiptap",
       "licenses": [
         {
@@ -1808,7 +1808,7 @@
       "name": "extension-bold",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-bold@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-bold@3.30.3",
       "description": "bold extension for tiptap",
       "licenses": [
         {
@@ -1859,7 +1859,7 @@
       "name": "extension-bullet-list",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-bullet-list@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-bullet-list@3.30.3",
       "description": "bullet list extension for tiptap",
       "licenses": [
         {
@@ -1910,7 +1910,7 @@
       "name": "extension-code-block",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-code-block@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-code-block@3.30.3",
       "description": "code block extension for tiptap",
       "licenses": [
         {
@@ -1961,7 +1961,7 @@
       "name": "extension-code",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-code@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-code@3.30.3",
       "description": "code extension for tiptap",
       "licenses": [
         {
@@ -2012,7 +2012,7 @@
       "name": "extension-document",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-document@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-document@3.30.3",
       "description": "document extension for tiptap",
       "licenses": [
         {
@@ -2063,7 +2063,7 @@
       "name": "extension-dropcursor",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-dropcursor@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-dropcursor@3.30.3",
       "description": "dropcursor extension for tiptap",
       "licenses": [
         {
@@ -2114,7 +2114,7 @@
       "name": "extension-gapcursor",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-gapcursor@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-gapcursor@3.30.3",
       "description": "gapcursor extension for tiptap",
       "licenses": [
         {
@@ -2165,7 +2165,7 @@
       "name": "extension-hard-break",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-hard-break@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-hard-break@3.30.3",
       "description": "hard break extension for tiptap",
       "licenses": [
         {
@@ -2216,7 +2216,7 @@
       "name": "extension-heading",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-heading@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-heading@3.30.3",
       "description": "heading extension for tiptap",
       "licenses": [
         {
@@ -2267,7 +2267,7 @@
       "name": "extension-horizontal-rule",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-horizontal-rule@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-horizontal-rule@3.30.3",
       "description": "horizontal rule extension for tiptap",
       "licenses": [
         {
@@ -2318,7 +2318,7 @@
       "name": "extension-italic",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-italic@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-italic@3.30.3",
       "description": "italic extension for tiptap",
       "licenses": [
         {
@@ -2369,7 +2369,7 @@
       "name": "extension-link",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-link@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-link@3.30.3",
       "description": "link extension for tiptap",
       "licenses": [
         {
@@ -2420,7 +2420,7 @@
       "name": "extension-list-item",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-list-item@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-list-item@3.30.3",
       "description": "list item extension for tiptap",
       "licenses": [
         {
@@ -2471,7 +2471,7 @@
       "name": "extension-list-keymap",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-list-keymap@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-list-keymap@3.30.3",
       "description": "list keymap extension for tiptap",
       "licenses": [
         {
@@ -2522,7 +2522,7 @@
       "name": "extension-list",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3",
       "description": "List extension for tiptap",
       "licenses": [
         {
@@ -2573,7 +2573,7 @@
       "name": "extension-ordered-list",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-ordered-list@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-ordered-list@3.30.3",
       "description": "ordered list extension for tiptap",
       "licenses": [
         {
@@ -2624,7 +2624,7 @@
       "name": "extension-paragraph",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-paragraph@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-paragraph@3.30.3",
       "description": "paragraph extension for tiptap",
       "licenses": [
         {
@@ -2675,7 +2675,7 @@
       "name": "extension-strike",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-strike@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-strike@3.30.3",
       "description": "strike extension for tiptap",
       "licenses": [
         {
@@ -2726,7 +2726,7 @@
       "name": "extension-text",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-text@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-text@3.30.3",
       "description": "text extension for tiptap",
       "licenses": [
         {
@@ -2777,7 +2777,7 @@
       "name": "extension-underline",
       "group": "@tiptap",
       "version": "3.30.3",
-      "bom-ref": "bi-bu-dai@1.2.0|@tiptap/extension-underline@3.30.3",
+      "bom-ref": "bi-bu-dai@1.3.0|@tiptap/extension-underline@3.30.3",
       "description": "underline extension for tiptap",
       "licenses": [
         {
@@ -2827,7 +2827,7 @@
       "type": "library",
       "name": "object-assign",
       "version": "4.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|object-assign@4.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|object-assign@4.1.1",
       "author": "Sindre Sorhus",
       "description": "ES2015 `Object.assign()` ponyfill",
       "licenses": [
@@ -2882,7 +2882,7 @@
       "type": "library",
       "name": "vary",
       "version": "1.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|vary@1.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|vary@1.1.2",
       "author": "Douglas Christopher Wilson",
       "description": "Manipulate the HTTP Vary header",
       "licenses": [
@@ -2937,7 +2937,7 @@
       "type": "library",
       "name": "hash.js",
       "version": "1.1.7",
-      "bom-ref": "bi-bu-dai@1.2.0|hash.js@1.1.7",
+      "bom-ref": "bi-bu-dai@1.3.0|hash.js@1.1.7",
       "author": "Fedor Indutny",
       "description": "Various hash functions that could be run by both browser and node",
       "licenses": [
@@ -2988,7 +2988,7 @@
       "type": "library",
       "name": "jszip",
       "version": "3.10.1",
-      "bom-ref": "bi-bu-dai@1.2.0|jszip@3.10.1",
+      "bom-ref": "bi-bu-dai@1.3.0|jszip@3.10.1",
       "author": "Stuart Knightley",
       "description": "Create, read and edit .zip files with JavaScript http://stuartk.com/jszip",
       "licenses": [
@@ -3037,7 +3037,7 @@
       "type": "library",
       "name": "nanoid",
       "version": "5.1.16",
-      "bom-ref": "bi-bu-dai@1.2.0|nanoid@5.1.16",
+      "bom-ref": "bi-bu-dai@1.3.0|nanoid@5.1.16",
       "author": "Andrey Sitnik",
       "description": "A tiny (118 bytes), secure URL-friendly unique string ID generator",
       "licenses": [
@@ -3092,7 +3092,7 @@
       "type": "library",
       "name": "xml-js",
       "version": "1.6.11",
-      "bom-ref": "bi-bu-dai@1.2.0|xml-js@1.6.11",
+      "bom-ref": "bi-bu-dai@1.3.0|xml-js@1.6.11",
       "author": "Yousuf Almarzooqi",
       "description": "A convertor between XML text and Javascript object / JSON text.",
       "licenses": [
@@ -3143,7 +3143,7 @@
       "type": "library",
       "name": "xml",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|xml@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|xml@1.0.1",
       "author": "Dylan Greene",
       "description": "Fast and simple xml generator. Supports attributes, CDATA, etc. Includes tests and examples.",
       "licenses": [
@@ -3194,7 +3194,7 @@
       "type": "library",
       "name": "accepts",
       "version": "2.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|accepts@2.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|accepts@2.0.0",
       "description": "Higher-level content negotiation",
       "licenses": [
         {
@@ -3248,7 +3248,7 @@
       "type": "library",
       "name": "body-parser",
       "version": "2.3.0",
-      "bom-ref": "bi-bu-dai@1.2.0|body-parser@2.3.0",
+      "bom-ref": "bi-bu-dai@1.3.0|body-parser@2.3.0",
       "description": "Node.js body parsing middleware",
       "licenses": [
         {
@@ -3302,7 +3302,7 @@
           "type": "library",
           "name": "content-type",
           "version": "2.1.0",
-          "bom-ref": "bi-bu-dai@1.2.0|body-parser@2.3.0|content-type@2.1.0",
+          "bom-ref": "bi-bu-dai@1.3.0|body-parser@2.3.0|content-type@2.1.0",
           "author": "Douglas Christopher Wilson",
           "description": "Create and parse HTTP Content-Type header",
           "licenses": [
@@ -3359,7 +3359,7 @@
       "type": "library",
       "name": "content-disposition",
       "version": "1.1.0",
-      "bom-ref": "bi-bu-dai@1.2.0|content-disposition@1.1.0",
+      "bom-ref": "bi-bu-dai@1.3.0|content-disposition@1.1.0",
       "author": "Douglas Christopher Wilson",
       "description": "Create and parse Content-Disposition header",
       "licenses": [
@@ -3414,7 +3414,7 @@
       "type": "library",
       "name": "content-type",
       "version": "1.0.5",
-      "bom-ref": "bi-bu-dai@1.2.0|content-type@1.0.5",
+      "bom-ref": "bi-bu-dai@1.3.0|content-type@1.0.5",
       "author": "Douglas Christopher Wilson",
       "description": "Create and parse HTTP Content-Type header",
       "licenses": [
@@ -3469,7 +3469,7 @@
       "type": "library",
       "name": "cookie-signature",
       "version": "1.2.2",
-      "bom-ref": "bi-bu-dai@1.2.0|cookie-signature@1.2.2",
+      "bom-ref": "bi-bu-dai@1.3.0|cookie-signature@1.2.2",
       "author": "TJ Holowaychuk",
       "description": "Sign and unsign cookies",
       "licenses": [
@@ -3524,7 +3524,7 @@
       "type": "library",
       "name": "cookie",
       "version": "0.7.2",
-      "bom-ref": "bi-bu-dai@1.2.0|cookie@0.7.2",
+      "bom-ref": "bi-bu-dai@1.3.0|cookie@0.7.2",
       "author": "Roman Shtylman",
       "description": "HTTP server cookie parsing and serialization",
       "licenses": [
@@ -3579,7 +3579,7 @@
       "type": "library",
       "name": "debug",
       "version": "4.4.3",
-      "bom-ref": "bi-bu-dai@1.2.0|debug@4.4.3",
+      "bom-ref": "bi-bu-dai@1.3.0|debug@4.4.3",
       "author": "Josh Junon",
       "description": "Lightweight debugging utility for Node.js and the browser",
       "licenses": [
@@ -3634,7 +3634,7 @@
       "type": "library",
       "name": "depd",
       "version": "2.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|depd@2.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|depd@2.0.0",
       "author": "Douglas Christopher Wilson",
       "description": "Deprecate all the things",
       "licenses": [
@@ -3689,7 +3689,7 @@
       "type": "library",
       "name": "encodeurl",
       "version": "2.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|encodeurl@2.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|encodeurl@2.0.0",
       "description": "Encode a URL to a percent-encoded form, excluding already-encoded sequences",
       "licenses": [
         {
@@ -3743,7 +3743,7 @@
       "type": "library",
       "name": "escape-html",
       "version": "1.0.3",
-      "bom-ref": "bi-bu-dai@1.2.0|escape-html@1.0.3",
+      "bom-ref": "bi-bu-dai@1.3.0|escape-html@1.0.3",
       "description": "Escape string for use in HTML",
       "licenses": [
         {
@@ -3793,7 +3793,7 @@
       "type": "library",
       "name": "etag",
       "version": "1.8.1",
-      "bom-ref": "bi-bu-dai@1.2.0|etag@1.8.1",
+      "bom-ref": "bi-bu-dai@1.3.0|etag@1.8.1",
       "description": "Create simple HTTP ETags",
       "licenses": [
         {
@@ -3847,7 +3847,7 @@
       "type": "library",
       "name": "finalhandler",
       "version": "2.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|finalhandler@2.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|finalhandler@2.1.1",
       "author": "Douglas Christopher Wilson",
       "description": "Node.js final http responder",
       "licenses": [
@@ -3902,7 +3902,7 @@
       "type": "library",
       "name": "fresh",
       "version": "2.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|fresh@2.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|fresh@2.0.0",
       "author": "TJ Holowaychuk",
       "description": "HTTP response freshness testing",
       "licenses": [
@@ -3957,7 +3957,7 @@
       "type": "library",
       "name": "http-errors",
       "version": "2.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|http-errors@2.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|http-errors@2.0.1",
       "author": "Jonathan Ong",
       "description": "Create HTTP error objects",
       "licenses": [
@@ -4012,7 +4012,7 @@
       "type": "library",
       "name": "merge-descriptors",
       "version": "2.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|merge-descriptors@2.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|merge-descriptors@2.0.0",
       "description": "Merge objects using their property descriptors",
       "licenses": [
         {
@@ -4066,7 +4066,7 @@
       "type": "library",
       "name": "mime-types",
       "version": "3.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|mime-types@3.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|mime-types@3.0.2",
       "description": "The ultimate javascript content-type utility.",
       "licenses": [
         {
@@ -4120,7 +4120,7 @@
       "type": "library",
       "name": "on-finished",
       "version": "2.4.1",
-      "bom-ref": "bi-bu-dai@1.2.0|on-finished@2.4.1",
+      "bom-ref": "bi-bu-dai@1.3.0|on-finished@2.4.1",
       "description": "Execute a callback when a request closes, finishes, or errors",
       "licenses": [
         {
@@ -4174,7 +4174,7 @@
       "type": "library",
       "name": "once",
       "version": "1.4.0",
-      "bom-ref": "bi-bu-dai@1.2.0|once@1.4.0",
+      "bom-ref": "bi-bu-dai@1.3.0|once@1.4.0",
       "author": "Isaac Z. Schlueter",
       "description": "Run a function exactly one time",
       "licenses": [
@@ -4225,7 +4225,7 @@
       "type": "library",
       "name": "parseurl",
       "version": "1.3.3",
-      "bom-ref": "bi-bu-dai@1.2.0|parseurl@1.3.3",
+      "bom-ref": "bi-bu-dai@1.3.0|parseurl@1.3.3",
       "description": "parse a url with memoization",
       "licenses": [
         {
@@ -4279,7 +4279,7 @@
       "type": "library",
       "name": "proxy-addr",
       "version": "2.0.7",
-      "bom-ref": "bi-bu-dai@1.2.0|proxy-addr@2.0.7",
+      "bom-ref": "bi-bu-dai@1.3.0|proxy-addr@2.0.7",
       "author": "Douglas Christopher Wilson",
       "description": "Determine address of proxied request",
       "licenses": [
@@ -4334,7 +4334,7 @@
       "type": "library",
       "name": "qs",
       "version": "6.15.3",
-      "bom-ref": "bi-bu-dai@1.2.0|qs@6.15.3",
+      "bom-ref": "bi-bu-dai@1.3.0|qs@6.15.3",
       "description": "A querystring parser that supports nesting and arrays, with a depth limit",
       "licenses": [
         {
@@ -4388,7 +4388,7 @@
       "type": "library",
       "name": "range-parser",
       "version": "1.3.0",
-      "bom-ref": "bi-bu-dai@1.2.0|range-parser@1.3.0",
+      "bom-ref": "bi-bu-dai@1.3.0|range-parser@1.3.0",
       "author": "TJ Holowaychuk",
       "description": "Range header field string parser",
       "licenses": [
@@ -4443,7 +4443,7 @@
       "type": "library",
       "name": "router",
       "version": "2.2.0",
-      "bom-ref": "bi-bu-dai@1.2.0|router@2.2.0",
+      "bom-ref": "bi-bu-dai@1.3.0|router@2.2.0",
       "author": "Douglas Christopher Wilson",
       "description": "Simple middleware-style router",
       "licenses": [
@@ -4498,7 +4498,7 @@
       "type": "library",
       "name": "send",
       "version": "1.2.1",
-      "bom-ref": "bi-bu-dai@1.2.0|send@1.2.1",
+      "bom-ref": "bi-bu-dai@1.3.0|send@1.2.1",
       "author": "TJ Holowaychuk",
       "description": "Better streaming static file server with Range and conditional-GET support",
       "licenses": [
@@ -4553,7 +4553,7 @@
       "type": "library",
       "name": "serve-static",
       "version": "2.2.1",
-      "bom-ref": "bi-bu-dai@1.2.0|serve-static@2.2.1",
+      "bom-ref": "bi-bu-dai@1.3.0|serve-static@2.2.1",
       "author": "Douglas Christopher Wilson",
       "description": "Serve static files",
       "licenses": [
@@ -4608,7 +4608,7 @@
       "type": "library",
       "name": "statuses",
       "version": "2.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|statuses@2.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|statuses@2.0.2",
       "description": "HTTP status utility",
       "licenses": [
         {
@@ -4662,7 +4662,7 @@
       "type": "library",
       "name": "type-is",
       "version": "2.1.0",
-      "bom-ref": "bi-bu-dai@1.2.0|type-is@2.1.0",
+      "bom-ref": "bi-bu-dai@1.3.0|type-is@2.1.0",
       "description": "Infer the content-type of a request.",
       "licenses": [
         {
@@ -4716,7 +4716,7 @@
           "type": "library",
           "name": "content-type",
           "version": "2.1.0",
-          "bom-ref": "bi-bu-dai@1.2.0|type-is@2.1.0|content-type@2.1.0",
+          "bom-ref": "bi-bu-dai@1.3.0|type-is@2.1.0|content-type@2.1.0",
           "author": "Douglas Christopher Wilson",
           "description": "Create and parse HTTP Content-Type header",
           "licenses": [
@@ -4774,7 +4774,7 @@
       "name": "xmldom",
       "group": "@xmldom",
       "version": "0.8.15",
-      "bom-ref": "bi-bu-dai@1.2.0|@xmldom/xmldom@0.8.15",
+      "bom-ref": "bi-bu-dai@1.3.0|@xmldom/xmldom@0.8.15",
       "description": "A pure JavaScript W3C standard-based (XML DOM Level 2 Core) DOMParser and XMLSerializer module.",
       "licenses": [
         {
@@ -4828,7 +4828,7 @@
       "type": "library",
       "name": "argparse",
       "version": "1.0.10",
-      "bom-ref": "bi-bu-dai@1.2.0|argparse@1.0.10",
+      "bom-ref": "bi-bu-dai@1.3.0|argparse@1.0.10",
       "description": "Very powerful CLI arguments parser. Native port of argparse - python's options parsing library",
       "licenses": [
         {
@@ -4878,7 +4878,7 @@
       "type": "library",
       "name": "base64-js",
       "version": "1.5.1",
-      "bom-ref": "bi-bu-dai@1.2.0|base64-js@1.5.1",
+      "bom-ref": "bi-bu-dai@1.3.0|base64-js@1.5.1",
       "author": "T. Jameson Little",
       "description": "Base64 encoding/decoding in pure JS",
       "licenses": [
@@ -4929,7 +4929,7 @@
       "type": "library",
       "name": "bluebird",
       "version": "3.4.7",
-      "bom-ref": "bi-bu-dai@1.2.0|bluebird@3.4.7",
+      "bom-ref": "bi-bu-dai@1.3.0|bluebird@3.4.7",
       "author": "Petka Antonov",
       "description": "Full featured Promises/A+ implementation with exceptionally good performance",
       "licenses": [
@@ -4980,7 +4980,7 @@
       "type": "library",
       "name": "dingbat-to-unicode",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|dingbat-to-unicode@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|dingbat-to-unicode@1.0.1",
       "author": "Michael Williamson",
       "description": "Mapping from Dingbat fonts, such as Symbol, Webdings and Wingdings, to Unicode code points",
       "licenses": [
@@ -5031,7 +5031,7 @@
       "type": "library",
       "name": "lop",
       "version": "0.4.2",
-      "bom-ref": "bi-bu-dai@1.2.0|lop@0.4.2",
+      "bom-ref": "bi-bu-dai@1.3.0|lop@0.4.2",
       "author": "Michael Williamson",
       "description": "Create parsers using parser combinators with helpful error messages",
       "licenses": [
@@ -5082,7 +5082,7 @@
       "type": "library",
       "name": "path-is-absolute",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|path-is-absolute@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|path-is-absolute@1.0.1",
       "author": "Sindre Sorhus",
       "description": "Node.js 0.12 path.isAbsolute() ponyfill",
       "licenses": [
@@ -5137,7 +5137,7 @@
       "type": "library",
       "name": "underscore",
       "version": "1.13.8",
-      "bom-ref": "bi-bu-dai@1.2.0|underscore@1.13.8",
+      "bom-ref": "bi-bu-dai@1.3.0|underscore@1.13.8",
       "author": "Jeremy Ashkenas",
       "description": "JavaScript's functional programming helper library.",
       "licenses": [
@@ -5188,7 +5188,7 @@
       "type": "library",
       "name": "xmlbuilder",
       "version": "10.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|xmlbuilder@10.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|xmlbuilder@10.1.1",
       "author": "Ozgur Ozcitak",
       "description": "An XML builder for node.js",
       "licenses": [
@@ -5243,7 +5243,7 @@
       "type": "library",
       "name": "append-field",
       "version": "1.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|append-field@1.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|append-field@1.0.0",
       "author": "Linus Unnebäck",
       "licenses": [
         {
@@ -5293,7 +5293,7 @@
       "type": "library",
       "name": "busboy",
       "version": "1.6.0",
-      "bom-ref": "bi-bu-dai@1.2.0|busboy@1.6.0",
+      "bom-ref": "bi-bu-dai@1.3.0|busboy@1.6.0",
       "author": "Brian White",
       "description": "A streaming parser for HTML form data for node.js",
       "licenses": [
@@ -5349,7 +5349,7 @@
       "type": "library",
       "name": "concat-stream",
       "version": "2.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|concat-stream@2.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|concat-stream@2.0.0",
       "author": "Max Ogden",
       "description": "writable stream that concatenates strings or binary data and calls a callback with the result",
       "licenses": [
@@ -5400,7 +5400,7 @@
           "type": "library",
           "name": "readable-stream",
           "version": "3.6.2",
-          "bom-ref": "bi-bu-dai@1.2.0|concat-stream@2.0.0|readable-stream@3.6.2",
+          "bom-ref": "bi-bu-dai@1.3.0|concat-stream@2.0.0|readable-stream@3.6.2",
           "description": "Streams3, a user-land copy of the stream library from Node.js",
           "licenses": [
             {
@@ -5456,7 +5456,7 @@
       "type": "library",
       "name": "scheduler",
       "version": "0.27.0",
-      "bom-ref": "bi-bu-dai@1.2.0|scheduler@0.27.0",
+      "bom-ref": "bi-bu-dai@1.3.0|scheduler@0.27.0",
       "description": "Cooperative scheduler for the browser environment.",
       "licenses": [
         {
@@ -5506,7 +5506,7 @@
       "type": "library",
       "name": "lib0",
       "version": "0.2.117",
-      "bom-ref": "bi-bu-dai@1.2.0|lib0@0.2.117",
+      "bom-ref": "bi-bu-dai@1.3.0|lib0@0.2.117",
       "author": "Kevin Jahns",
       "licenses": [
         {
@@ -5561,7 +5561,7 @@
       "name": "dom",
       "group": "@floating-ui",
       "version": "1.8.0",
-      "bom-ref": "bi-bu-dai@1.2.0|@floating-ui/dom@1.8.0",
+      "bom-ref": "bi-bu-dai@1.3.0|@floating-ui/dom@1.8.0",
       "author": "atomiks",
       "description": "Floating UI for the web",
       "scope": "optional",
@@ -5613,7 +5613,7 @@
       "type": "library",
       "name": "prosemirror-changeset",
       "version": "2.4.2",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-changeset@2.4.2",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-changeset@2.4.2",
       "description": "Distills a series of editing steps into deleted and added ranges",
       "licenses": [
         {
@@ -5653,7 +5653,7 @@
       "type": "library",
       "name": "prosemirror-commands",
       "version": "1.7.2",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-commands@1.7.2",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-commands@1.7.2",
       "description": "Editing commands for ProseMirror",
       "licenses": [
         {
@@ -5693,7 +5693,7 @@
       "type": "library",
       "name": "prosemirror-dropcursor",
       "version": "1.8.3",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-dropcursor@1.8.3",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-dropcursor@1.8.3",
       "description": "Drop cursor plugin for ProseMirror",
       "licenses": [
         {
@@ -5733,7 +5733,7 @@
       "type": "library",
       "name": "prosemirror-gapcursor",
       "version": "1.4.1",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-gapcursor@1.4.1",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-gapcursor@1.4.1",
       "description": "ProseMirror plugin for cursors at normally impossible-to-reach positions",
       "licenses": [
         {
@@ -5783,7 +5783,7 @@
       "type": "library",
       "name": "prosemirror-history",
       "version": "1.5.0",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-history@1.5.0",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-history@1.5.0",
       "description": "Undo history for ProseMirror",
       "licenses": [
         {
@@ -5833,7 +5833,7 @@
       "type": "library",
       "name": "prosemirror-inputrules",
       "version": "1.5.1",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-inputrules@1.5.1",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-inputrules@1.5.1",
       "description": "Automatic transforms on text input for ProseMirror",
       "licenses": [
         {
@@ -5883,7 +5883,7 @@
       "type": "library",
       "name": "prosemirror-keymap",
       "version": "1.2.3",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-keymap@1.2.3",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-keymap@1.2.3",
       "description": "Keymap plugin for ProseMirror",
       "licenses": [
         {
@@ -5933,7 +5933,7 @@
       "type": "library",
       "name": "prosemirror-model",
       "version": "1.25.11",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
       "description": "ProseMirror's document model",
       "licenses": [
         {
@@ -5973,7 +5973,7 @@
       "type": "library",
       "name": "prosemirror-schema-list",
       "version": "1.5.1",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-schema-list@1.5.1",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-schema-list@1.5.1",
       "description": "List-related schema elements and commands for ProseMirror",
       "licenses": [
         {
@@ -6023,7 +6023,7 @@
       "type": "library",
       "name": "prosemirror-state",
       "version": "1.4.4",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
       "description": "ProseMirror editor state",
       "licenses": [
         {
@@ -6073,7 +6073,7 @@
       "type": "library",
       "name": "prosemirror-tables",
       "version": "1.8.5",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-tables@1.8.5",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-tables@1.8.5",
       "description": "ProseMirror's rowspan/colspan tables component",
       "licenses": [
         {
@@ -6123,7 +6123,7 @@
       "type": "library",
       "name": "prosemirror-transform",
       "version": "1.12.0",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
       "description": "ProseMirror document transformations",
       "licenses": [
         {
@@ -6173,7 +6173,7 @@
       "type": "library",
       "name": "prosemirror-view",
       "version": "1.42.3",
-      "bom-ref": "bi-bu-dai@1.2.0|prosemirror-view@1.42.3",
+      "bom-ref": "bi-bu-dai@1.3.0|prosemirror-view@1.42.3",
       "description": "ProseMirror's view component",
       "licenses": [
         {
@@ -6213,7 +6213,7 @@
       "type": "library",
       "name": "csstype",
       "version": "3.2.3",
-      "bom-ref": "bi-bu-dai@1.2.0|csstype@3.2.3",
+      "bom-ref": "bi-bu-dai@1.3.0|csstype@3.2.3",
       "author": "Fredrik Nicol",
       "description": "Strict TypeScript and Flow types for style based on MDN data",
       "licenses": [
@@ -6264,7 +6264,7 @@
       "type": "library",
       "name": "linkifyjs",
       "version": "4.3.3",
-      "bom-ref": "bi-bu-dai@1.2.0|linkifyjs@4.3.3",
+      "bom-ref": "bi-bu-dai@1.3.0|linkifyjs@4.3.3",
       "author": "Nick Frasser",
       "description": "Find URLs, email addresses, #hashtags and @mentions in plain-text strings, then convert them into HTML <a> links.",
       "licenses": [
@@ -6315,7 +6315,7 @@
       "type": "library",
       "name": "inherits",
       "version": "2.0.4",
-      "bom-ref": "bi-bu-dai@1.2.0|inherits@2.0.4",
+      "bom-ref": "bi-bu-dai@1.3.0|inherits@2.0.4",
       "description": "Browser-friendly inheritance fully compatible with standard node.js inherits()",
       "licenses": [
         {
@@ -6365,7 +6365,7 @@
       "type": "library",
       "name": "minimalistic-assert",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|minimalistic-assert@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|minimalistic-assert@1.0.1",
       "description": "minimalistic-assert ===",
       "licenses": [
         {
@@ -6415,7 +6415,7 @@
       "type": "library",
       "name": "lie",
       "version": "3.3.0",
-      "bom-ref": "bi-bu-dai@1.2.0|lie@3.3.0",
+      "bom-ref": "bi-bu-dai@1.3.0|lie@3.3.0",
       "description": "A basic but performant promise implementation",
       "licenses": [
         {
@@ -6465,7 +6465,7 @@
       "type": "library",
       "name": "pako",
       "version": "1.0.11",
-      "bom-ref": "bi-bu-dai@1.2.0|pako@1.0.11",
+      "bom-ref": "bi-bu-dai@1.3.0|pako@1.0.11",
       "description": "zlib port to javascript - fast, modularized, with browser support",
       "licenses": [
         {
@@ -6513,7 +6513,7 @@
       "type": "library",
       "name": "readable-stream",
       "version": "2.3.8",
-      "bom-ref": "bi-bu-dai@1.2.0|readable-stream@2.3.8",
+      "bom-ref": "bi-bu-dai@1.3.0|readable-stream@2.3.8",
       "description": "Streams3, a user-land copy of the stream library from Node.js",
       "licenses": [
         {
@@ -6563,7 +6563,7 @@
       "type": "library",
       "name": "setimmediate",
       "version": "1.0.5",
-      "bom-ref": "bi-bu-dai@1.2.0|setimmediate@1.0.5",
+      "bom-ref": "bi-bu-dai@1.3.0|setimmediate@1.0.5",
       "author": "YuzuJS",
       "description": "A shim for the setImmediate efficient script yielding API",
       "licenses": [
@@ -6614,7 +6614,7 @@
       "type": "library",
       "name": "sax",
       "version": "1.6.1",
-      "bom-ref": "bi-bu-dai@1.2.0|sax@1.6.1",
+      "bom-ref": "bi-bu-dai@1.3.0|sax@1.6.1",
       "author": "Isaac Z. Schlueter",
       "description": "An evented streaming XML parser in JavaScript",
       "licenses": [
@@ -6669,7 +6669,7 @@
       "type": "library",
       "name": "negotiator",
       "version": "1.1.0",
-      "bom-ref": "bi-bu-dai@1.2.0|negotiator@1.1.0",
+      "bom-ref": "bi-bu-dai@1.3.0|negotiator@1.1.0",
       "description": "HTTP content negotiation",
       "licenses": [
         {
@@ -6723,7 +6723,7 @@
           "type": "library",
           "name": "content-type",
           "version": "2.1.0",
-          "bom-ref": "bi-bu-dai@1.2.0|negotiator@1.1.0|content-type@2.1.0",
+          "bom-ref": "bi-bu-dai@1.3.0|negotiator@1.1.0|content-type@2.1.0",
           "author": "Douglas Christopher Wilson",
           "description": "Create and parse HTTP Content-Type header",
           "licenses": [
@@ -6780,7 +6780,7 @@
       "type": "library",
       "name": "bytes",
       "version": "3.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|bytes@3.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|bytes@3.1.2",
       "author": "TJ Holowaychuk",
       "description": "Utility to parse a string bytes to bytes and vice-versa",
       "licenses": [
@@ -6835,7 +6835,7 @@
       "type": "library",
       "name": "iconv-lite",
       "version": "0.7.3",
-      "bom-ref": "bi-bu-dai@1.2.0|iconv-lite@0.7.3",
+      "bom-ref": "bi-bu-dai@1.3.0|iconv-lite@0.7.3",
       "author": "Alexander Shtuchkin",
       "description": "Convert character encodings in pure javascript.",
       "licenses": [
@@ -6890,7 +6890,7 @@
       "type": "library",
       "name": "raw-body",
       "version": "3.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|raw-body@3.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|raw-body@3.0.2",
       "author": "Jonathan Ong",
       "description": "Get and validate the raw body of a readable stream.",
       "licenses": [
@@ -6945,7 +6945,7 @@
       "type": "library",
       "name": "ms",
       "version": "2.1.3",
-      "bom-ref": "bi-bu-dai@1.2.0|ms@2.1.3",
+      "bom-ref": "bi-bu-dai@1.3.0|ms@2.1.3",
       "description": "Tiny millisecond conversion utility",
       "licenses": [
         {
@@ -6995,7 +6995,7 @@
       "type": "library",
       "name": "setprototypeof",
       "version": "1.2.0",
-      "bom-ref": "bi-bu-dai@1.2.0|setprototypeof@1.2.0",
+      "bom-ref": "bi-bu-dai@1.3.0|setprototypeof@1.2.0",
       "author": "Wes Todd",
       "description": "A small polyfill for Object.setprototypeof",
       "licenses": [
@@ -7046,7 +7046,7 @@
       "type": "library",
       "name": "toidentifier",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|toidentifier@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|toidentifier@1.0.1",
       "author": "Douglas Christopher Wilson",
       "description": "Convert a string of words to a JavaScript identifier",
       "licenses": [
@@ -7101,7 +7101,7 @@
       "type": "library",
       "name": "mime-db",
       "version": "1.54.0",
-      "bom-ref": "bi-bu-dai@1.2.0|mime-db@1.54.0",
+      "bom-ref": "bi-bu-dai@1.3.0|mime-db@1.54.0",
       "description": "Media Type Database",
       "licenses": [
         {
@@ -7155,7 +7155,7 @@
       "type": "library",
       "name": "ee-first",
       "version": "1.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|ee-first@1.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|ee-first@1.1.1",
       "author": "Jonathan Ong",
       "description": "return the first event in a set of ee/event pairs",
       "licenses": [
@@ -7206,7 +7206,7 @@
       "type": "library",
       "name": "wrappy",
       "version": "1.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|wrappy@1.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|wrappy@1.0.2",
       "author": "Isaac Z. Schlueter",
       "description": "Callback wrapping utility",
       "licenses": [
@@ -7257,7 +7257,7 @@
       "type": "library",
       "name": "forwarded",
       "version": "0.2.0",
-      "bom-ref": "bi-bu-dai@1.2.0|forwarded@0.2.0",
+      "bom-ref": "bi-bu-dai@1.3.0|forwarded@0.2.0",
       "description": "Parse HTTP X-Forwarded-For header",
       "licenses": [
         {
@@ -7311,7 +7311,7 @@
       "type": "library",
       "name": "ipaddr.js",
       "version": "1.9.1",
-      "bom-ref": "bi-bu-dai@1.2.0|ipaddr.js@1.9.1",
+      "bom-ref": "bi-bu-dai@1.3.0|ipaddr.js@1.9.1",
       "author": "whitequark",
       "description": "A library for manipulating IPv4 and IPv6 addresses in JavaScript.",
       "licenses": [
@@ -7366,7 +7366,7 @@
       "type": "library",
       "name": "es-define-property",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|es-define-property@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|es-define-property@1.0.1",
       "author": "Jordan Harband",
       "description": "`Object.defineProperty`, but not IE 8's broken one.",
       "licenses": [
@@ -7421,7 +7421,7 @@
       "type": "library",
       "name": "side-channel",
       "version": "1.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|side-channel@1.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|side-channel@1.1.1",
       "author": "Jordan Harband",
       "description": "Store information about any JS value in a side channel. Uses WeakMap if available.",
       "licenses": [
@@ -7476,7 +7476,7 @@
       "type": "library",
       "name": "is-promise",
       "version": "4.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|is-promise@4.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|is-promise@4.0.0",
       "author": "ForbesLindesay",
       "description": "Test whether an object looks like a promises-a+ promise",
       "licenses": [
@@ -7527,7 +7527,7 @@
       "type": "library",
       "name": "path-to-regexp",
       "version": "8.4.2",
-      "bom-ref": "bi-bu-dai@1.2.0|path-to-regexp@8.4.2",
+      "bom-ref": "bi-bu-dai@1.3.0|path-to-regexp@8.4.2",
       "description": "Express style path to RegExp utility",
       "licenses": [
         {
@@ -7577,7 +7577,7 @@
       "type": "library",
       "name": "media-typer",
       "version": "1.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|media-typer@1.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|media-typer@1.1.1",
       "author": "Douglas Christopher Wilson",
       "description": "Simple RFC 6838 media type parser and formatter",
       "licenses": [
@@ -7632,7 +7632,7 @@
       "type": "library",
       "name": "sprintf-js",
       "version": "1.0.3",
-      "bom-ref": "bi-bu-dai@1.2.0|sprintf-js@1.0.3",
+      "bom-ref": "bi-bu-dai@1.3.0|sprintf-js@1.0.3",
       "author": "Alexandru Marasteanu",
       "description": "JavaScript sprintf implementation",
       "licenses": [
@@ -7683,7 +7683,7 @@
       "type": "library",
       "name": "duck",
       "version": "0.1.12",
-      "bom-ref": "bi-bu-dai@1.2.0|duck@0.1.12",
+      "bom-ref": "bi-bu-dai@1.3.0|duck@0.1.12",
       "author": "Michael Williamson",
       "description": "Rich matchers inspired by Hamcrest. Useful for generating helpful assertion failure messages in tests.",
       "licenses": [
@@ -7734,7 +7734,7 @@
       "type": "library",
       "name": "option",
       "version": "0.2.4",
-      "bom-ref": "bi-bu-dai@1.2.0|option@0.2.4",
+      "bom-ref": "bi-bu-dai@1.3.0|option@0.2.4",
       "author": "Michael Williamson",
       "description": "The option type, also known as the maybe type, for JavaScript",
       "licenses": [
@@ -7785,7 +7785,7 @@
       "type": "library",
       "name": "streamsearch",
       "version": "1.1.0",
-      "bom-ref": "bi-bu-dai@1.2.0|streamsearch@1.1.0",
+      "bom-ref": "bi-bu-dai@1.3.0|streamsearch@1.1.0",
       "author": "Brian White",
       "description": "Streaming Boyer-Moore-Horspool searching for node.js",
       "licenses": [
@@ -7841,7 +7841,7 @@
       "type": "library",
       "name": "buffer-from",
       "version": "1.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|buffer-from@1.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|buffer-from@1.1.2",
       "licenses": [
         {
           "license": {
@@ -7890,7 +7890,7 @@
       "type": "library",
       "name": "typedarray",
       "version": "0.0.6",
-      "bom-ref": "bi-bu-dai@1.2.0|typedarray@0.0.6",
+      "bom-ref": "bi-bu-dai@1.3.0|typedarray@0.0.6",
       "author": "James Halliday",
       "description": "TypedArray polyfill for old browsers",
       "licenses": [
@@ -7941,7 +7941,7 @@
       "type": "library",
       "name": "isomorphic.js",
       "version": "0.2.5",
-      "bom-ref": "bi-bu-dai@1.2.0|isomorphic.js@0.2.5",
+      "bom-ref": "bi-bu-dai@1.3.0|isomorphic.js@0.2.5",
       "author": "Kevin Jahns",
       "description": "Isomorphic JavaScript helper functions (performance, crpyto, ..)",
       "licenses": [
@@ -7993,7 +7993,7 @@
       "name": "core",
       "group": "@floating-ui",
       "version": "1.8.0",
-      "bom-ref": "bi-bu-dai@1.2.0|@floating-ui/core@1.8.0",
+      "bom-ref": "bi-bu-dai@1.3.0|@floating-ui/core@1.8.0",
       "author": "atomiks",
       "description": "Positioning library for floating elements: tooltips, popovers, dropdowns, and more",
       "scope": "optional",
@@ -8046,7 +8046,7 @@
       "name": "utils",
       "group": "@floating-ui",
       "version": "0.2.12",
-      "bom-ref": "bi-bu-dai@1.2.0|@floating-ui/utils@0.2.12",
+      "bom-ref": "bi-bu-dai@1.3.0|@floating-ui/utils@0.2.12",
       "author": "atomiks",
       "description": "Utilities for Floating UI",
       "scope": "optional",
@@ -8098,7 +8098,7 @@
       "type": "library",
       "name": "rope-sequence",
       "version": "1.3.4",
-      "bom-ref": "bi-bu-dai@1.2.0|rope-sequence@1.3.4",
+      "bom-ref": "bi-bu-dai@1.3.0|rope-sequence@1.3.4",
       "author": "Marijn Haverbeke",
       "description": "Rope-based persistent sequence type",
       "licenses": [
@@ -8149,7 +8149,7 @@
       "type": "library",
       "name": "w3c-keyname",
       "version": "2.2.8",
-      "bom-ref": "bi-bu-dai@1.2.0|w3c-keyname@2.2.8",
+      "bom-ref": "bi-bu-dai@1.3.0|w3c-keyname@2.2.8",
       "author": "Marijn Haverbeke",
       "description": "Get a KeyboardEvent.key-style string from an event",
       "licenses": [
@@ -8200,7 +8200,7 @@
       "type": "library",
       "name": "orderedmap",
       "version": "2.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|orderedmap@2.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|orderedmap@2.1.1",
       "author": "Marijn Haverbeke",
       "description": "Persistent ordered mapping from strings",
       "licenses": [
@@ -8251,7 +8251,7 @@
       "type": "library",
       "name": "immediate",
       "version": "3.0.6",
-      "bom-ref": "bi-bu-dai@1.2.0|immediate@3.0.6",
+      "bom-ref": "bi-bu-dai@1.3.0|immediate@3.0.6",
       "description": "A cross browser microtask library",
       "licenses": [
         {
@@ -8301,7 +8301,7 @@
       "type": "library",
       "name": "core-util-is",
       "version": "1.0.3",
-      "bom-ref": "bi-bu-dai@1.2.0|core-util-is@1.0.3",
+      "bom-ref": "bi-bu-dai@1.3.0|core-util-is@1.0.3",
       "author": "Isaac Z. Schlueter",
       "description": "The `util.is*` functions introduced in Node v0.12.",
       "licenses": [
@@ -8352,7 +8352,7 @@
       "type": "library",
       "name": "isarray",
       "version": "1.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|isarray@1.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|isarray@1.0.0",
       "author": "Julian Gruber",
       "description": "Array#isArray for older browsers",
       "licenses": [
@@ -8403,7 +8403,7 @@
       "type": "library",
       "name": "process-nextick-args",
       "version": "2.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|process-nextick-args@2.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|process-nextick-args@2.0.1",
       "description": "process.nextTick but always with args",
       "licenses": [
         {
@@ -8453,7 +8453,7 @@
       "type": "library",
       "name": "safe-buffer",
       "version": "5.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|safe-buffer@5.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|safe-buffer@5.1.2",
       "author": "Feross Aboukhadijeh",
       "description": "Safer Node.js Buffer API",
       "licenses": [
@@ -8504,7 +8504,7 @@
       "type": "library",
       "name": "string_decoder",
       "version": "1.1.1",
-      "bom-ref": "bi-bu-dai@1.2.0|string_decoder@1.1.1",
+      "bom-ref": "bi-bu-dai@1.3.0|string_decoder@1.1.1",
       "description": "The string_decoder module from Node core",
       "licenses": [
         {
@@ -8554,7 +8554,7 @@
       "type": "library",
       "name": "util-deprecate",
       "version": "1.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|util-deprecate@1.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|util-deprecate@1.0.2",
       "author": "Nathan Rajlich",
       "description": "The Node.js `util.deprecate()` function with browser support",
       "licenses": [
@@ -8605,7 +8605,7 @@
       "type": "library",
       "name": "safer-buffer",
       "version": "2.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|safer-buffer@2.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|safer-buffer@2.1.2",
       "author": "Nikita Skovoroda",
       "description": "Modern Buffer API polyfill without footguns",
       "licenses": [
@@ -8656,7 +8656,7 @@
       "type": "library",
       "name": "unpipe",
       "version": "1.0.0",
-      "bom-ref": "bi-bu-dai@1.2.0|unpipe@1.0.0",
+      "bom-ref": "bi-bu-dai@1.3.0|unpipe@1.0.0",
       "author": "Douglas Christopher Wilson",
       "description": "Unpipe a stream from all destinations",
       "licenses": [
@@ -8711,7 +8711,7 @@
       "type": "library",
       "name": "es-errors",
       "version": "1.3.0",
-      "bom-ref": "bi-bu-dai@1.2.0|es-errors@1.3.0",
+      "bom-ref": "bi-bu-dai@1.3.0|es-errors@1.3.0",
       "author": "Jordan Harband",
       "description": "A simple cache for a few of the JS Error constructors.",
       "licenses": [
@@ -8766,7 +8766,7 @@
       "type": "library",
       "name": "object-inspect",
       "version": "1.13.4",
-      "bom-ref": "bi-bu-dai@1.2.0|object-inspect@1.13.4",
+      "bom-ref": "bi-bu-dai@1.3.0|object-inspect@1.13.4",
       "author": "James Halliday",
       "description": "string representations of objects in node and the browser",
       "licenses": [
@@ -8821,7 +8821,7 @@
       "type": "library",
       "name": "side-channel-list",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|side-channel-list@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|side-channel-list@1.0.1",
       "author": "Jordan Harband",
       "description": "Store information about any JS value in a side channel, using a linked list",
       "licenses": [
@@ -8876,7 +8876,7 @@
       "type": "library",
       "name": "side-channel-map",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|side-channel-map@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|side-channel-map@1.0.1",
       "author": "Jordan Harband",
       "description": "Store information about any JS value in a side channel, using a Map",
       "licenses": [
@@ -8931,7 +8931,7 @@
       "type": "library",
       "name": "side-channel-weakmap",
       "version": "1.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|side-channel-weakmap@1.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|side-channel-weakmap@1.0.2",
       "author": "Jordan Harband",
       "description": "Store information about any JS value in a side channel. Uses WeakMap if available.",
       "licenses": [
@@ -8986,7 +8986,7 @@
       "type": "library",
       "name": "call-bound",
       "version": "1.0.4",
-      "bom-ref": "bi-bu-dai@1.2.0|call-bound@1.0.4",
+      "bom-ref": "bi-bu-dai@1.3.0|call-bound@1.0.4",
       "author": "Jordan Harband",
       "description": "Robust call-bound JavaScript intrinsics, using `call-bind` and `get-intrinsic`.",
       "licenses": [
@@ -9041,7 +9041,7 @@
       "type": "library",
       "name": "get-intrinsic",
       "version": "1.3.0",
-      "bom-ref": "bi-bu-dai@1.2.0|get-intrinsic@1.3.0",
+      "bom-ref": "bi-bu-dai@1.3.0|get-intrinsic@1.3.0",
       "author": "Jordan Harband",
       "description": "Get and robustly cache all JS language-level intrinsics at first require time",
       "licenses": [
@@ -9096,7 +9096,7 @@
       "type": "library",
       "name": "call-bind-apply-helpers",
       "version": "1.0.2",
-      "bom-ref": "bi-bu-dai@1.2.0|call-bind-apply-helpers@1.0.2",
+      "bom-ref": "bi-bu-dai@1.3.0|call-bind-apply-helpers@1.0.2",
       "author": "Jordan Harband",
       "description": "Helper functions around Function call/apply/bind, for use in `call-bind`",
       "licenses": [
@@ -9151,7 +9151,7 @@
       "type": "library",
       "name": "es-object-atoms",
       "version": "1.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|es-object-atoms@1.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|es-object-atoms@1.1.2",
       "author": "Jordan Harband",
       "description": "ES Object-related atoms: Object, ToObject, RequireObjectCoercible",
       "licenses": [
@@ -9206,7 +9206,7 @@
       "type": "library",
       "name": "function-bind",
       "version": "1.1.2",
-      "bom-ref": "bi-bu-dai@1.2.0|function-bind@1.1.2",
+      "bom-ref": "bi-bu-dai@1.3.0|function-bind@1.1.2",
       "author": "Raynos",
       "description": "Implementation of Function.prototype.bind",
       "licenses": [
@@ -9257,7 +9257,7 @@
       "type": "library",
       "name": "get-proto",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|get-proto@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|get-proto@1.0.1",
       "author": "Jordan Harband",
       "description": "Robustly get the [[Prototype]] of an object",
       "licenses": [
@@ -9312,7 +9312,7 @@
       "type": "library",
       "name": "gopd",
       "version": "1.2.0",
-      "bom-ref": "bi-bu-dai@1.2.0|gopd@1.2.0",
+      "bom-ref": "bi-bu-dai@1.3.0|gopd@1.2.0",
       "author": "Jordan Harband",
       "description": "`Object.getOwnPropertyDescriptor`, but accounts for IE's broken implementation.",
       "licenses": [
@@ -9367,7 +9367,7 @@
       "type": "library",
       "name": "has-symbols",
       "version": "1.1.0",
-      "bom-ref": "bi-bu-dai@1.2.0|has-symbols@1.1.0",
+      "bom-ref": "bi-bu-dai@1.3.0|has-symbols@1.1.0",
       "author": "Jordan Harband",
       "description": "Determine if the JS environment has Symbol support. Supports spec, or shams.",
       "licenses": [
@@ -9422,7 +9422,7 @@
       "type": "library",
       "name": "hasown",
       "version": "2.0.4",
-      "bom-ref": "bi-bu-dai@1.2.0|hasown@2.0.4",
+      "bom-ref": "bi-bu-dai@1.3.0|hasown@2.0.4",
       "author": "Jordan Harband",
       "description": "A robust, ES3 compatible, \"has own property\" predicate.",
       "licenses": [
@@ -9477,7 +9477,7 @@
       "type": "library",
       "name": "math-intrinsics",
       "version": "1.1.0",
-      "bom-ref": "bi-bu-dai@1.2.0|math-intrinsics@1.1.0",
+      "bom-ref": "bi-bu-dai@1.3.0|math-intrinsics@1.1.0",
       "author": "Jordan Harband",
       "description": "ES Math-related intrinsics and helpers, robustly cached.",
       "licenses": [
@@ -9532,7 +9532,7 @@
       "type": "library",
       "name": "dunder-proto",
       "version": "1.0.1",
-      "bom-ref": "bi-bu-dai@1.2.0|dunder-proto@1.0.1",
+      "bom-ref": "bi-bu-dai@1.3.0|dunder-proto@1.0.1",
       "author": "Jordan Harband",
       "description": "If available, the `Object.prototype.__proto__` accessor and mutator, call-bound",
       "licenses": [
@@ -9586,1077 +9586,1077 @@
   ],
   "dependencies": [
     {
-      "ref": "bi-bu-dai@1.2.0",
+      "ref": "bi-bu-dai@1.3.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extension-character-count@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-placeholder@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/react@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/starter-kit@3.30.3",
-        "bi-bu-dai@1.2.0|cors@2.8.6",
-        "bi-bu-dai@1.2.0|diff@8.0.4",
-        "bi-bu-dai@1.2.0|docx@9.7.1",
-        "bi-bu-dai@1.2.0|express@5.2.1",
-        "bi-bu-dai@1.2.0|lucide-react@0.542.0",
-        "bi-bu-dai@1.2.0|mammoth@1.12.1",
-        "bi-bu-dai@1.2.0|multer@2.2.0",
-        "bi-bu-dai@1.2.0|react-dom@19.2.8",
-        "bi-bu-dai@1.2.0|react@19.2.8",
-        "bi-bu-dai@1.2.0|yjs@13.6.32",
-        "bi-bu-dai@1.2.0|zod@4.4.3"
+        "bi-bu-dai@1.3.0|@tiptap/extension-character-count@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-placeholder@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/react@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/starter-kit@3.30.3",
+        "bi-bu-dai@1.3.0|cors@2.8.6",
+        "bi-bu-dai@1.3.0|diff@8.0.4",
+        "bi-bu-dai@1.3.0|docx@9.7.1",
+        "bi-bu-dai@1.3.0|express@5.2.1",
+        "bi-bu-dai@1.3.0|lucide-react@0.542.0",
+        "bi-bu-dai@1.3.0|mammoth@1.12.1",
+        "bi-bu-dai@1.3.0|multer@2.2.0",
+        "bi-bu-dai@1.3.0|react-dom@19.2.8",
+        "bi-bu-dai@1.3.0|react@19.2.8",
+        "bi-bu-dai@1.3.0|yjs@13.6.32",
+        "bi-bu-dai@1.3.0|zod@4.4.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-character-count@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-character-count@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-placeholder@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-placeholder@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/react@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/react@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-bubble-menu@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-floating-menu@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3",
-        "bi-bu-dai@1.2.0|@types/react-dom@19.2.5",
-        "bi-bu-dai@1.2.0|@types/react@19.2.18",
-        "bi-bu-dai@1.2.0|@types/use-sync-external-store@0.0.6",
-        "bi-bu-dai@1.2.0|fast-equals@5.4.1",
-        "bi-bu-dai@1.2.0|react-dom@19.2.8",
-        "bi-bu-dai@1.2.0|react@19.2.8",
-        "bi-bu-dai@1.2.0|use-sync-external-store@1.6.0"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-bubble-menu@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-floating-menu@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3",
+        "bi-bu-dai@1.3.0|@types/react-dom@19.2.5",
+        "bi-bu-dai@1.3.0|@types/react@19.2.18",
+        "bi-bu-dai@1.3.0|@types/use-sync-external-store@0.0.6",
+        "bi-bu-dai@1.3.0|fast-equals@5.4.1",
+        "bi-bu-dai@1.3.0|react-dom@19.2.8",
+        "bi-bu-dai@1.3.0|react@19.2.8",
+        "bi-bu-dai@1.3.0|use-sync-external-store@1.6.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/starter-kit@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/starter-kit@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-blockquote@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-bold@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-bullet-list@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-code-block@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-code@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-document@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-dropcursor@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-gapcursor@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-hard-break@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-heading@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-horizontal-rule@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-italic@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-link@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-list-item@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-list-keymap@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-ordered-list@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-paragraph@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-strike@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-text@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extension-underline@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-blockquote@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-bold@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-bullet-list@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-code-block@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-code@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-document@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-dropcursor@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-gapcursor@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-hard-break@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-heading@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-horizontal-rule@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-italic@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-link@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-list-item@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-list-keymap@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-ordered-list@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-paragraph@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-strike@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-text@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extension-underline@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|cors@2.8.6",
+      "ref": "bi-bu-dai@1.3.0|cors@2.8.6",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|object-assign@4.1.1",
-        "bi-bu-dai@1.2.0|vary@1.1.2"
+        "bi-bu-dai@1.3.0|object-assign@4.1.1",
+        "bi-bu-dai@1.3.0|vary@1.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|diff@8.0.4"
+      "ref": "bi-bu-dai@1.3.0|diff@8.0.4"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|docx@9.7.1",
+      "ref": "bi-bu-dai@1.3.0|docx@9.7.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|docx@9.7.1|@types/node@25.9.5",
-        "bi-bu-dai@1.2.0|hash.js@1.1.7",
-        "bi-bu-dai@1.2.0|jszip@3.10.1",
-        "bi-bu-dai@1.2.0|nanoid@5.1.16",
-        "bi-bu-dai@1.2.0|xml-js@1.6.11",
-        "bi-bu-dai@1.2.0|xml@1.0.1"
+        "bi-bu-dai@1.3.0|docx@9.7.1|@types/node@25.9.5",
+        "bi-bu-dai@1.3.0|hash.js@1.1.7",
+        "bi-bu-dai@1.3.0|jszip@3.10.1",
+        "bi-bu-dai@1.3.0|nanoid@5.1.16",
+        "bi-bu-dai@1.3.0|xml-js@1.6.11",
+        "bi-bu-dai@1.3.0|xml@1.0.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|docx@9.7.1|@types/node@25.9.5",
+      "ref": "bi-bu-dai@1.3.0|docx@9.7.1|@types/node@25.9.5",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|docx@9.7.1|undici-types@7.24.6"
+        "bi-bu-dai@1.3.0|docx@9.7.1|undici-types@7.24.6"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|docx@9.7.1|undici-types@7.24.6"
+      "ref": "bi-bu-dai@1.3.0|docx@9.7.1|undici-types@7.24.6"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|express@5.2.1",
+      "ref": "bi-bu-dai@1.3.0|express@5.2.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|accepts@2.0.0",
-        "bi-bu-dai@1.2.0|body-parser@2.3.0",
-        "bi-bu-dai@1.2.0|content-disposition@1.1.0",
-        "bi-bu-dai@1.2.0|content-type@1.0.5",
-        "bi-bu-dai@1.2.0|cookie-signature@1.2.2",
-        "bi-bu-dai@1.2.0|cookie@0.7.2",
-        "bi-bu-dai@1.2.0|debug@4.4.3",
-        "bi-bu-dai@1.2.0|depd@2.0.0",
-        "bi-bu-dai@1.2.0|encodeurl@2.0.0",
-        "bi-bu-dai@1.2.0|escape-html@1.0.3",
-        "bi-bu-dai@1.2.0|etag@1.8.1",
-        "bi-bu-dai@1.2.0|finalhandler@2.1.1",
-        "bi-bu-dai@1.2.0|fresh@2.0.0",
-        "bi-bu-dai@1.2.0|http-errors@2.0.1",
-        "bi-bu-dai@1.2.0|merge-descriptors@2.0.0",
-        "bi-bu-dai@1.2.0|mime-types@3.0.2",
-        "bi-bu-dai@1.2.0|on-finished@2.4.1",
-        "bi-bu-dai@1.2.0|once@1.4.0",
-        "bi-bu-dai@1.2.0|parseurl@1.3.3",
-        "bi-bu-dai@1.2.0|proxy-addr@2.0.7",
-        "bi-bu-dai@1.2.0|qs@6.15.3",
-        "bi-bu-dai@1.2.0|range-parser@1.3.0",
-        "bi-bu-dai@1.2.0|router@2.2.0",
-        "bi-bu-dai@1.2.0|send@1.2.1",
-        "bi-bu-dai@1.2.0|serve-static@2.2.1",
-        "bi-bu-dai@1.2.0|statuses@2.0.2",
-        "bi-bu-dai@1.2.0|type-is@2.1.0",
-        "bi-bu-dai@1.2.0|vary@1.1.2"
+        "bi-bu-dai@1.3.0|accepts@2.0.0",
+        "bi-bu-dai@1.3.0|body-parser@2.3.0",
+        "bi-bu-dai@1.3.0|content-disposition@1.1.0",
+        "bi-bu-dai@1.3.0|content-type@1.0.5",
+        "bi-bu-dai@1.3.0|cookie-signature@1.2.2",
+        "bi-bu-dai@1.3.0|cookie@0.7.2",
+        "bi-bu-dai@1.3.0|debug@4.4.3",
+        "bi-bu-dai@1.3.0|depd@2.0.0",
+        "bi-bu-dai@1.3.0|encodeurl@2.0.0",
+        "bi-bu-dai@1.3.0|escape-html@1.0.3",
+        "bi-bu-dai@1.3.0|etag@1.8.1",
+        "bi-bu-dai@1.3.0|finalhandler@2.1.1",
+        "bi-bu-dai@1.3.0|fresh@2.0.0",
+        "bi-bu-dai@1.3.0|http-errors@2.0.1",
+        "bi-bu-dai@1.3.0|merge-descriptors@2.0.0",
+        "bi-bu-dai@1.3.0|mime-types@3.0.2",
+        "bi-bu-dai@1.3.0|on-finished@2.4.1",
+        "bi-bu-dai@1.3.0|once@1.4.0",
+        "bi-bu-dai@1.3.0|parseurl@1.3.3",
+        "bi-bu-dai@1.3.0|proxy-addr@2.0.7",
+        "bi-bu-dai@1.3.0|qs@6.15.3",
+        "bi-bu-dai@1.3.0|range-parser@1.3.0",
+        "bi-bu-dai@1.3.0|router@2.2.0",
+        "bi-bu-dai@1.3.0|send@1.2.1",
+        "bi-bu-dai@1.3.0|serve-static@2.2.1",
+        "bi-bu-dai@1.3.0|statuses@2.0.2",
+        "bi-bu-dai@1.3.0|type-is@2.1.0",
+        "bi-bu-dai@1.3.0|vary@1.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|lucide-react@0.542.0",
+      "ref": "bi-bu-dai@1.3.0|lucide-react@0.542.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|react@19.2.8"
+        "bi-bu-dai@1.3.0|react@19.2.8"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|mammoth@1.12.1",
+      "ref": "bi-bu-dai@1.3.0|mammoth@1.12.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@xmldom/xmldom@0.8.15",
-        "bi-bu-dai@1.2.0|argparse@1.0.10",
-        "bi-bu-dai@1.2.0|base64-js@1.5.1",
-        "bi-bu-dai@1.2.0|bluebird@3.4.7",
-        "bi-bu-dai@1.2.0|dingbat-to-unicode@1.0.1",
-        "bi-bu-dai@1.2.0|jszip@3.10.1",
-        "bi-bu-dai@1.2.0|lop@0.4.2",
-        "bi-bu-dai@1.2.0|path-is-absolute@1.0.1",
-        "bi-bu-dai@1.2.0|underscore@1.13.8",
-        "bi-bu-dai@1.2.0|xmlbuilder@10.1.1"
+        "bi-bu-dai@1.3.0|@xmldom/xmldom@0.8.15",
+        "bi-bu-dai@1.3.0|argparse@1.0.10",
+        "bi-bu-dai@1.3.0|base64-js@1.5.1",
+        "bi-bu-dai@1.3.0|bluebird@3.4.7",
+        "bi-bu-dai@1.3.0|dingbat-to-unicode@1.0.1",
+        "bi-bu-dai@1.3.0|jszip@3.10.1",
+        "bi-bu-dai@1.3.0|lop@0.4.2",
+        "bi-bu-dai@1.3.0|path-is-absolute@1.0.1",
+        "bi-bu-dai@1.3.0|underscore@1.13.8",
+        "bi-bu-dai@1.3.0|xmlbuilder@10.1.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|multer@2.2.0",
+      "ref": "bi-bu-dai@1.3.0|multer@2.2.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|append-field@1.0.0",
-        "bi-bu-dai@1.2.0|busboy@1.6.0",
-        "bi-bu-dai@1.2.0|concat-stream@2.0.0",
-        "bi-bu-dai@1.2.0|multer@2.2.0|type-is@1.6.18"
+        "bi-bu-dai@1.3.0|append-field@1.0.0",
+        "bi-bu-dai@1.3.0|busboy@1.6.0",
+        "bi-bu-dai@1.3.0|concat-stream@2.0.0",
+        "bi-bu-dai@1.3.0|multer@2.2.0|type-is@1.6.18"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|multer@2.2.0|type-is@1.6.18",
+      "ref": "bi-bu-dai@1.3.0|multer@2.2.0|type-is@1.6.18",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|multer@2.2.0|media-typer@0.3.0",
-        "bi-bu-dai@1.2.0|multer@2.2.0|mime-types@2.1.35"
+        "bi-bu-dai@1.3.0|multer@2.2.0|media-typer@0.3.0",
+        "bi-bu-dai@1.3.0|multer@2.2.0|mime-types@2.1.35"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|multer@2.2.0|media-typer@0.3.0"
+      "ref": "bi-bu-dai@1.3.0|multer@2.2.0|media-typer@0.3.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|multer@2.2.0|mime-types@2.1.35",
+      "ref": "bi-bu-dai@1.3.0|multer@2.2.0|mime-types@2.1.35",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|multer@2.2.0|mime-db@1.52.0"
+        "bi-bu-dai@1.3.0|multer@2.2.0|mime-db@1.52.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|multer@2.2.0|mime-db@1.52.0"
+      "ref": "bi-bu-dai@1.3.0|multer@2.2.0|mime-db@1.52.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|react-dom@19.2.8",
+      "ref": "bi-bu-dai@1.3.0|react-dom@19.2.8",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|react@19.2.8",
-        "bi-bu-dai@1.2.0|scheduler@0.27.0"
+        "bi-bu-dai@1.3.0|react@19.2.8",
+        "bi-bu-dai@1.3.0|scheduler@0.27.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|react@19.2.8"
+      "ref": "bi-bu-dai@1.3.0|react@19.2.8"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|yjs@13.6.32",
+      "ref": "bi-bu-dai@1.3.0|yjs@13.6.32",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|lib0@0.2.117"
+        "bi-bu-dai@1.3.0|lib0@0.2.117"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|zod@4.4.3"
+      "ref": "bi-bu-dai@1.3.0|zod@4.4.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-bubble-menu@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-bubble-menu@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@floating-ui/dom@1.8.0",
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@floating-ui/dom@1.8.0",
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-floating-menu@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-floating-menu@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@floating-ui/dom@1.8.0",
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@floating-ui/dom@1.8.0",
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-changeset@2.4.2",
-        "bi-bu-dai@1.2.0|prosemirror-commands@1.7.2",
-        "bi-bu-dai@1.2.0|prosemirror-dropcursor@1.8.3",
-        "bi-bu-dai@1.2.0|prosemirror-gapcursor@1.4.1",
-        "bi-bu-dai@1.2.0|prosemirror-history@1.5.0",
-        "bi-bu-dai@1.2.0|prosemirror-inputrules@1.5.1",
-        "bi-bu-dai@1.2.0|prosemirror-keymap@1.2.3",
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-schema-list@1.5.1",
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-tables@1.8.5",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
-        "bi-bu-dai@1.2.0|prosemirror-view@1.42.3"
+        "bi-bu-dai@1.3.0|prosemirror-changeset@2.4.2",
+        "bi-bu-dai@1.3.0|prosemirror-commands@1.7.2",
+        "bi-bu-dai@1.3.0|prosemirror-dropcursor@1.8.3",
+        "bi-bu-dai@1.3.0|prosemirror-gapcursor@1.4.1",
+        "bi-bu-dai@1.3.0|prosemirror-history@1.5.0",
+        "bi-bu-dai@1.3.0|prosemirror-inputrules@1.5.1",
+        "bi-bu-dai@1.3.0|prosemirror-keymap@1.2.3",
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-schema-list@1.5.1",
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-tables@1.8.5",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
+        "bi-bu-dai@1.3.0|prosemirror-view@1.42.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@types/react-dom@19.2.5",
+      "ref": "bi-bu-dai@1.3.0|@types/react-dom@19.2.5",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@types/react@19.2.18"
+        "bi-bu-dai@1.3.0|@types/react@19.2.18"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@types/react@19.2.18",
+      "ref": "bi-bu-dai@1.3.0|@types/react@19.2.18",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|csstype@3.2.3"
+        "bi-bu-dai@1.3.0|csstype@3.2.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@types/use-sync-external-store@0.0.6"
+      "ref": "bi-bu-dai@1.3.0|@types/use-sync-external-store@0.0.6"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|fast-equals@5.4.1"
+      "ref": "bi-bu-dai@1.3.0|fast-equals@5.4.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|use-sync-external-store@1.6.0",
+      "ref": "bi-bu-dai@1.3.0|use-sync-external-store@1.6.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|react@19.2.8"
+        "bi-bu-dai@1.3.0|react@19.2.8"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-blockquote@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-blockquote@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-bold@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-bold@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-bullet-list@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-bullet-list@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-code-block@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-code-block@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-code@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-code@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-document@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-document@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-dropcursor@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-dropcursor@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-gapcursor@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-gapcursor@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extensions@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extensions@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-hard-break@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-hard-break@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-heading@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-heading@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-horizontal-rule@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-horizontal-rule@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-italic@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-italic@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-link@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-link@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3",
-        "bi-bu-dai@1.2.0|linkifyjs@4.3.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3",
+        "bi-bu-dai@1.3.0|linkifyjs@4.3.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-list-item@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-list-item@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-list-keymap@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-list-keymap@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3",
-        "bi-bu-dai@1.2.0|@tiptap/pm@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3",
+        "bi-bu-dai@1.3.0|@tiptap/pm@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-ordered-list@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-ordered-list@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/extension-list@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/extension-list@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-paragraph@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-paragraph@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-strike@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-strike@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-text@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-text@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@tiptap/extension-underline@3.30.3",
+      "ref": "bi-bu-dai@1.3.0|@tiptap/extension-underline@3.30.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@tiptap/core@3.30.3"
+        "bi-bu-dai@1.3.0|@tiptap/core@3.30.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|object-assign@4.1.1"
+      "ref": "bi-bu-dai@1.3.0|object-assign@4.1.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|vary@1.1.2"
+      "ref": "bi-bu-dai@1.3.0|vary@1.1.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|hash.js@1.1.7",
+      "ref": "bi-bu-dai@1.3.0|hash.js@1.1.7",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|inherits@2.0.4",
-        "bi-bu-dai@1.2.0|minimalistic-assert@1.0.1"
+        "bi-bu-dai@1.3.0|inherits@2.0.4",
+        "bi-bu-dai@1.3.0|minimalistic-assert@1.0.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|jszip@3.10.1",
+      "ref": "bi-bu-dai@1.3.0|jszip@3.10.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|lie@3.3.0",
-        "bi-bu-dai@1.2.0|pako@1.0.11",
-        "bi-bu-dai@1.2.0|readable-stream@2.3.8",
-        "bi-bu-dai@1.2.0|setimmediate@1.0.5"
+        "bi-bu-dai@1.3.0|lie@3.3.0",
+        "bi-bu-dai@1.3.0|pako@1.0.11",
+        "bi-bu-dai@1.3.0|readable-stream@2.3.8",
+        "bi-bu-dai@1.3.0|setimmediate@1.0.5"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|nanoid@5.1.16"
+      "ref": "bi-bu-dai@1.3.0|nanoid@5.1.16"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|xml-js@1.6.11",
+      "ref": "bi-bu-dai@1.3.0|xml-js@1.6.11",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|sax@1.6.1"
+        "bi-bu-dai@1.3.0|sax@1.6.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|xml@1.0.1"
+      "ref": "bi-bu-dai@1.3.0|xml@1.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|accepts@2.0.0",
+      "ref": "bi-bu-dai@1.3.0|accepts@2.0.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|mime-types@3.0.2",
-        "bi-bu-dai@1.2.0|negotiator@1.1.0"
+        "bi-bu-dai@1.3.0|mime-types@3.0.2",
+        "bi-bu-dai@1.3.0|negotiator@1.1.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|body-parser@2.3.0",
+      "ref": "bi-bu-dai@1.3.0|body-parser@2.3.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|bytes@3.1.2",
-        "bi-bu-dai@1.2.0|body-parser@2.3.0|content-type@2.1.0",
-        "bi-bu-dai@1.2.0|debug@4.4.3",
-        "bi-bu-dai@1.2.0|http-errors@2.0.1",
-        "bi-bu-dai@1.2.0|iconv-lite@0.7.3",
-        "bi-bu-dai@1.2.0|on-finished@2.4.1",
-        "bi-bu-dai@1.2.0|qs@6.15.3",
-        "bi-bu-dai@1.2.0|raw-body@3.0.2",
-        "bi-bu-dai@1.2.0|type-is@2.1.0"
+        "bi-bu-dai@1.3.0|bytes@3.1.2",
+        "bi-bu-dai@1.3.0|body-parser@2.3.0|content-type@2.1.0",
+        "bi-bu-dai@1.3.0|debug@4.4.3",
+        "bi-bu-dai@1.3.0|http-errors@2.0.1",
+        "bi-bu-dai@1.3.0|iconv-lite@0.7.3",
+        "bi-bu-dai@1.3.0|on-finished@2.4.1",
+        "bi-bu-dai@1.3.0|qs@6.15.3",
+        "bi-bu-dai@1.3.0|raw-body@3.0.2",
+        "bi-bu-dai@1.3.0|type-is@2.1.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|body-parser@2.3.0|content-type@2.1.0"
+      "ref": "bi-bu-dai@1.3.0|body-parser@2.3.0|content-type@2.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|content-disposition@1.1.0"
+      "ref": "bi-bu-dai@1.3.0|content-disposition@1.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|content-type@1.0.5"
+      "ref": "bi-bu-dai@1.3.0|content-type@1.0.5"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|cookie-signature@1.2.2"
+      "ref": "bi-bu-dai@1.3.0|cookie-signature@1.2.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|cookie@0.7.2"
+      "ref": "bi-bu-dai@1.3.0|cookie@0.7.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|debug@4.4.3",
+      "ref": "bi-bu-dai@1.3.0|debug@4.4.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|ms@2.1.3"
+        "bi-bu-dai@1.3.0|ms@2.1.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|depd@2.0.0"
+      "ref": "bi-bu-dai@1.3.0|depd@2.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|encodeurl@2.0.0"
+      "ref": "bi-bu-dai@1.3.0|encodeurl@2.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|escape-html@1.0.3"
+      "ref": "bi-bu-dai@1.3.0|escape-html@1.0.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|etag@1.8.1"
+      "ref": "bi-bu-dai@1.3.0|etag@1.8.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|finalhandler@2.1.1",
+      "ref": "bi-bu-dai@1.3.0|finalhandler@2.1.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|debug@4.4.3",
-        "bi-bu-dai@1.2.0|encodeurl@2.0.0",
-        "bi-bu-dai@1.2.0|escape-html@1.0.3",
-        "bi-bu-dai@1.2.0|on-finished@2.4.1",
-        "bi-bu-dai@1.2.0|parseurl@1.3.3",
-        "bi-bu-dai@1.2.0|statuses@2.0.2"
+        "bi-bu-dai@1.3.0|debug@4.4.3",
+        "bi-bu-dai@1.3.0|encodeurl@2.0.0",
+        "bi-bu-dai@1.3.0|escape-html@1.0.3",
+        "bi-bu-dai@1.3.0|on-finished@2.4.1",
+        "bi-bu-dai@1.3.0|parseurl@1.3.3",
+        "bi-bu-dai@1.3.0|statuses@2.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|fresh@2.0.0"
+      "ref": "bi-bu-dai@1.3.0|fresh@2.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|http-errors@2.0.1",
+      "ref": "bi-bu-dai@1.3.0|http-errors@2.0.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|depd@2.0.0",
-        "bi-bu-dai@1.2.0|inherits@2.0.4",
-        "bi-bu-dai@1.2.0|setprototypeof@1.2.0",
-        "bi-bu-dai@1.2.0|statuses@2.0.2",
-        "bi-bu-dai@1.2.0|toidentifier@1.0.1"
+        "bi-bu-dai@1.3.0|depd@2.0.0",
+        "bi-bu-dai@1.3.0|inherits@2.0.4",
+        "bi-bu-dai@1.3.0|setprototypeof@1.2.0",
+        "bi-bu-dai@1.3.0|statuses@2.0.2",
+        "bi-bu-dai@1.3.0|toidentifier@1.0.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|merge-descriptors@2.0.0"
+      "ref": "bi-bu-dai@1.3.0|merge-descriptors@2.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|mime-types@3.0.2",
+      "ref": "bi-bu-dai@1.3.0|mime-types@3.0.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|mime-db@1.54.0"
+        "bi-bu-dai@1.3.0|mime-db@1.54.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|on-finished@2.4.1",
+      "ref": "bi-bu-dai@1.3.0|on-finished@2.4.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|ee-first@1.1.1"
+        "bi-bu-dai@1.3.0|ee-first@1.1.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|once@1.4.0",
+      "ref": "bi-bu-dai@1.3.0|once@1.4.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|wrappy@1.0.2"
+        "bi-bu-dai@1.3.0|wrappy@1.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|parseurl@1.3.3"
+      "ref": "bi-bu-dai@1.3.0|parseurl@1.3.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|proxy-addr@2.0.7",
+      "ref": "bi-bu-dai@1.3.0|proxy-addr@2.0.7",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|forwarded@0.2.0",
-        "bi-bu-dai@1.2.0|ipaddr.js@1.9.1"
+        "bi-bu-dai@1.3.0|forwarded@0.2.0",
+        "bi-bu-dai@1.3.0|ipaddr.js@1.9.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|qs@6.15.3",
+      "ref": "bi-bu-dai@1.3.0|qs@6.15.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|es-define-property@1.0.1",
-        "bi-bu-dai@1.2.0|side-channel@1.1.1"
+        "bi-bu-dai@1.3.0|es-define-property@1.0.1",
+        "bi-bu-dai@1.3.0|side-channel@1.1.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|range-parser@1.3.0"
+      "ref": "bi-bu-dai@1.3.0|range-parser@1.3.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|router@2.2.0",
+      "ref": "bi-bu-dai@1.3.0|router@2.2.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|debug@4.4.3",
-        "bi-bu-dai@1.2.0|depd@2.0.0",
-        "bi-bu-dai@1.2.0|is-promise@4.0.0",
-        "bi-bu-dai@1.2.0|parseurl@1.3.3",
-        "bi-bu-dai@1.2.0|path-to-regexp@8.4.2"
+        "bi-bu-dai@1.3.0|debug@4.4.3",
+        "bi-bu-dai@1.3.0|depd@2.0.0",
+        "bi-bu-dai@1.3.0|is-promise@4.0.0",
+        "bi-bu-dai@1.3.0|parseurl@1.3.3",
+        "bi-bu-dai@1.3.0|path-to-regexp@8.4.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|send@1.2.1",
+      "ref": "bi-bu-dai@1.3.0|send@1.2.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|debug@4.4.3",
-        "bi-bu-dai@1.2.0|encodeurl@2.0.0",
-        "bi-bu-dai@1.2.0|escape-html@1.0.3",
-        "bi-bu-dai@1.2.0|etag@1.8.1",
-        "bi-bu-dai@1.2.0|fresh@2.0.0",
-        "bi-bu-dai@1.2.0|http-errors@2.0.1",
-        "bi-bu-dai@1.2.0|mime-types@3.0.2",
-        "bi-bu-dai@1.2.0|ms@2.1.3",
-        "bi-bu-dai@1.2.0|on-finished@2.4.1",
-        "bi-bu-dai@1.2.0|range-parser@1.3.0",
-        "bi-bu-dai@1.2.0|statuses@2.0.2"
+        "bi-bu-dai@1.3.0|debug@4.4.3",
+        "bi-bu-dai@1.3.0|encodeurl@2.0.0",
+        "bi-bu-dai@1.3.0|escape-html@1.0.3",
+        "bi-bu-dai@1.3.0|etag@1.8.1",
+        "bi-bu-dai@1.3.0|fresh@2.0.0",
+        "bi-bu-dai@1.3.0|http-errors@2.0.1",
+        "bi-bu-dai@1.3.0|mime-types@3.0.2",
+        "bi-bu-dai@1.3.0|ms@2.1.3",
+        "bi-bu-dai@1.3.0|on-finished@2.4.1",
+        "bi-bu-dai@1.3.0|range-parser@1.3.0",
+        "bi-bu-dai@1.3.0|statuses@2.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|serve-static@2.2.1",
+      "ref": "bi-bu-dai@1.3.0|serve-static@2.2.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|encodeurl@2.0.0",
-        "bi-bu-dai@1.2.0|escape-html@1.0.3",
-        "bi-bu-dai@1.2.0|parseurl@1.3.3",
-        "bi-bu-dai@1.2.0|send@1.2.1"
+        "bi-bu-dai@1.3.0|encodeurl@2.0.0",
+        "bi-bu-dai@1.3.0|escape-html@1.0.3",
+        "bi-bu-dai@1.3.0|parseurl@1.3.3",
+        "bi-bu-dai@1.3.0|send@1.2.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|statuses@2.0.2"
+      "ref": "bi-bu-dai@1.3.0|statuses@2.0.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|type-is@2.1.0",
+      "ref": "bi-bu-dai@1.3.0|type-is@2.1.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|type-is@2.1.0|content-type@2.1.0",
-        "bi-bu-dai@1.2.0|media-typer@1.1.1",
-        "bi-bu-dai@1.2.0|mime-types@3.0.2"
+        "bi-bu-dai@1.3.0|type-is@2.1.0|content-type@2.1.0",
+        "bi-bu-dai@1.3.0|media-typer@1.1.1",
+        "bi-bu-dai@1.3.0|mime-types@3.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|type-is@2.1.0|content-type@2.1.0"
+      "ref": "bi-bu-dai@1.3.0|type-is@2.1.0|content-type@2.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@xmldom/xmldom@0.8.15"
+      "ref": "bi-bu-dai@1.3.0|@xmldom/xmldom@0.8.15"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|argparse@1.0.10",
+      "ref": "bi-bu-dai@1.3.0|argparse@1.0.10",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|sprintf-js@1.0.3"
+        "bi-bu-dai@1.3.0|sprintf-js@1.0.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|base64-js@1.5.1"
+      "ref": "bi-bu-dai@1.3.0|base64-js@1.5.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|bluebird@3.4.7"
+      "ref": "bi-bu-dai@1.3.0|bluebird@3.4.7"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|dingbat-to-unicode@1.0.1"
+      "ref": "bi-bu-dai@1.3.0|dingbat-to-unicode@1.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|lop@0.4.2",
+      "ref": "bi-bu-dai@1.3.0|lop@0.4.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|duck@0.1.12",
-        "bi-bu-dai@1.2.0|option@0.2.4",
-        "bi-bu-dai@1.2.0|underscore@1.13.8"
+        "bi-bu-dai@1.3.0|duck@0.1.12",
+        "bi-bu-dai@1.3.0|option@0.2.4",
+        "bi-bu-dai@1.3.0|underscore@1.13.8"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|path-is-absolute@1.0.1"
+      "ref": "bi-bu-dai@1.3.0|path-is-absolute@1.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|underscore@1.13.8"
+      "ref": "bi-bu-dai@1.3.0|underscore@1.13.8"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|xmlbuilder@10.1.1"
+      "ref": "bi-bu-dai@1.3.0|xmlbuilder@10.1.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|append-field@1.0.0"
+      "ref": "bi-bu-dai@1.3.0|append-field@1.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|busboy@1.6.0",
+      "ref": "bi-bu-dai@1.3.0|busboy@1.6.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|streamsearch@1.1.0"
+        "bi-bu-dai@1.3.0|streamsearch@1.1.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|concat-stream@2.0.0",
+      "ref": "bi-bu-dai@1.3.0|concat-stream@2.0.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|buffer-from@1.1.2",
-        "bi-bu-dai@1.2.0|inherits@2.0.4",
-        "bi-bu-dai@1.2.0|concat-stream@2.0.0|readable-stream@3.6.2",
-        "bi-bu-dai@1.2.0|typedarray@0.0.6"
+        "bi-bu-dai@1.3.0|buffer-from@1.1.2",
+        "bi-bu-dai@1.3.0|inherits@2.0.4",
+        "bi-bu-dai@1.3.0|concat-stream@2.0.0|readable-stream@3.6.2",
+        "bi-bu-dai@1.3.0|typedarray@0.0.6"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|concat-stream@2.0.0|readable-stream@3.6.2",
+      "ref": "bi-bu-dai@1.3.0|concat-stream@2.0.0|readable-stream@3.6.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|inherits@2.0.4",
-        "bi-bu-dai@1.2.0|string_decoder@1.1.1",
-        "bi-bu-dai@1.2.0|util-deprecate@1.0.2"
+        "bi-bu-dai@1.3.0|inherits@2.0.4",
+        "bi-bu-dai@1.3.0|string_decoder@1.1.1",
+        "bi-bu-dai@1.3.0|util-deprecate@1.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|scheduler@0.27.0"
+      "ref": "bi-bu-dai@1.3.0|scheduler@0.27.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|lib0@0.2.117",
+      "ref": "bi-bu-dai@1.3.0|lib0@0.2.117",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|isomorphic.js@0.2.5"
+        "bi-bu-dai@1.3.0|isomorphic.js@0.2.5"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@floating-ui/dom@1.8.0",
+      "ref": "bi-bu-dai@1.3.0|@floating-ui/dom@1.8.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@floating-ui/core@1.8.0",
-        "bi-bu-dai@1.2.0|@floating-ui/utils@0.2.12"
+        "bi-bu-dai@1.3.0|@floating-ui/core@1.8.0",
+        "bi-bu-dai@1.3.0|@floating-ui/utils@0.2.12"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-changeset@2.4.2",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-changeset@2.4.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0"
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-commands@1.7.2",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-commands@1.7.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0"
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-dropcursor@1.8.3",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-dropcursor@1.8.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
-        "bi-bu-dai@1.2.0|prosemirror-view@1.42.3"
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
+        "bi-bu-dai@1.3.0|prosemirror-view@1.42.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-gapcursor@1.4.1",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-gapcursor@1.4.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-keymap@1.2.3",
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-view@1.42.3"
+        "bi-bu-dai@1.3.0|prosemirror-keymap@1.2.3",
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-view@1.42.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-history@1.5.0",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-history@1.5.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
-        "bi-bu-dai@1.2.0|prosemirror-view@1.42.3",
-        "bi-bu-dai@1.2.0|rope-sequence@1.3.4"
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
+        "bi-bu-dai@1.3.0|prosemirror-view@1.42.3",
+        "bi-bu-dai@1.3.0|rope-sequence@1.3.4"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-inputrules@1.5.1",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-inputrules@1.5.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0"
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-keymap@1.2.3",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-keymap@1.2.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|w3c-keyname@2.2.8"
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|w3c-keyname@2.2.8"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|orderedmap@2.1.1"
+        "bi-bu-dai@1.3.0|orderedmap@2.1.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-schema-list@1.5.1",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-schema-list@1.5.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0"
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
-        "bi-bu-dai@1.2.0|prosemirror-view@1.42.3"
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
+        "bi-bu-dai@1.3.0|prosemirror-view@1.42.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-tables@1.8.5",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-tables@1.8.5",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-keymap@1.2.3",
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
-        "bi-bu-dai@1.2.0|prosemirror-view@1.42.3"
+        "bi-bu-dai@1.3.0|prosemirror-keymap@1.2.3",
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
+        "bi-bu-dai@1.3.0|prosemirror-view@1.42.3"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11"
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|prosemirror-view@1.42.3",
+      "ref": "bi-bu-dai@1.3.0|prosemirror-view@1.42.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|prosemirror-model@1.25.11",
-        "bi-bu-dai@1.2.0|prosemirror-state@1.4.4",
-        "bi-bu-dai@1.2.0|prosemirror-transform@1.12.0"
+        "bi-bu-dai@1.3.0|prosemirror-model@1.25.11",
+        "bi-bu-dai@1.3.0|prosemirror-state@1.4.4",
+        "bi-bu-dai@1.3.0|prosemirror-transform@1.12.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|csstype@3.2.3"
+      "ref": "bi-bu-dai@1.3.0|csstype@3.2.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|linkifyjs@4.3.3"
+      "ref": "bi-bu-dai@1.3.0|linkifyjs@4.3.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|inherits@2.0.4"
+      "ref": "bi-bu-dai@1.3.0|inherits@2.0.4"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|minimalistic-assert@1.0.1"
+      "ref": "bi-bu-dai@1.3.0|minimalistic-assert@1.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|lie@3.3.0",
+      "ref": "bi-bu-dai@1.3.0|lie@3.3.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|immediate@3.0.6"
+        "bi-bu-dai@1.3.0|immediate@3.0.6"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|pako@1.0.11"
+      "ref": "bi-bu-dai@1.3.0|pako@1.0.11"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|readable-stream@2.3.8",
+      "ref": "bi-bu-dai@1.3.0|readable-stream@2.3.8",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|core-util-is@1.0.3",
-        "bi-bu-dai@1.2.0|inherits@2.0.4",
-        "bi-bu-dai@1.2.0|isarray@1.0.0",
-        "bi-bu-dai@1.2.0|process-nextick-args@2.0.1",
-        "bi-bu-dai@1.2.0|safe-buffer@5.1.2",
-        "bi-bu-dai@1.2.0|string_decoder@1.1.1",
-        "bi-bu-dai@1.2.0|util-deprecate@1.0.2"
+        "bi-bu-dai@1.3.0|core-util-is@1.0.3",
+        "bi-bu-dai@1.3.0|inherits@2.0.4",
+        "bi-bu-dai@1.3.0|isarray@1.0.0",
+        "bi-bu-dai@1.3.0|process-nextick-args@2.0.1",
+        "bi-bu-dai@1.3.0|safe-buffer@5.1.2",
+        "bi-bu-dai@1.3.0|string_decoder@1.1.1",
+        "bi-bu-dai@1.3.0|util-deprecate@1.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|setimmediate@1.0.5"
+      "ref": "bi-bu-dai@1.3.0|setimmediate@1.0.5"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|sax@1.6.1"
+      "ref": "bi-bu-dai@1.3.0|sax@1.6.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|negotiator@1.1.0",
+      "ref": "bi-bu-dai@1.3.0|negotiator@1.1.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|negotiator@1.1.0|content-type@2.1.0"
+        "bi-bu-dai@1.3.0|negotiator@1.1.0|content-type@2.1.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|negotiator@1.1.0|content-type@2.1.0"
+      "ref": "bi-bu-dai@1.3.0|negotiator@1.1.0|content-type@2.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|bytes@3.1.2"
+      "ref": "bi-bu-dai@1.3.0|bytes@3.1.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|iconv-lite@0.7.3",
+      "ref": "bi-bu-dai@1.3.0|iconv-lite@0.7.3",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|safer-buffer@2.1.2"
+        "bi-bu-dai@1.3.0|safer-buffer@2.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|raw-body@3.0.2",
+      "ref": "bi-bu-dai@1.3.0|raw-body@3.0.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|bytes@3.1.2",
-        "bi-bu-dai@1.2.0|http-errors@2.0.1",
-        "bi-bu-dai@1.2.0|iconv-lite@0.7.3",
-        "bi-bu-dai@1.2.0|unpipe@1.0.0"
+        "bi-bu-dai@1.3.0|bytes@3.1.2",
+        "bi-bu-dai@1.3.0|http-errors@2.0.1",
+        "bi-bu-dai@1.3.0|iconv-lite@0.7.3",
+        "bi-bu-dai@1.3.0|unpipe@1.0.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|ms@2.1.3"
+      "ref": "bi-bu-dai@1.3.0|ms@2.1.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|setprototypeof@1.2.0"
+      "ref": "bi-bu-dai@1.3.0|setprototypeof@1.2.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|toidentifier@1.0.1"
+      "ref": "bi-bu-dai@1.3.0|toidentifier@1.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|mime-db@1.54.0"
+      "ref": "bi-bu-dai@1.3.0|mime-db@1.54.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|ee-first@1.1.1"
+      "ref": "bi-bu-dai@1.3.0|ee-first@1.1.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|wrappy@1.0.2"
+      "ref": "bi-bu-dai@1.3.0|wrappy@1.0.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|forwarded@0.2.0"
+      "ref": "bi-bu-dai@1.3.0|forwarded@0.2.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|ipaddr.js@1.9.1"
+      "ref": "bi-bu-dai@1.3.0|ipaddr.js@1.9.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|es-define-property@1.0.1"
+      "ref": "bi-bu-dai@1.3.0|es-define-property@1.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|side-channel@1.1.1",
+      "ref": "bi-bu-dai@1.3.0|side-channel@1.1.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|object-inspect@1.13.4",
-        "bi-bu-dai@1.2.0|side-channel-list@1.0.1",
-        "bi-bu-dai@1.2.0|side-channel-map@1.0.1",
-        "bi-bu-dai@1.2.0|side-channel-weakmap@1.0.2"
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|object-inspect@1.13.4",
+        "bi-bu-dai@1.3.0|side-channel-list@1.0.1",
+        "bi-bu-dai@1.3.0|side-channel-map@1.0.1",
+        "bi-bu-dai@1.3.0|side-channel-weakmap@1.0.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|is-promise@4.0.0"
+      "ref": "bi-bu-dai@1.3.0|is-promise@4.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|path-to-regexp@8.4.2"
+      "ref": "bi-bu-dai@1.3.0|path-to-regexp@8.4.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|media-typer@1.1.1"
+      "ref": "bi-bu-dai@1.3.0|media-typer@1.1.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|sprintf-js@1.0.3"
+      "ref": "bi-bu-dai@1.3.0|sprintf-js@1.0.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|duck@0.1.12",
+      "ref": "bi-bu-dai@1.3.0|duck@0.1.12",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|underscore@1.13.8"
+        "bi-bu-dai@1.3.0|underscore@1.13.8"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|option@0.2.4"
+      "ref": "bi-bu-dai@1.3.0|option@0.2.4"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|streamsearch@1.1.0"
+      "ref": "bi-bu-dai@1.3.0|streamsearch@1.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|buffer-from@1.1.2"
+      "ref": "bi-bu-dai@1.3.0|buffer-from@1.1.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|typedarray@0.0.6"
+      "ref": "bi-bu-dai@1.3.0|typedarray@0.0.6"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|isomorphic.js@0.2.5"
+      "ref": "bi-bu-dai@1.3.0|isomorphic.js@0.2.5"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@floating-ui/core@1.8.0",
+      "ref": "bi-bu-dai@1.3.0|@floating-ui/core@1.8.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|@floating-ui/utils@0.2.12"
+        "bi-bu-dai@1.3.0|@floating-ui/utils@0.2.12"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|@floating-ui/utils@0.2.12"
+      "ref": "bi-bu-dai@1.3.0|@floating-ui/utils@0.2.12"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|rope-sequence@1.3.4"
+      "ref": "bi-bu-dai@1.3.0|rope-sequence@1.3.4"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|w3c-keyname@2.2.8"
+      "ref": "bi-bu-dai@1.3.0|w3c-keyname@2.2.8"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|orderedmap@2.1.1"
+      "ref": "bi-bu-dai@1.3.0|orderedmap@2.1.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|immediate@3.0.6"
+      "ref": "bi-bu-dai@1.3.0|immediate@3.0.6"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|core-util-is@1.0.3"
+      "ref": "bi-bu-dai@1.3.0|core-util-is@1.0.3"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|isarray@1.0.0"
+      "ref": "bi-bu-dai@1.3.0|isarray@1.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|process-nextick-args@2.0.1"
+      "ref": "bi-bu-dai@1.3.0|process-nextick-args@2.0.1"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|safe-buffer@5.1.2"
+      "ref": "bi-bu-dai@1.3.0|safe-buffer@5.1.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|string_decoder@1.1.1",
+      "ref": "bi-bu-dai@1.3.0|string_decoder@1.1.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|safe-buffer@5.1.2"
+        "bi-bu-dai@1.3.0|safe-buffer@5.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|util-deprecate@1.0.2"
+      "ref": "bi-bu-dai@1.3.0|util-deprecate@1.0.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|safer-buffer@2.1.2"
+      "ref": "bi-bu-dai@1.3.0|safer-buffer@2.1.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|unpipe@1.0.0"
+      "ref": "bi-bu-dai@1.3.0|unpipe@1.0.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|es-errors@1.3.0"
+      "ref": "bi-bu-dai@1.3.0|es-errors@1.3.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|object-inspect@1.13.4"
+      "ref": "bi-bu-dai@1.3.0|object-inspect@1.13.4"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|side-channel-list@1.0.1",
+      "ref": "bi-bu-dai@1.3.0|side-channel-list@1.0.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|object-inspect@1.13.4"
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|object-inspect@1.13.4"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|side-channel-map@1.0.1",
+      "ref": "bi-bu-dai@1.3.0|side-channel-map@1.0.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|call-bound@1.0.4",
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|get-intrinsic@1.3.0",
-        "bi-bu-dai@1.2.0|object-inspect@1.13.4"
+        "bi-bu-dai@1.3.0|call-bound@1.0.4",
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|get-intrinsic@1.3.0",
+        "bi-bu-dai@1.3.0|object-inspect@1.13.4"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|side-channel-weakmap@1.0.2",
+      "ref": "bi-bu-dai@1.3.0|side-channel-weakmap@1.0.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|call-bound@1.0.4",
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|get-intrinsic@1.3.0",
-        "bi-bu-dai@1.2.0|object-inspect@1.13.4",
-        "bi-bu-dai@1.2.0|side-channel-map@1.0.1"
+        "bi-bu-dai@1.3.0|call-bound@1.0.4",
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|get-intrinsic@1.3.0",
+        "bi-bu-dai@1.3.0|object-inspect@1.13.4",
+        "bi-bu-dai@1.3.0|side-channel-map@1.0.1"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|call-bound@1.0.4",
+      "ref": "bi-bu-dai@1.3.0|call-bound@1.0.4",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|call-bind-apply-helpers@1.0.2",
-        "bi-bu-dai@1.2.0|get-intrinsic@1.3.0"
+        "bi-bu-dai@1.3.0|call-bind-apply-helpers@1.0.2",
+        "bi-bu-dai@1.3.0|get-intrinsic@1.3.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|get-intrinsic@1.3.0",
+      "ref": "bi-bu-dai@1.3.0|get-intrinsic@1.3.0",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|call-bind-apply-helpers@1.0.2",
-        "bi-bu-dai@1.2.0|es-define-property@1.0.1",
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|es-object-atoms@1.1.2",
-        "bi-bu-dai@1.2.0|function-bind@1.1.2",
-        "bi-bu-dai@1.2.0|get-proto@1.0.1",
-        "bi-bu-dai@1.2.0|gopd@1.2.0",
-        "bi-bu-dai@1.2.0|has-symbols@1.1.0",
-        "bi-bu-dai@1.2.0|hasown@2.0.4",
-        "bi-bu-dai@1.2.0|math-intrinsics@1.1.0"
+        "bi-bu-dai@1.3.0|call-bind-apply-helpers@1.0.2",
+        "bi-bu-dai@1.3.0|es-define-property@1.0.1",
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|es-object-atoms@1.1.2",
+        "bi-bu-dai@1.3.0|function-bind@1.1.2",
+        "bi-bu-dai@1.3.0|get-proto@1.0.1",
+        "bi-bu-dai@1.3.0|gopd@1.2.0",
+        "bi-bu-dai@1.3.0|has-symbols@1.1.0",
+        "bi-bu-dai@1.3.0|hasown@2.0.4",
+        "bi-bu-dai@1.3.0|math-intrinsics@1.1.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|call-bind-apply-helpers@1.0.2",
+      "ref": "bi-bu-dai@1.3.0|call-bind-apply-helpers@1.0.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|function-bind@1.1.2"
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|function-bind@1.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|es-object-atoms@1.1.2",
+      "ref": "bi-bu-dai@1.3.0|es-object-atoms@1.1.2",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|es-errors@1.3.0"
+        "bi-bu-dai@1.3.0|es-errors@1.3.0"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|function-bind@1.1.2"
+      "ref": "bi-bu-dai@1.3.0|function-bind@1.1.2"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|get-proto@1.0.1",
+      "ref": "bi-bu-dai@1.3.0|get-proto@1.0.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|dunder-proto@1.0.1",
-        "bi-bu-dai@1.2.0|es-object-atoms@1.1.2"
+        "bi-bu-dai@1.3.0|dunder-proto@1.0.1",
+        "bi-bu-dai@1.3.0|es-object-atoms@1.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|gopd@1.2.0"
+      "ref": "bi-bu-dai@1.3.0|gopd@1.2.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|has-symbols@1.1.0"
+      "ref": "bi-bu-dai@1.3.0|has-symbols@1.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|hasown@2.0.4",
+      "ref": "bi-bu-dai@1.3.0|hasown@2.0.4",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|function-bind@1.1.2"
+        "bi-bu-dai@1.3.0|function-bind@1.1.2"
       ]
     },
     {
-      "ref": "bi-bu-dai@1.2.0|math-intrinsics@1.1.0"
+      "ref": "bi-bu-dai@1.3.0|math-intrinsics@1.1.0"
     },
     {
-      "ref": "bi-bu-dai@1.2.0|dunder-proto@1.0.1",
+      "ref": "bi-bu-dai@1.3.0|dunder-proto@1.0.1",
       "dependsOn": [
-        "bi-bu-dai@1.2.0|call-bind-apply-helpers@1.0.2",
-        "bi-bu-dai@1.2.0|es-errors@1.3.0",
-        "bi-bu-dai@1.2.0|gopd@1.2.0"
+        "bi-bu-dai@1.3.0|call-bind-apply-helpers@1.0.2",
+        "bi-bu-dai@1.3.0|es-errors@1.3.0",
+        "bi-bu-dai@1.3.0|gopd@1.2.0"
       ]
     }
   ]
