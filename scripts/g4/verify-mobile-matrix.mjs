@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import { run, sourceRevision, writeEvidence } from './release-script-core.mjs'
+import { sourceRevision, writeEvidence } from './release-script-core.mjs'
 import { validateMobileEvidence } from './mobile-matrix-core.mjs'
 
 const root = process.cwd()

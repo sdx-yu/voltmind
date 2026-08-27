@@ -6,7 +6,7 @@ const manualChecks = { imeComposition: true, offlineReopen: true, weakNetworkSav
 function evidence(width: number, userAgent: string) {
   return {
     schemaVersion: 'g4-mobile-device-v1', appVersion: '1.6.0', sourceRevision: revision.slice(0, 8),
-    viewport: { width, height: 800 }, runtime: { secureContext: true, serviceWorkerSupported: true, touchPoints: 5, healthOk: true, userAgent },
+    viewport: { width, height: 800 }, runtime: { secureContext: true, serviceWorkerSupported: true, serviceWorkerControlled: true, touchPoints: 5, healthOk: true, userAgent },
     checks: manualChecks, screenshotReference: `device-${width}.png`, manuscriptContentRecorded: false,
   }
 }

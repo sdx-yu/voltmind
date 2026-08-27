@@ -61,3 +61,8 @@ export function artifactEvidence(files, root) {
     sha256: sha256(file),
   }))
 }
+
+export function summarizePreflight(checks) {
+  const missing = checks.filter((item) => !item.passed).map((item) => item.id)
+  return { missing, status: missing.length ? 'BLOCKED' : 'PASSED' }
+}

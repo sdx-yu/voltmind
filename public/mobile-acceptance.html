@@ -84,13 +84,13 @@
 
   Promise.allSettled([
     fetch('/api/health', { cache: 'no-store' }).then((response) => response.json()).then((body) => { runtime.healthOk = body.ok === true }),
-    navigator.serviceWorker?.ready,
+    navigator.serviceWorker?.register('/sw.js').then(() => navigator.serviceWorker.ready),
   ]).then(() => {
     runtime.serviceWorkerControlled = Boolean(navigator.serviceWorker?.controller)
-    const passed = runtime.healthOk && runtime.secureContext && runtime.serviceWorkerSupported && runtime.touchPoints > 0
+    const passed = runtime.healthOk && runtime.secureContext && runtime.serviceWorkerSupported && runtime.serviceWorkerControlled && runtime.touchPoints > 0
     const status = document.querySelector('#probe-status')
     status.className = `notice ${passed ? 'ok' : 'bad'}`
-    status.textContent = passed ? '环境探针通过；继续完成人工闭环。' : '环境探针未通过；请使用 HTTPS 真机浏览器并确认本地服务健康。'
+    status.textContent = passed ? '环境探针通过；继续完成人工闭环。' : '环境探针未通过；请使用 HTTPS 真机浏览器，确认本地服务健康，并在 Service Worker 注册后重开此页。'
   })
 
   document.querySelector('#export').addEventListener('click', () => {

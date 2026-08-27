@@ -12,7 +12,7 @@ export function validateMobileEvidence(items, expectedRevision) {
     if (!/^[a-f0-9]{7,40}$/i.test(item?.sourceRevision ?? '')) errors.push(`${prefix} 缺少源码修订号`)
     if (expectedRevision && !expectedRevision.startsWith(item?.sourceRevision ?? '')) errors.push(`${prefix} 源码修订号与当前提交不一致`)
     if (!Number.isFinite(item?.viewport?.width) || !Number.isFinite(item?.viewport?.height)) errors.push(`${prefix} 缺少视口尺寸`)
-    if (!item?.runtime?.secureContext || !item?.runtime?.serviceWorkerSupported || !(item?.runtime?.touchPoints > 0)) errors.push(`${prefix} 不是可验证的安全触控 PWA 环境`)
+    if (!item?.runtime?.secureContext || !item?.runtime?.serviceWorkerSupported || !item?.runtime?.serviceWorkerControlled || !(item?.runtime?.touchPoints > 0)) errors.push(`${prefix} 不是可验证的安全触控 PWA 环境`)
     if (!item?.runtime?.healthOk) errors.push(`${prefix} 未通过本地服务健康检查`)
     for (const id of REQUIRED_MANUAL_CHECKS) if (item?.checks?.[id] !== true) errors.push(`${prefix} 未通过 ${id}`)
     if (typeof item?.screenshotReference !== 'string' || !item.screenshotReference.trim()) errors.push(`${prefix} 缺少脱敏截图引用`)

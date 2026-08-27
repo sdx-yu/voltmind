@@ -2,13 +2,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import {
-  artifactEvidence, findFiles, outputPathFromArgs, run, sourceRevision, writeEvidence,
+  artifactEvidence, findFiles, outputPathFromArgs, run, sourceRevision, summarizePreflight, writeEvidence,
 } from './release-script-core.mjs'
 
 const root = process.cwd()
 const output = outputPathFromArgs(root, 'g4-macos-release.json')
 const checks = []
-const missing = []
 const identity = process.env.APPLE_SIGNING_IDENTITY ?? ''
 const developerDirectory = run('xcode-select', ['-p'])
 checks.push(check('platform', process.platform === 'darwin', `${process.platform}-${process.arch}`))
@@ -22,7 +21,7 @@ const apiCredentials = Boolean(process.env.APPLE_API_ISSUER && process.env.APPLE
 const appleIdCredentials = Boolean(process.env.APPLE_ID && process.env.APPLE_PASSWORD && process.env.APPLE_TEAM_ID)
 checks.push(check('notarization-credentials', apiCredentials || appleIdCredentials, apiCredentials ? 'app-store-connect-api-key' : appleIdCredentials ? 'apple-id-app-password' : 'not-configured'))
 
-for (const item of checks) if (!item.passed) missing.push(item.id)
+const preflight = summarizePreflight(checks)
 const base = {
   schemaVersion: 'g4-macos-release-v1',
   generatedAt: new Date().toISOString(),
@@ -32,9 +31,9 @@ const base = {
   credentialsRecorded: false,
 }
 
-if (process.argv.includes('--preflight-only') || missing.length) {
-  writeEvidence(output, { ...base, status: 'BLOCKED', missing, artifacts: [] })
-  process.exitCode = missing.length ? 2 : 0
+if (process.argv.includes('--preflight-only') || preflight.missing.length) {
+  writeEvidence(output, { ...base, status: preflight.status, missing: preflight.missing, artifacts: [] })
+  process.exitCode = preflight.missing.length ? 2 : 0
 } else {
   const override = path.join(root, '.tooling', 'tauri.macos.release.json')
   fs.mkdirSync(path.dirname(override), { recursive: true })
@@ -47,7 +46,7 @@ if (process.argv.includes('--preflight-only') || missing.length) {
     ? run(process.execPath, ['scripts/run-tauri.mjs', 'build', '--bundles', 'app,dmg', '--config', override], { cwd: root, inherit: true })
     : { ok: false }
   const bundleRoot = path.join(root, 'src-tauri', 'target', 'release', 'bundle')
-  const apps = findFiles(bundleRoot, (file) => file.endsWith('.app/Contents/MacOS/笔不怠')).map((file) => file.slice(0, file.indexOf('.app/') + 4))
+  const apps = findFiles(bundleRoot, (file) => file.endsWith('.app/Contents/MacOS/bibudai')).map((file) => file.slice(0, file.indexOf('.app/') + 4))
   const dmgs = findFiles(bundleRoot, (file) => file.endsWith('.dmg'))
   const app = [...new Set(apps)][0]
   const dmg = dmgs[0]

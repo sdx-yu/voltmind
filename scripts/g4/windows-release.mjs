@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import {
-  artifactEvidence, findFiles, outputPathFromArgs, run, sourceRevision, writeEvidence,
+  artifactEvidence, findFiles, outputPathFromArgs, run, sourceRevision, summarizePreflight, writeEvidence,
 } from './release-script-core.mjs'
 
 const root = process.cwd()
@@ -30,10 +30,10 @@ const base = {
   checks,
   credentialsRecorded: false,
 }
-const missing = checks.filter((item) => !item.passed).map((item) => item.id)
-if (process.argv.includes('--preflight-only') || missing.length) {
-  writeEvidence(output, { ...base, status: 'BLOCKED', missing, artifacts: [] })
-  process.exitCode = missing.length ? 2 : 0
+const preflight = summarizePreflight(checks)
+if (process.argv.includes('--preflight-only') || preflight.missing.length) {
+  writeEvidence(output, { ...base, status: preflight.status, missing: preflight.missing, artifacts: [] })
+  process.exitCode = preflight.missing.length ? 2 : 0
 } else {
   const override = path.join(root, '.tooling', 'tauri.windows.release.json')
   fs.mkdirSync(path.dirname(override), { recursive: true })

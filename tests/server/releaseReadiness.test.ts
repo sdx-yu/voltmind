@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { finalizeReleaseEvidence } from '../../scripts/release-readiness-core.mjs'
+import { summarizePreflight } from '../../scripts/g4/release-script-core.mjs'
 
 describe('G4-A release readiness evidence', () => {
+  it('reports a pure platform preflight as passed only when no prerequisite is missing', () => {
+    expect(summarizePreflight([{ id: 'platform', passed: true }, { id: 'identity', passed: true }])).toEqual({ status: 'PASSED', missing: [] })
+    expect(summarizePreflight([{ id: 'platform', passed: true }, { id: 'identity', passed: false }])).toEqual({ status: 'BLOCKED', missing: ['identity'] })
+  })
+
   it('keeps public release blocked when external evidence is absent', () => {
     const evidence = finalizeReleaseEvidence({
       releaseDecision: 'NO-GO',
