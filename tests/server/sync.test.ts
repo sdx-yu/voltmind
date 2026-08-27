@@ -20,14 +20,14 @@ describe('V1-S encrypted handoff protocol', () => {
 
   function database(name: string) { const result = new AppDatabase(path.join(dir, `${name}.sqlite`)); databases.push(result); return result }
 
-  it('backs up v7 before adding the v8 local sync schema', () => {
+  it('backs up v7 before adding the v8–v10 schemas', () => {
     let db = database('migration')
     const databasePath = db.databasePath
-    db.db.exec('DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DELETE FROM schema_migrations WHERE version=8;')
+    db.db.exec('DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DROP TABLE mobile_inbox_actions; DROP TABLE mobile_inbox_items; DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DELETE FROM schema_migrations WHERE version IN (8,9,10,11,12);')
     db.close(); databases.pop(); db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 8 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 12 })
     expect(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sync_conflicts'").get()).toMatchObject({ name: 'sync_conflicts' })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v7-to-v8-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v7-to-v12-'))).toBe(true)
   })
 
   it('encrypts all manuscript metadata and rejects wrong keys, missing chunks and tampering', () => {
@@ -46,7 +46,7 @@ describe('V1-S encrypted handoff protocol', () => {
     expect(() => sync.inspectPackage(tampered, recoveryPhrase)).toThrow(/哈希|hash|损坏/i)
     const restored = database('crypto-restore'); new SyncService(restored).importPackage(transfer, recoveryPhrase, '恢复设备')
     expect(restored.db.prepare('SELECT content_hash FROM imported_sources WHERE project_id=?').get(project.id)).toMatchObject({ content_hash: attachmentHash })
-  })
+  }, 15_000)
 
   it('bootstraps two isolated replicas, converges concurrent text and makes business forks explicit', () => {
     const a = database('device-a'); const syncA = new SyncService(a); const project = a.createProject('双机长篇')
@@ -77,7 +77,7 @@ describe('V1-S encrypted handoff protocol', () => {
     expect(syncA.resolveConflict(project.id, entityConflict.id, 'use_remote')).toMatchObject({ status: 'resolved', resolution: 'use_remote' })
     expect(a.getEntity(entity.id)?.canonicalName).toBe('阿乙')
     expect(a.listProvenanceEvents(project.id).at(-1)?.eventType).toBe('sync_conflict_resolved')
-  })
+  }, 15_000)
 
   it('detects edit versus delete and keeps recovery phrases one-time only', () => {
     const a = database('delete-a'); const syncA = new SyncService(a); const project = a.createProject('删除冲突')

@@ -13,13 +13,16 @@ import { Modal } from './Modal'
 import { PlotWorkspace } from './PlotWorkspace'
 import { ProvenanceWorkspace } from './ProvenanceWorkspace'
 import { ReadAloudPanel } from './ReadAloudPanel'
+import { ReviewWorkspace } from './ReviewWorkspace'
 import { SearchModal } from './SearchModal'
 import { SettingsModal } from './SettingsModal'
 import { SplitSceneDialog } from './SplitSceneDialog'
+import { SprintWorkspace } from './SprintWorkspace'
 import { SyncWorkspace } from './SyncWorkspace'
+import { TemplateWorkspace } from './TemplateWorkspace'
 import { WritingEditor } from './WritingEditor'
 
-type View = 'write' | 'plot' | 'canon' | 'deliver' | 'provenance' | 'sync'
+type View = 'write' | 'plot' | 'canon' | 'deliver' | 'provenance' | 'sync' | 'review' | 'sprint' | 'template'
 
 export function Workspace({ project, onBack, notify }: { project: Project; onBack: () => void; notify: (type: 'success' | 'error', message: string) => void }) {
   const storedChrome = readChrome()
@@ -172,7 +175,7 @@ export function Workspace({ project, onBack, notify }: { project: Project; onBac
         <button className={view === 'write' ? 'active' : ''} onClick={() => setView('write')}><Feather size={16} />写作</button>
         <button className={view === 'plot' ? 'active' : ''} onClick={() => setView('plot')}><LayoutGrid size={16} />剧情</button>
         <button className={view === 'canon' ? 'active' : ''} onClick={() => setView('canon')}><Boxes size={16} />正典</button>
-        <button className={view === 'deliver' || view === 'provenance' || view === 'sync' ? 'active' : ''} onClick={() => setView('deliver')}><Share2 size={16} />交付</button>
+        <button className={view === 'deliver' || view === 'provenance' || view === 'sync' || view === 'review' || view === 'sprint' || view === 'template' ? 'active' : ''} onClick={() => setView('deliver')}><Share2 size={16} />交付</button>
       </nav>
       <div className="topbar-actions">
         {view === 'write' && <>
@@ -201,6 +204,10 @@ export function Workspace({ project, onBack, notify }: { project: Project; onBac
     {view === 'deliver' && <DeliveryWorkspace project={project} nodes={nodes} onSelectScene={selectScene} onOpenTool={(tool) => setView(tool)} notify={notify} />}
     {view === 'provenance' && <ProvenanceWorkspace project={project} nodes={nodes} onSelectScene={selectScene} onBack={() => setView('deliver')} notify={notify} />}
     {view === 'sync' && <SyncWorkspace project={project} onSynced={async () => { await Promise.all([refreshTree(), refreshEntities()]); setEditorEpoch((value) => value + 1) }} onBack={() => setView('deliver')} notify={notify} />}
+    {view === 'review' && <ReviewWorkspace project={project} nodes={nodes} onSelectScene={selectScene} onChanged={async () => { await refreshTree(); setEditorEpoch((value) => value + 1) }} onBack={() => setView('deliver')} notify={notify} />}
+    {view === 'sprint' && <SprintWorkspace project={project} nodes={nodes} activeSceneId={selectedId} onOpenScene={(id) => { setSelectedId(id); setFocusMode(true); setView('write') }} onBack={() => setView('deliver')} notify={notify} />}
+    {view === 'template' && <TemplateWorkspace project={project} onChanged={refreshTree} onBack={() => setView('deliver')} notify={notify} />}
+    {view !== 'sprint' && <SprintWorkspace project={project} nodes={nodes} activeSceneId={selectedId} compact onOpenScene={selectScene} onOpenDetails={() => { setFocusMode(false); setView('sprint') }} notify={notify} />}
     {searching && <SearchModal projectId={project.id} initialMode={replaceMode ? 'replace' : 'search'} onClose={() => setSearching(false)} onSelect={selectScene} onChanged={async () => { await Promise.all([refreshTree(), refreshEntities()]); setEditorEpoch((value) => value + 1) }} notify={notify} />}
     {settings && <SettingsModal projectId={project.id} initialTab={settingsTab} onClose={() => setSettings(false)} onOpenTool={(tool) => { setSettings(false); setView(tool) }} notify={notify} />}
     {trashOpen && <Modal title="项目回收站" onClose={() => setTrashOpen(false)} wide><div className="trash-groups"><section><h3>书稿结构</h3>{deletedNodes.length ? <div className="trash-list">{deletedNodes.filter((node) => !node.parentId || !deletedNodes.some((parent) => parent.id === node.parentId)).map((node) => <div key={node.id}><span><strong>{node.title}</strong><small>{node.type}</small></span><select aria-label={`${node.title} 恢复位置`} value={restoreParents[node.id] ?? node.parentId ?? ''} onChange={(event) => setRestoreParents((current) => ({ ...current, [node.id]: event.target.value }))}>{restoreTargets(node, nodes).map((target) => <option key={target.id} value={target.id}>{target.title}</option>)}</select><button className="button secondary compact" onClick={() => void restoreNode(node)}><RotateCcw size={14} />恢复</button></div>)}</div> : <p className="muted">没有已删除的章节或场景。</p>}</section><section><h3>正典项</h3>{deletedEntities.length ? <div className="trash-list">{deletedEntities.map((entity) => <div key={entity.id}><span><strong>{entity.canonicalName}</strong><small>{entity.type}</small></span><button className="button secondary compact" onClick={() => void restoreEntity(entity.id)}><RotateCcw size={14} />恢复</button></div>)}</div> : <p className="muted">没有已删除的正典项。</p>}</section></div></Modal>}

@@ -60,3 +60,72 @@
 | 可验证导出 | 通过 | `server/provenance.ts`、`bbd-provenance-v1` | JSON/HTML、自校验、篡改失败；默认无正文，显式摘录上限 500 字，Prompt/密钥/AI 输出全文排除测试 |
 | 来源链备份恢复 | 通过 | `bbd-backup-v2` provenance/aiTasks bundle | 节点、版本、任务 ID 重映射；恢复前链校验；恢复后事件哈希、AI 来源关系和链头不变测试 |
 | 法律或平台认证 | 外部验证 | 产品明确免责声明 | 不宣称版权确权、司法效力、可信时间戳或平台原创认证 |
+
+## V1-S 加密同步工程追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| 协议与端到端加密 | 本机工程通过 | migration v8、`server/sync.ts`、`SYNC_PROTOCOL_V1.md` | 192 bit 短语、scrypt、AES-256-GCM/AAD、分块与整包哈希；明文不可见、错误短语和篡改阻断测试 |
+| 离线正文收敛 | 本机工程通过 | Yjs `Y.Text` 状态、版本向量 | 两个隔离 SQLite 副本并发编辑、反向导入、重复包后正文确定性相同；内存五项演练通过 |
+| 结构化业务冲突 | 通过 | `sync_object_versions`、`sync_conflicts`、`SyncWorkspace.tsx` | 正典并发、删除/编辑进入显式冲突；本机/接力包决策写入来源事件 |
+| 来源链分叉 | 通过 | `provenance_fork`、同步来源事件 | 严格前缀追加；并发链不静默改写，只能保留本机或知悉远端分叉 |
+| 附件内容寻址 | 通过 | `sha256:<digest>` 附件载荷 | 导出与落库前复核字节数和 SHA-256；同哈希幂等去重与新设备恢复测试 |
+| 丢失设备与密钥恢复 | 本机工程通过 | 书架“接力恢复”、一次性短语 | 新空库恢复为新 device ID；短语不二次显示、不入普通备份；所有设备和短语同时丢失不可恢复 |
+| 可见工作流 | 通过 | 交付台入口、`SyncWorkspace.tsx`、Bookshelf | 真实浏览器初始化、一次性提示、五项演练、390px 窄屏与零控制台告警 |
+| 真实云端与双设备 | 外部验证 | 未来中继最小契约 | 未部署账号/中继；未执行两台真实设备断网、睡眠、升级、删除 SLA 和安全审计 |
+
+## V1-M 移动收集与审阅追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| 可安装离线 PWA | 本机工程通过 | `manifest.webmanifest`、`sw.js`、`pwa.ts` | 首装原子缓存入口与哈希资源；用户确认更新；保留上一 shell；生产构建断服后重开成功 |
+| 离线收集箱 | 通过 | `mobileStore.ts`、migration v9、移动 API | IndexedDB 先写后回流；20 条关闭重开保留；低配额与缓存异常不假报成功 |
+| 不可变事件并集 | 通过 | `mobile_inbox_items`、`mobile_inbox_actions` | ID 相同载荷幂等、异载荷拒绝；乱序动作按时间与 ID 确定性折叠；API 重放测试 |
+| 移动只读审阅 | 通过 | `MobileHome.tsx`、`/api/mobile/library` | 来源标签、版本时间、正文只读、关联场景审阅笔记与显式认可；390px 浏览器闭环 |
+| 加密接力互通 | 本机工程通过 | `bbd-sync-v1` 可选 `mobileInbox` | 已归属和未归类事件在隔离 SQLite 副本并集；重复包幂等；0.8 无字段载荷保持兼容 |
+| 普通备份恢复 | 通过 | `bbd-backup-v2` 可选 `mobileInbox` | 项目记录、动作和目标场景重映射；校验和覆盖；同步身份仍排除 |
+| 窄屏与桌面回归 | 通过 | 移动三段首页、桌面四工作台 | 360/390/430px 无横向溢出，主操作 ≥44px，控制台 0 错误；桌面书架和写作台通过 |
+| 真机、部署与商店 | 外部验证 | 外部门 | 未提供手机可访问的 HTTPS/LAN/云入口；iOS/Android 安装、键盘、系统回收与商店签名未执行 |
+
+## V2-R 角色化审阅接力追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| 三角色最小授权 | 通过 | migration v10、`ReviewService`、`ReviewWorkspace.tsx` | Beta Reader 仅评论；Editor/Co-Writer 可提交局部建议；场景白名单与角色在服务端复核，越权测试通过 |
+| 双向加密审阅包 | 通过 | `server/review.ts`、`bbd-review-v1` | 192 bit 短语、scrypt、AES-256-GCM/AAD、加盐项目指纹；明文不可见、错误短语、篡改、跨项目与过期阻断 |
+| 隔离审阅副本 | 通过 | 书架“打开审阅任务”、`projectId=null` received session | 全新空库直接导入任务，不创建作者项目；只含 1–100 个授权场景，正文载荷上限 5 MiB |
+| 段落锚点三态 | 通过 | `createReviewAnchor`、`resolveReviewAnchor` | 段落哈希、引用、前后文与偏移；exact/candidate/lost 及多空行全局偏移测试通过，失效建议不自动应用 |
+| 作者逐条决定 | 通过 | 作者审阅台、review decisions、来源事件 | 原文—建议 Diff、定位、采纳/拒绝/暂缓；采纳建议生成新版本与 `review_suggestion_accepted`，双端真实浏览器闭环 |
+| 幂等与碰撞阻断 | 通过 | feedback 不可变 ID、会话/包校验 | 重复回应不重复建意见；同 ID 异载荷、重复载荷 ID、元数据提升与范围扩大均阻断 |
+| 普通备份互操作 | 通过 | `bbd-backup-v2` 可选 `review` | 会话/意见/决定恢复为 `restored/archived`；恢复短语、盐、校验值与项目指纹排除测试 |
+| 桌面与既有能力回归 | 通过 | 1.0.0 `.app`/DMG、全量测试 | 81 项测试、构建、严格签名、JIT entitlement、DMG 校验与启动冒烟通过；0 个 production npm 漏洞 |
+| 账号、在线邀请与实时合著 | 外部验证 | 外部门 | 未提供认证身份、在线撤销、组织成员生命周期、云通知或多人光标，不宣称已实现 |
+
+## V2-F 安静冲刺与小组目标追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| 版本差净新增 | 通过 | migration v11、`SprintService`、冲刺快照 | 粘贴只计一次；撤销/删除抵消；场景/项目范围按开始与结束已保存版本差计算 |
+| 可信计时与暂停 | 通过 | `sprint_sessions`、不可变 samples/events | 10–120 分钟、暂停/恢复、提前结束；墙钟与累计暂停计算，不依赖单一 interval |
+| 睡眠/时钟故障 | 通过 | `reconcile`、`sleep_detected`、`clock_anomaly` | 页面离开/睡眠按最后可见时间保守暂停；时钟回拨暂停；故障注入测试通过 |
+| 安静写作 HUD | 通过 | `SprintWorkspace.tsx`、`WritingEditor` flush | 剩余时间、实时净新增、目标、暂停、恢复、结束；不阻断自动保存、撤销和紧急退出 |
+| 无正文成果卡 | 通过 | `bbd-sprint-v1`、`SPRINT_PROTOCOL_V1.md` | 事件链、链头、整卡哈希、严格 Schema；包内无书名、正文、项目/场景 ID或设备 ID |
+| 离线小组看板 | 通过 | `sprint_boards`、`sprint_board_cards` | 日/周目标、参与者汇总；同卡幂等、同 ID 异载荷阻断、周期越界阻断 |
+| 普通备份与移动只读 | 通过 | `bbd-backup-v2` sprint bundle、`MobileHome` | 冲刺历史与看板恢复；移动端只读最近结果并明确“仅结果，不含正文” |
+| 可访问性与提醒 | 本机工程通过 | 原生控件、`prefers-reduced-motion`、Notification | 键盘可达、减弱动画；通知需显式授权且到时不自动提交正文 |
+| 桌面与既有能力回归 | 通过 | 1.1.0 `.app`/DMG、全量测试 | 89 项测试、真实浏览器、生产构建、严格签名、JIT entitlement、DMG 校验与启动冒烟通过；0 个 production npm 漏洞 |
+| 在线房间与认证身份 | 外部验证 | 外部门 | 未提供 presence、聊天室、排行榜认证、防作弊、好友关系或云通知 SLA |
+
+## V2-P 本地插件与结构模板包追踪
+
+| 能力 | 状态 | 实现位置 | 自动化/验收证据 |
+|---|---|---|---|
+| 内容寻址本地包 | 通过 | migration v12、`TemplateService`、`bbd-template-v1` | 严格 Schema、512 KiB/100 节点/20 规则上限、结构/整包 SHA-256；篡改、未知字段与 ID 碰撞阻断 |
+| 声明式结构与规则 | 通过 | `server/template.ts`、`TEMPLATE_PROTOCOL_V1.md` | 只允许空白章/场景、计数与重复标题规则；不解析/执行 JS、Wasm、Node 或系统命令 |
+| 逐项最小授权 | 通过 | `template_grants`、`TemplateWorkspace.tsx` | 安装后默认零权限；摘要/创建/规则按项目单独授权；正文、网络、密钥、文件和命令无可授权入口 |
+| 预览与冲突 | 通过 | `TemplatePreview`、书稿树指纹 | 显示待建节点/状态/空正文/规则结果；旧预览失效；同名章需显式后缀改名，不覆盖现有节点 |
+| 单事务应用 | 通过 | `template_applications`、SQLite `BEGIN IMMEDIATE` | 故障注入在第二个节点失败，第一个节点与应用记录一同回滚；成功应用 3 章/8 场 |
+| 整批撤销与来源 | 通过 | 回收站、`template_applied/reverted` | 整批软删除且可恢复；应用/撤销来源事件可见；停用/卸载不删历史 |
+| 普通备份恢复 | 通过 | `bbd-backup-v2` templates bundle | 相关包、授权、应用记录和节点引用重映射；不含正文或密钥 |
+| 桌面与既有能力回归 | 通过 | 1.2.0 `.app`/DMG、全量测试 | 99 项测试、真实浏览器、生产构建、严格签名校验、JIT entitlement、DMG 校验与启动冒烟通过；0 个 production npm 漏洞 |
+| 在线市场与发布者身份 | 外部验证 | 外部门 | 未提供账号、数字签名、恶意包扫描、审核/下架、评分、下载量、付费或版权投诉 |

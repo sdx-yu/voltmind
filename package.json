@@ -1,6 +1,6 @@
 {
   "name": "bi-bu-dai",
-  "version": "0.8.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,7 +11,7 @@
     "build": "npm run typecheck && vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=1",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check": "npm run typecheck && npm run test && npm run build",
@@ -56,6 +56,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "^9.2.1",
     "esbuild": "^0.28.2",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.1.0",
     "license-checker": "^25.0.1",
     "postject": "^1.0.0-alpha.6",

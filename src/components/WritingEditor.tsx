@@ -23,9 +23,11 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
   const [words, setWords] = useState(node.wordCount)
   const loadingRef = useRef(true)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveStateRef = useRef(saveState)
   const activeNodeRef = useRef(node.id)
   const nextSourceRef = useRef<'human' | 'ai_accepted'>('human')
   const nextTaskRef = useRef<string | null>(null)
+  useEffect(() => { saveStateRef.current = saveState }, [saveState])
 
   const editor = useEditor({
     extensions: [StarterKit, Placeholder.configure({ placeholder: '从这里开始。先写下一句话，故事就会继续。' }), CharacterCount],
@@ -86,6 +88,17 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
   }, [editor])
 
   useEffect(() => {
+    const flush = (event: Event) => {
+      const done = (event as CustomEvent<{ done?: () => void }>).detail?.done ?? (() => undefined)
+      if (!editor || loadingRef.current || saveStateRef.current !== 'dirty') { done(); return }
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      void persist(activeNodeRef.current, editor.getJSON() as Record<string, unknown>, editor.getText(), nextSourceRef.current, nextTaskRef.current).finally(done)
+    }
+    window.addEventListener('bbd:flush-editor', flush)
+    return () => window.removeEventListener('bbd:flush-editor', flush)
+  }, [editor])
+
+  useEffect(() => {
     const locate = (event: Event) => {
       const detail = (event as CustomEvent<{ nodeId: string; startOffset: number; endOffset: number }>).detail
       if (!editor || detail?.nodeId !== activeNodeRef.current) return
@@ -127,4 +140,3 @@ function documentPosition(doc: { descendants: (callback: (node: { isText: boolea
   doc.descendants((node, pos) => { if (!node.isText) return; const length = node.text?.length ?? 0; if (seen + length >= offset) { result = pos + Math.max(0, offset - seen); return false } seen += length })
   return Math.max(1, Math.min(result, doc.content.size))
 }
-

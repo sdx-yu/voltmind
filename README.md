@@ -2,7 +2,7 @@
 
 **笔耕不怠，写尽所思。**
 
-中文长篇作者的本地优先剧情操作系统。MVP、RC1 与 V1-A～V1-S 已完成本机工程验证，当前版本为 0.8.0。
+中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R、V2-F 与 V2-P 已完成本机工程验证，当前版本为 1.2.0。
 
 ## 开发
 
@@ -42,7 +42,17 @@ npm run release:materials
 - [架构决策 ADR-001](docs/adr/ADR-001-local-node-sqlite.md)
 - [架构决策 ADR-002](docs/adr/ADR-002-tauri-sidecar-desktop.md)
 - [架构决策 ADR-003](docs/adr/ADR-003-encrypted-handoff-sync.md)
+- [架构决策 ADR-004](docs/adr/ADR-004-mobile-offline-event-union.md)
+- [架构决策 ADR-005](docs/adr/ADR-005-offline-role-review-relay.md)
+- [架构决策 ADR-006](docs/adr/ADR-006-trustworthy-local-sprint-results.md)
+- [架构决策 ADR-007](docs/adr/ADR-007-declarative-local-template-packages.md)
 - [bbd-sync-v1 协议与威胁模型](docs/implementation/SYNC_PROTOCOL_V1.md)
+- [bbd-review-v1 协议与威胁模型](docs/implementation/REVIEW_PROTOCOL_V1.md)
+- [bbd-sprint-v1 协议与威胁模型](docs/implementation/SPRINT_PROTOCOL_V1.md)
+- [bbd-template-v1 协议与威胁模型](docs/implementation/TEMPLATE_PROTOCOL_V1.md)
+- [V2-R 角色化审阅接力](docs/implementation/V2R_PLAN.md)
+- [V2-F 安静冲刺与小组目标](docs/implementation/V2F_PLAN.md)
+- [V2-P 本地插件与结构模板包](docs/implementation/V2P_PLAN.md)
 - [MVP 实施与验收报告](归档/2026-08-26/笔不怠MVP实施与验收报告_v1.0.md)
 - [RC1 桌面交付与恢复验收报告](归档/2026-08-26/笔不怠RC1桌面交付与恢复验收报告_v0.2.0.md)
 - [V1-A 剧情控制层实施与验收报告](归档/2026-08-26/笔不怠V1-A剧情控制层实施与验收报告_v0.3.0.md)
@@ -51,5 +61,14 @@ npm run release:materials
 - [V1-D 交付体验层实施与验收报告](归档/2026-08-26/笔不怠V1-D交付体验层实施与验收报告_v0.6.0.md)
 - [V1-E 来源证明层实施与验收报告](归档/2026-08-26/笔不怠V1-E来源证明层实施与验收报告_v0.7.0.md)
 - [V1-S 加密同步工程验收报告](归档/2026-08-27/笔不怠V1-S加密同步工程验收报告_v0.8.0.md)
+- [V1-M 移动收集与审阅验收报告](归档/2026-08-27/笔不怠V1-M移动收集与审阅验收报告_v0.9.0.md)
+- [V2-R 角色化审阅接力验收报告](归档/2026-08-27/笔不怠V2-R角色化审阅接力验收报告_v1.0.0.md)
+- [V2-F 安静冲刺与小组目标验收报告](归档/2026-08-27/笔不怠V2-F安静冲刺与小组目标验收报告_v1.1.0.md)
+- [V2-P 本地插件与结构模板包验收报告](归档/2026-08-27/笔不怠V2-P本地插件与结构模板包验收报告_v1.2.0.md)
+- [下一阶段 V2-V 视觉锚点与故事板](docs/implementation/V2V_PLAN.md)
+- [移动收集与审阅指南](docs/user/MOBILE_COMPANION.md)
+- [角色化审阅接力指南](docs/user/ROLE_REVIEW.md)
+- [安静冲刺与小组目标指南](docs/user/QUIET_SPRINTS.md)
+- [本地结构模板指南](docs/user/LOCAL_TEMPLATES.md)
 - [备份与恢复指南](docs/user/BACKUP_AND_RECOVERY.md)
 - [隐私说明](docs/user/PRIVACY.md)

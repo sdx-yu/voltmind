@@ -15,12 +15,20 @@ import type {
   KnowledgeGrant,
   ManuscriptNode,
   Mention,
+  MobileInboxAction,
+  MobileInboxItem,
   Project,
   ProvenanceEvent,
   ProvenanceEventType,
   ProvenanceExportRecord,
   ProvenanceLabel,
   ReadAloudPreferences,
+  ReviewAnchor,
+  ReviewDecision,
+  ReviewFeedback,
+  ReviewRole,
+  ReviewSession,
+  ReviewSessionScene,
   Revision,
   ReplaceBatch,
   ReplaceMatch,
@@ -31,6 +39,14 @@ import type {
   SeriesCanonEntry,
   SeriesCanonOverride,
   StyleSample,
+  SprintBoard,
+  SprintEvent,
+  SprintEventType,
+  SprintPackage,
+  SprintResultCard,
+  SprintSample,
+  SprintSession,
+  SprintSnapshotScene,
   SyncConflict,
   SyncProjectStatus,
   SyncVector,
@@ -50,7 +66,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 8)
+    backupBeforeMigration(databasePath, 12)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -603,6 +619,236 @@ export class AppDatabase {
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(8, nowIso())
       })
     }
+    if (version < 9) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE mobile_inbox_items (
+            id TEXT PRIMARY KEY,
+            project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+            target_node_id TEXT REFERENCES manuscript_nodes(id) ON DELETE SET NULL,
+            kind TEXT NOT NULL CHECK(kind IN ('inspiration','scene_idea','review_note')),
+            content TEXT NOT NULL,
+            origin_device_id TEXT,
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_mobile_inbox_project_time ON mobile_inbox_items(project_id, created_at DESC);
+          CREATE TABLE mobile_inbox_actions (
+            id TEXT PRIMARY KEY,
+            item_id TEXT NOT NULL REFERENCES mobile_inbox_items(id) ON DELETE CASCADE,
+            action TEXT NOT NULL CHECK(action IN ('filed','dismissed','revisit','approved')),
+            note TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_mobile_actions_item_time ON mobile_inbox_actions(item_id, created_at, id);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(9, nowIso())
+      })
+    }
+    if (version < 10) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE review_sessions (
+            id TEXT PRIMARY KEY,
+            project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+            source_project_id TEXT NOT NULL,
+            project_title TEXT NOT NULL,
+            role TEXT NOT NULL CHECK(role IN ('editor','beta_reader','co_writer')),
+            reviewer_name TEXT NOT NULL,
+            scene_ids_json TEXT NOT NULL,
+            scene_snapshots_json TEXT NOT NULL DEFAULT '[]',
+            include_provenance INTEGER NOT NULL DEFAULT 0,
+            direction TEXT NOT NULL CHECK(direction IN ('authored','received','restored')),
+            status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed','archived')),
+            project_fingerprint TEXT NOT NULL,
+            key_salt TEXT NOT NULL DEFAULT '',
+            key_verifier TEXT NOT NULL DEFAULT '',
+            expires_at TEXT,
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_review_sessions_project ON review_sessions(project_id, created_at DESC);
+          CREATE TABLE review_feedback (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES review_sessions(id) ON DELETE CASCADE,
+            scene_id TEXT NOT NULL,
+            scene_title TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK(kind IN ('comment','suggestion')),
+            body TEXT NOT NULL,
+            anchor_json TEXT NOT NULL,
+            original_text TEXT NOT NULL DEFAULT '',
+            replacement_text TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_review_feedback_session ON review_feedback(session_id, created_at, id);
+          CREATE TABLE review_decisions (
+            id TEXT PRIMARY KEY,
+            feedback_id TEXT NOT NULL REFERENCES review_feedback(id) ON DELETE CASCADE,
+            decision TEXT NOT NULL CHECK(decision IN ('accepted','rejected','deferred')),
+            note TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_review_decisions_feedback ON review_decisions(feedback_id, created_at, id);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(10, nowIso())
+      })
+    }
+    if (version < 11) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE sprint_sessions (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            scope TEXT NOT NULL CHECK(scope IN ('scene','project')),
+            scene_id TEXT REFERENCES manuscript_nodes(id) ON DELETE SET NULL,
+            duration_minutes INTEGER NOT NULL,
+            goal_words INTEGER NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('running','paused','completed','cancelled')),
+            clock_status TEXT NOT NULL DEFAULT 'ok' CHECK(clock_status IN ('ok','sleep_reconciled','clock_anomaly')),
+            baseline_json TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            planned_end_at TEXT NOT NULL,
+            paused_at TEXT,
+            ended_at TEXT,
+            total_paused_ms INTEGER NOT NULL DEFAULT 0,
+            last_reconciled_at TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_sprint_sessions_project ON sprint_sessions(project_id, created_at DESC);
+          CREATE UNIQUE INDEX idx_sprint_one_active_project ON sprint_sessions(project_id) WHERE status IN ('running','paused');
+          CREATE TABLE sprint_samples (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sprint_sessions(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL CHECK(kind IN ('start','checkpoint','end')),
+            captured_at TEXT NOT NULL,
+            active_elapsed_ms INTEGER NOT NULL,
+            total_words INTEGER NOT NULL,
+            net_words INTEGER NOT NULL,
+            scenes_json TEXT NOT NULL
+          );
+          CREATE INDEX idx_sprint_samples_session ON sprint_samples(session_id, captured_at, id);
+          CREATE TABLE sprint_events (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sprint_sessions(id) ON DELETE CASCADE,
+            event_type TEXT NOT NULL CHECK(event_type IN ('started','paused','resumed','sleep_detected','clock_anomaly','completed','cancelled')),
+            occurred_at TEXT NOT NULL,
+            active_elapsed_ms INTEGER NOT NULL,
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            previous_hash TEXT,
+            event_hash TEXT NOT NULL
+          );
+          CREATE INDEX idx_sprint_events_session ON sprint_events(session_id, occurred_at, id);
+          CREATE TABLE sprint_result_cards (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL UNIQUE REFERENCES sprint_sessions(id) ON DELETE CASCADE,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            participant_label TEXT NOT NULL,
+            scope TEXT NOT NULL CHECK(scope IN ('scene','project')),
+            project_fingerprint TEXT NOT NULL,
+            scope_fingerprint TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            ended_at TEXT NOT NULL,
+            active_duration_ms INTEGER NOT NULL,
+            goal_words INTEGER NOT NULL,
+            net_words INTEGER NOT NULL,
+            event_chain_head TEXT NOT NULL,
+            event_count INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_sprint_cards_project ON sprint_result_cards(project_id, created_at DESC);
+          CREATE TABLE sprint_boards (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            period TEXT NOT NULL CHECK(period IN ('day','week')),
+            target_words INTEGER NOT NULL,
+            period_started_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_sprint_boards_project ON sprint_boards(project_id, created_at DESC);
+          CREATE TABLE sprint_board_cards (
+            board_id TEXT NOT NULL REFERENCES sprint_boards(id) ON DELETE CASCADE,
+            card_id TEXT NOT NULL,
+            package_json TEXT NOT NULL,
+            card_hash TEXT NOT NULL,
+            imported_at TEXT NOT NULL,
+            PRIMARY KEY(board_id, card_id)
+          );
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(11, nowIso())
+      })
+    }
+    if (version < 12) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE template_resources (
+            content_hash TEXT PRIMARY KEY,
+            media_type TEXT NOT NULL,
+            content_json TEXT NOT NULL,
+            byte_size INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          CREATE TABLE template_packages (
+            id TEXT PRIMARY KEY,
+            package_key TEXT NOT NULL,
+            name TEXT NOT NULL,
+            version TEXT NOT NULL,
+            description TEXT NOT NULL,
+            author_label TEXT NOT NULL,
+            license TEXT NOT NULL,
+            source_url TEXT NOT NULL,
+            capabilities_json TEXT NOT NULL,
+            package_json TEXT NOT NULL,
+            package_hash TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            built_in INTEGER NOT NULL DEFAULT 0,
+            installed_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            uninstalled_at TEXT,
+            UNIQUE(package_key, version)
+          );
+          CREATE INDEX idx_template_packages_status ON template_packages(uninstalled_at, enabled, name);
+          CREATE TABLE template_package_resources (
+            package_id TEXT NOT NULL REFERENCES template_packages(id) ON DELETE CASCADE,
+            content_hash TEXT NOT NULL REFERENCES template_resources(content_hash),
+            resource_path TEXT NOT NULL,
+            PRIMARY KEY(package_id, resource_path)
+          );
+          CREATE TABLE template_grants (
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            package_id TEXT NOT NULL REFERENCES template_packages(id) ON DELETE CASCADE,
+            capability TEXT NOT NULL CHECK(capability IN ('project.summary.read','plan.nodes.create','local.rules.run')),
+            granted INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY(project_id, package_id, capability)
+          );
+          CREATE TABLE template_applications (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            package_id TEXT NOT NULL REFERENCES template_packages(id),
+            preview_hash TEXT NOT NULL,
+            created_nodes_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('applied','reverted')),
+            applied_at TEXT NOT NULL,
+            reverted_at TEXT
+          );
+          CREATE INDEX idx_template_applications_project ON template_applications(project_id, applied_at DESC);
+          CREATE TABLE template_events (
+            id TEXT PRIMARY KEY,
+            project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+            package_id TEXT NOT NULL REFERENCES template_packages(id),
+            application_id TEXT REFERENCES template_applications(id) ON DELETE SET NULL,
+            event_type TEXT NOT NULL CHECK(event_type IN ('installed','enabled','disabled','uninstalled','restored','granted','revoked','applied','reverted')),
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_template_events_project ON template_events(project_id, created_at, id);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(12, nowIso())
+      })
+    }
+    const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()
+    const reviewColumns = reviewTable ? this.db.prepare('PRAGMA table_info(review_sessions)').all() as Row[] : []
+    if (reviewColumns.length && !reviewColumns.some((column) => String(column.name) === 'scene_snapshots_json')) this.db.exec("ALTER TABLE review_sessions ADD COLUMN scene_snapshots_json TEXT NOT NULL DEFAULT '[]'")
   }
 
   integrityCheck(): string {
@@ -1583,6 +1829,261 @@ export class AppDatabase {
     return { totalWords, todayNet: totalWords - baseline, dailyGoal: this.getSetting(projectId, 'dailyGoal', 2000), projectGoal: this.getSetting(projectId, 'projectGoal', 100000) }
   }
 
+  captureSprintSnapshot(projectId: string, scope: 'scene' | 'project', sceneId: string | null): SprintSnapshotScene[] {
+    const project = this.getProject(projectId)
+    if (!project || project.deletedAt) throw new Error('Sprint project not found')
+    const scenes = this.listNodes(projectId).filter((node) => node.type === 'scene' && !node.deletedAt && (scope === 'project' || node.id === sceneId))
+    if (scope === 'scene' && (!sceneId || scenes.length !== 1)) throw new Error('Sprint scene is outside the project')
+    if (!scenes.length) throw new Error('Sprint scope has no writable scenes')
+    return scenes.map((scene) => {
+      const document = this.getScene(scene.id)
+      if (!document) throw new Error('Sprint scene document not found')
+      return { sceneId: scene.id, revisionId: document.currentRevisionId, contentHash: document.contentHash, wordCount: countWords(document.plainText) }
+    })
+  }
+
+  listSprintSessions(projectId: string): SprintSession[] {
+    return (this.db.prepare('SELECT * FROM sprint_sessions WHERE project_id=? ORDER BY created_at DESC,id DESC').all(projectId) as Row[]).map((row) => this.mapSprintSession(row))
+  }
+
+  getSprintSession(id: string): SprintSession | null {
+    const row = this.db.prepare('SELECT * FROM sprint_sessions WHERE id=?').get(id) as Row | undefined
+    return row ? this.mapSprintSession(row) : null
+  }
+
+  getSprintBaseline(id: string): SprintSnapshotScene[] {
+    const row = this.db.prepare('SELECT baseline_json FROM sprint_sessions WHERE id=?').get(id) as Row | undefined
+    if (!row) throw new Error('Sprint session not found')
+    return jsonParse<SprintSnapshotScene[]>(String(row.baseline_json), [])
+  }
+
+  createSprintSession(input: { id: string; projectId: string; scope: 'scene' | 'project'; sceneId: string | null; durationMinutes: number; goalWords: number; baseline: SprintSnapshotScene[]; startedAt: string; plannedEndAt: string }): SprintSession {
+    this.db.prepare(`INSERT INTO sprint_sessions(id,project_id,scope,scene_id,duration_minutes,goal_words,status,clock_status,baseline_json,started_at,planned_end_at,total_paused_ms,last_reconciled_at,created_at)
+      VALUES(?,?,?,?,?,?,'running','ok',?,?,?,0,?,?)`).run(input.id, input.projectId, input.scope, input.sceneId, input.durationMinutes, input.goalWords, JSON.stringify(input.baseline), input.startedAt, input.plannedEndAt, input.startedAt, input.startedAt)
+    return this.getSprintSession(input.id)!
+  }
+
+  updateSprintSession(id: string, patch: { status?: SprintSession['status']; clockStatus?: SprintSession['clockStatus']; pausedAt?: string | null; endedAt?: string | null; totalPausedMs?: number; lastReconciledAt?: string }): SprintSession {
+    const current = this.getSprintSession(id)
+    if (!current) throw new Error('Sprint session not found')
+    const columns: string[] = []; const values: Array<string | number | null> = []
+    const add = (column: string, value: string | number | null) => { columns.push(`${column}=?`); values.push(value) }
+    if (patch.status !== undefined) add('status', patch.status)
+    if (patch.clockStatus !== undefined) add('clock_status', patch.clockStatus)
+    if (patch.pausedAt !== undefined) add('paused_at', patch.pausedAt)
+    if (patch.endedAt !== undefined) add('ended_at', patch.endedAt)
+    if (patch.totalPausedMs !== undefined) add('total_paused_ms', Math.max(0, Math.round(patch.totalPausedMs)))
+    if (patch.lastReconciledAt !== undefined) add('last_reconciled_at', patch.lastReconciledAt)
+    if (columns.length) this.db.prepare(`UPDATE sprint_sessions SET ${columns.join(',')} WHERE id=?`).run(...values, id)
+    return this.getSprintSession(id)!
+  }
+
+  addSprintSample(input: Omit<SprintSample, 'id'> & { id?: string }): SprintSample {
+    const sample = { ...input, id: input.id ?? newId() }
+    this.db.prepare('INSERT INTO sprint_samples(id,session_id,kind,captured_at,active_elapsed_ms,total_words,net_words,scenes_json) VALUES(?,?,?,?,?,?,?,?)').run(sample.id, sample.sessionId, sample.kind, sample.capturedAt, sample.activeElapsedMs, sample.totalWords, sample.netWords, JSON.stringify(sample.scenes))
+    return sample
+  }
+
+  appendSprintEvent(input: { id?: string; sessionId: string; type: SprintEventType; occurredAt: string; activeElapsedMs: number; metadata?: Record<string, unknown> }): SprintEvent {
+    const previous = this.db.prepare('SELECT event_hash FROM sprint_events WHERE session_id=? ORDER BY rowid DESC LIMIT 1').get(input.sessionId) as Row | undefined
+    const event = { id: input.id ?? newId(), sessionId: input.sessionId, type: input.type, occurredAt: input.occurredAt, activeElapsedMs: Math.max(0, Math.round(input.activeElapsedMs)), metadata: input.metadata ?? {}, previousHash: previous ? String(previous.event_hash) : null }
+    const eventHash = sprintEventHash(event)
+    this.db.prepare('INSERT INTO sprint_events(id,session_id,event_type,occurred_at,active_elapsed_ms,metadata_json,previous_hash,event_hash) VALUES(?,?,?,?,?,?,?,?)').run(event.id, event.sessionId, event.type, event.occurredAt, event.activeElapsedMs, JSON.stringify(event.metadata), event.previousHash, eventHash)
+    return { ...event, eventHash }
+  }
+
+  createSprintResultCard(card: SprintResultCard): SprintResultCard {
+    const existing = this.db.prepare('SELECT * FROM sprint_result_cards WHERE id=? OR session_id=?').get(card.id, card.sessionId) as Row | undefined
+    if (existing) {
+      const current = mapSprintResultCard(existing)
+      if (JSON.stringify(current) !== JSON.stringify(card)) throw new Error('Sprint result card ID collision')
+      return current
+    }
+    this.db.prepare(`INSERT INTO sprint_result_cards(id,session_id,project_id,participant_label,scope,project_fingerprint,scope_fingerprint,started_at,ended_at,active_duration_ms,goal_words,net_words,event_chain_head,event_count,created_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(card.id, card.sessionId, card.projectId, card.participantLabel, card.scope, card.projectFingerprint, card.scopeFingerprint, card.startedAt, card.endedAt, card.activeDurationMs, card.goalWords, card.netWords, card.eventChainHead, card.eventCount, card.createdAt)
+    return card
+  }
+
+  getSprintResultCard(id: string): SprintResultCard | null {
+    const row = this.db.prepare('SELECT * FROM sprint_result_cards WHERE id=?').get(id) as Row | undefined
+    return row ? mapSprintResultCard(row) : null
+  }
+
+  createSprintBoard(input: { projectId: string; name: string; period: 'day' | 'week'; targetWords: number; periodStartedAt: string }): SprintBoard {
+    if (!this.getProject(input.projectId)) throw new Error('Sprint board project not found')
+    const id = newId(); const createdAt = nowIso()
+    this.db.prepare('INSERT INTO sprint_boards(id,project_id,name,period,target_words,period_started_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(id, input.projectId, input.name.trim(), input.period, input.targetWords, input.periodStartedAt, createdAt, createdAt)
+    return this.getSprintBoard(id)!
+  }
+
+  listSprintBoards(projectId: string): SprintBoard[] {
+    return (this.db.prepare('SELECT * FROM sprint_boards WHERE project_id=? ORDER BY created_at DESC,id DESC').all(projectId) as Row[]).map((row) => this.mapSprintBoard(row))
+  }
+
+  getSprintBoard(id: string): SprintBoard | null {
+    const row = this.db.prepare('SELECT * FROM sprint_boards WHERE id=?').get(id) as Row | undefined
+    return row ? this.mapSprintBoard(row) : null
+  }
+
+  addSprintBoardCard(boardId: string, sprintPackage: SprintPackage, importedAt = nowIso()): { board: SprintBoard; duplicate: boolean } {
+    const board = this.getSprintBoard(boardId)
+    if (!board) throw new Error('Sprint board not found')
+    const existing = this.db.prepare('SELECT card_hash FROM sprint_board_cards WHERE board_id=? AND card_id=?').get(boardId, sprintPackage.card.id) as Row | undefined
+    if (existing) {
+      if (String(existing.card_hash) !== sprintPackage.cardHash) throw new Error('Sprint card ID collision')
+      return { board, duplicate: true }
+    }
+    this.db.prepare('INSERT INTO sprint_board_cards(board_id,card_id,package_json,card_hash,imported_at) VALUES(?,?,?,?,?)').run(boardId, sprintPackage.card.id, JSON.stringify(sprintPackage), sprintPackage.cardHash, importedAt)
+    this.db.prepare('UPDATE sprint_boards SET updated_at=? WHERE id=?').run(importedAt, boardId)
+    return { board: this.getSprintBoard(boardId)!, duplicate: false }
+  }
+
+  listSprintBoardPackages(boardId: string): SprintPackage[] {
+    return (this.db.prepare('SELECT package_json FROM sprint_board_cards WHERE board_id=? ORDER BY imported_at,card_id').all(boardId) as Row[]).map((row) => jsonParse<SprintPackage>(String(row.package_json), {} as SprintPackage))
+  }
+
+  private mapSprintSession(row: Row): SprintSession {
+    const baseline = jsonParse<SprintSnapshotScene[]>(String(row.baseline_json), [])
+    const samples = (this.db.prepare('SELECT * FROM sprint_samples WHERE session_id=? ORDER BY captured_at,id').all(String(row.id)) as Row[]).map(mapSprintSample)
+    let current: SprintSnapshotScene[]
+    try { current = this.captureSprintSnapshot(String(row.project_id), row.scope as 'scene' | 'project', row.scene_id ? String(row.scene_id) : null) }
+    catch { current = samples.at(-1)?.scenes ?? baseline }
+    const events = (this.db.prepare('SELECT * FROM sprint_events WHERE session_id=? ORDER BY occurred_at,id').all(String(row.id)) as Row[]).map(mapSprintEvent)
+    const cardRow = this.db.prepare('SELECT * FROM sprint_result_cards WHERE session_id=?').get(String(row.id)) as Row | undefined
+    const activeElapsedMs = sprintActiveElapsed(row)
+    const baselineWords = baseline.reduce((sum, scene) => sum + scene.wordCount, 0)
+    const currentWords = current.reduce((sum, scene) => sum + scene.wordCount, 0)
+    return { id: String(row.id), projectId: String(row.project_id), scope: row.scope as SprintSession['scope'], sceneId: row.scene_id ? String(row.scene_id) : null, durationMinutes: Number(row.duration_minutes), goalWords: Number(row.goal_words), status: row.status as SprintSession['status'], clockStatus: row.clock_status as SprintSession['clockStatus'], startedAt: String(row.started_at), plannedEndAt: String(row.planned_end_at), pausedAt: row.paused_at ? String(row.paused_at) : null, endedAt: row.ended_at ? String(row.ended_at) : null, totalPausedMs: Number(row.total_paused_ms), lastReconciledAt: String(row.last_reconciled_at), activeElapsedMs, currentWords, netWords: currentWords - baselineWords, samples, events, resultCard: cardRow ? mapSprintResultCard(cardRow) : null }
+  }
+
+  private mapSprintBoard(row: Row): SprintBoard {
+    const entries = (this.db.prepare('SELECT * FROM sprint_board_cards WHERE board_id=? ORDER BY imported_at,card_id').all(String(row.id)) as Row[]).map((entry) => {
+      const sprintPackage = jsonParse<SprintPackage>(String(entry.package_json), {} as SprintPackage)
+      return { card: sprintPackage.card, cardHash: String(entry.card_hash), importedAt: String(entry.imported_at) }
+    })
+    const participantMap = new Map<string, { participantLabel: string; netWords: number; sprintCount: number }>()
+    for (const entry of entries) { const label = entry.card.participantLabel || '匿名作者'; const current = participantMap.get(label) ?? { participantLabel: label, netWords: 0, sprintCount: 0 }; current.netWords += entry.card.netWords; current.sprintCount += 1; participantMap.set(label, current) }
+    return { id: String(row.id), projectId: String(row.project_id), name: String(row.name), period: row.period as SprintBoard['period'], targetWords: Number(row.target_words), periodStartedAt: String(row.period_started_at), createdAt: String(row.created_at), updatedAt: String(row.updated_at), entries, totalNetWords: entries.reduce((sum, entry) => sum + entry.card.netWords, 0), participants: [...participantMap.values()].sort((a, b) => b.netWords - a.netWords || a.participantLabel.localeCompare(b.participantLabel)) }
+  }
+
+  listReviewSessions(projectId?: string): ReviewSession[] {
+    const rows = (projectId
+      ? this.db.prepare("SELECT * FROM review_sessions WHERE project_id=? OR (project_id IS NULL AND direction='received') ORDER BY created_at DESC,id DESC").all(projectId)
+      : this.db.prepare('SELECT * FROM review_sessions ORDER BY created_at DESC,id DESC').all()) as Row[]
+    return rows.map((row) => this.mapReviewSession(row))
+  }
+
+  getReviewSession(id: string): ReviewSession | null {
+    const row = this.db.prepare('SELECT * FROM review_sessions WHERE id=?').get(id) as Row | undefined
+    return row ? this.mapReviewSession(row) : null
+  }
+
+  createReviewSession(input: {
+    id: string; projectId: string | null; sourceProjectId: string; projectTitle: string; role: ReviewRole; reviewerName: string;
+    sceneIds: string[]; scenes: ReviewSessionScene[]; includeProvenance: boolean; direction: ReviewSession['direction']; status?: ReviewSession['status'];
+    projectFingerprint: string; keySalt: string; keyVerifier: string; expiresAt: string | null; createdAt: string
+  }): ReviewSession {
+    const existing = this.db.prepare('SELECT * FROM review_sessions WHERE id=?').get(input.id) as Row | undefined
+    if (existing) {
+      const current = this.mapReviewSession(existing)
+      if (current.sourceProjectId !== input.sourceProjectId || current.role !== input.role || current.reviewerName !== input.reviewerName || current.direction !== input.direction || JSON.stringify(current.sceneIds) !== JSON.stringify(input.sceneIds)) throw new Error('Review session ID collision')
+      return current
+    }
+    if (input.projectId && !this.getProject(input.projectId)) throw new Error('Review project not found')
+    if (!input.sceneIds.length || input.sceneIds.length > 100 || input.scenes.length !== input.sceneIds.length || input.scenes.some((scene, index) => scene.id !== input.sceneIds[index]) || new Set(input.sceneIds).size !== input.sceneIds.length) throw new Error('Review scope is invalid')
+    this.db.prepare(`INSERT INTO review_sessions(id,project_id,source_project_id,project_title,role,reviewer_name,scene_ids_json,scene_snapshots_json,include_provenance,direction,status,project_fingerprint,key_salt,key_verifier,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      input.id, input.projectId, input.sourceProjectId, input.projectTitle, input.role, input.reviewerName.trim(), JSON.stringify(input.sceneIds), JSON.stringify(input.scenes), input.includeProvenance ? 1 : 0, input.direction, input.status ?? 'open', input.projectFingerprint, input.keySalt, input.keyVerifier, input.expiresAt, input.createdAt,
+    )
+    return this.getReviewSession(input.id)!
+  }
+
+  createReviewFeedback(input: Omit<ReviewFeedback, 'decisions' | 'currentDecision' | 'anchorStatus' | 'resolvedStartOffset'>): ReviewFeedback {
+    const session = this.getReviewSession(input.sessionId)
+    if (!session || session.status !== 'open') throw new Error('Review session is not open')
+    if (!session.sceneIds.includes(input.sceneId)) throw new Error('Feedback is outside the review scope')
+    if (session.role === 'beta_reader' && input.kind === 'suggestion') throw new Error('Beta Reader can only comment')
+    if (input.kind === 'suggestion' && (!input.originalText || input.originalText !== input.anchor.quote || !input.replacementText.trim())) throw new Error('Review suggestion requires an anchored replacement')
+    const existing = this.db.prepare('SELECT * FROM review_feedback WHERE id=?').get(input.id) as Row | undefined
+    if (existing) {
+      const current = this.mapReviewFeedback(existing, session)
+      if (current.sessionId !== input.sessionId || current.sceneId !== input.sceneId || current.kind !== input.kind || current.body !== input.body || JSON.stringify(current.anchor) !== JSON.stringify(input.anchor) || current.originalText !== input.originalText || current.replacementText !== input.replacementText || current.createdAt !== input.createdAt) throw new Error('Review feedback ID collision')
+      return current
+    }
+    this.db.prepare('INSERT INTO review_feedback(id,session_id,scene_id,scene_title,kind,body,anchor_json,original_text,replacement_text,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(input.id, input.sessionId, input.sceneId, input.sceneTitle, input.kind, input.body, JSON.stringify(input.anchor), input.originalText, input.replacementText, input.createdAt)
+    return this.mapReviewFeedback(this.db.prepare('SELECT * FROM review_feedback WHERE id=?').get(input.id) as Row, session)
+  }
+
+  createReviewDecision(input: ReviewDecision): ReviewDecision {
+    const feedbackRow = this.db.prepare('SELECT * FROM review_feedback WHERE id=?').get(input.feedbackId) as Row | undefined
+    if (!feedbackRow) throw new Error('Review feedback not found')
+    const session = this.getReviewSession(String(feedbackRow.session_id))
+    if (!session?.projectId || session.direction !== 'authored') throw new Error('Only the author copy can decide feedback')
+    const existing = this.db.prepare('SELECT * FROM review_decisions WHERE id=?').get(input.id) as Row | undefined
+    if (existing) {
+      const current = mapReviewDecision(existing)
+      if (JSON.stringify(current) !== JSON.stringify(input)) throw new Error('Review decision ID collision')
+      return current
+    }
+    this.db.prepare('INSERT INTO review_decisions(id,feedback_id,decision,note,created_at) VALUES(?,?,?,?,?)').run(input.id, input.feedbackId, input.decision, input.note, input.createdAt)
+    return input
+  }
+
+  private mapReviewSession(row: Row): ReviewSession {
+    const sessionBase = {
+      id: String(row.id), projectId: row.project_id ? String(row.project_id) : null, sourceProjectId: String(row.source_project_id), projectTitle: String(row.project_title), role: row.role as ReviewRole,
+      reviewerName: String(row.reviewer_name), sceneIds: jsonParse<string[]>(String(row.scene_ids_json), []), scenes: jsonParse<ReviewSessionScene[]>(String(row.scene_snapshots_json), []), includeProvenance: Boolean(row.include_provenance),
+      direction: row.direction as ReviewSession['direction'], status: row.status as ReviewSession['status'], expiresAt: row.expires_at ? String(row.expires_at) : null, createdAt: String(row.created_at),
+    }
+    const feedbackRows = this.db.prepare('SELECT * FROM review_feedback WHERE session_id=? ORDER BY created_at,id').all(sessionBase.id) as Row[]
+    return { ...sessionBase, feedback: feedbackRows.map((feedback) => this.mapReviewFeedback(feedback, { ...sessionBase, feedback: [] })) }
+  }
+
+  private mapReviewFeedback(row: Row, session: ReviewSession): ReviewFeedback {
+    const decisions = (this.db.prepare('SELECT * FROM review_decisions WHERE feedback_id=? ORDER BY created_at,id').all(String(row.id)) as Row[]).map(mapReviewDecision)
+    const anchor = jsonParse<ReviewAnchor>(String(row.anchor_json), { paragraphIndex: -1, startOffset: 0, endOffset: 0, quote: '', paragraphHash: '', contextBefore: '', contextAfter: '' })
+    const sceneText = session.projectId && this.getScene(String(row.scene_id))?.plainText || session.scenes.find((scene) => scene.id === String(row.scene_id))?.plainText || ''
+    const resolution = resolveReviewAnchor(sceneText, anchor)
+    return { id: String(row.id), sessionId: String(row.session_id), sceneId: String(row.scene_id), sceneTitle: String(row.scene_title), kind: row.kind as ReviewFeedback['kind'], body: String(row.body), anchor, originalText: String(row.original_text), replacementText: String(row.replacement_text), createdAt: String(row.created_at), decisions, currentDecision: decisions.at(-1)?.decision ?? null, anchorStatus: resolution.status, resolvedStartOffset: resolution.offset }
+  }
+
+  listMobileInbox(projectId?: string | null): MobileInboxItem[] {
+    const rows = (projectId === undefined
+      ? this.db.prepare('SELECT * FROM mobile_inbox_items ORDER BY created_at DESC,id DESC').all()
+      : projectId === null
+        ? this.db.prepare('SELECT * FROM mobile_inbox_items WHERE project_id IS NULL ORDER BY created_at DESC,id DESC').all()
+        : this.db.prepare('SELECT * FROM mobile_inbox_items WHERE project_id=? OR project_id IS NULL ORDER BY created_at DESC,id DESC').all(projectId)) as Row[]
+    return rows.map((row) => {
+      const actions = (this.db.prepare('SELECT * FROM mobile_inbox_actions WHERE item_id=? ORDER BY created_at,id').all(String(row.id)) as Row[]).map(mapMobileAction)
+      return mapMobileItem(row, actions)
+    })
+  }
+
+  createMobileInboxItem(input: { id: string; projectId: string | null; targetNodeId: string | null; kind: MobileInboxItem['kind']; content: string; originDeviceId: string | null; createdAt: string }): MobileInboxItem {
+    const projectId = input.projectId && this.getProject(input.projectId) ? input.projectId : null
+    const target = input.targetNodeId ? this.getNode(input.targetNodeId) : null
+    const targetNodeId = target && target.projectId === projectId ? target.id : null
+    const existing = this.db.prepare('SELECT * FROM mobile_inbox_items WHERE id=?').get(input.id) as Row | undefined
+    if (existing) {
+      const current = mapMobileItem(existing, (this.db.prepare('SELECT * FROM mobile_inbox_actions WHERE item_id=? ORDER BY created_at,id').all(input.id) as Row[]).map(mapMobileAction))
+      if (current.projectId !== projectId || current.targetNodeId !== targetNodeId || current.kind !== input.kind || current.content !== input.content || current.originDeviceId !== input.originDeviceId || current.createdAt !== input.createdAt) throw new Error('Mobile inbox ID collision')
+      return current
+    }
+    this.db.prepare('INSERT INTO mobile_inbox_items(id,project_id,target_node_id,kind,content,origin_device_id,created_at) VALUES(?,?,?,?,?,?,?)').run(input.id, projectId, targetNodeId, input.kind, input.content, input.originDeviceId, input.createdAt)
+    return mapMobileItem(this.db.prepare('SELECT * FROM mobile_inbox_items WHERE id=?').get(input.id) as Row, [])
+  }
+
+  createMobileInboxAction(input: MobileInboxAction): MobileInboxAction {
+    if (!this.db.prepare('SELECT 1 FROM mobile_inbox_items WHERE id=?').get(input.itemId)) throw new Error('Mobile inbox item not found')
+    const existing = this.db.prepare('SELECT * FROM mobile_inbox_actions WHERE id=?').get(input.id) as Row | undefined
+    if (existing) {
+      const current = mapMobileAction(existing)
+      if (current.itemId !== input.itemId || current.action !== input.action || current.note !== input.note || current.createdAt !== input.createdAt) throw new Error('Mobile action ID collision')
+      return current
+    }
+    this.db.prepare('INSERT INTO mobile_inbox_actions(id,item_id,action,note,created_at) VALUES(?,?,?,?,?)').run(input.id, input.itemId, input.action, input.note, input.createdAt)
+    return input
+  }
+
   private updateNodeRaw(id: string, patch: { title: string }) {
     const current = this.getNode(id)
     if (!current) throw new Error('Node not found')
@@ -1708,6 +2209,28 @@ export function provenanceEventHash(input: { eventType: ProvenanceEventType; act
   return sha256(JSON.stringify({ eventType: input.eventType, actorType: input.actorType, contentHash: input.contentHash, metadata: input.metadata, previousHash: input.previousHash, createdAt: input.createdAt }))
 }
 
+export function sprintEventHash(input: Pick<SprintEvent, 'type' | 'occurredAt' | 'activeElapsedMs' | 'metadata' | 'previousHash'>) {
+  return sha256(JSON.stringify({ type: input.type, occurredAt: input.occurredAt, activeElapsedMs: input.activeElapsedMs, metadata: input.metadata, previousHash: input.previousHash }))
+}
+
+function sprintActiveElapsed(row: Row, at = Date.now()) {
+  const started = Date.parse(String(row.started_at))
+  const effectiveEnd = row.ended_at ? Date.parse(String(row.ended_at)) : row.status === 'paused' && row.paused_at ? Date.parse(String(row.paused_at)) : at
+  return Math.max(0, effectiveEnd - started - Number(row.total_paused_ms))
+}
+
+function mapSprintSample(row: Row): SprintSample {
+  return { id: String(row.id), sessionId: String(row.session_id), kind: row.kind as SprintSample['kind'], capturedAt: String(row.captured_at), activeElapsedMs: Number(row.active_elapsed_ms), totalWords: Number(row.total_words), netWords: Number(row.net_words), scenes: jsonParse<SprintSnapshotScene[]>(String(row.scenes_json), []) }
+}
+
+function mapSprintEvent(row: Row): SprintEvent {
+  return { id: String(row.id), sessionId: String(row.session_id), type: row.event_type as SprintEventType, occurredAt: String(row.occurred_at), activeElapsedMs: Number(row.active_elapsed_ms), metadata: jsonParse<Record<string, unknown>>(String(row.metadata_json), {}), previousHash: row.previous_hash ? String(row.previous_hash) : null, eventHash: String(row.event_hash) }
+}
+
+function mapSprintResultCard(row: Row): SprintResultCard {
+  return { id: String(row.id), sessionId: String(row.session_id), projectId: String(row.project_id), participantLabel: String(row.participant_label), scope: row.scope as SprintResultCard['scope'], projectFingerprint: String(row.project_fingerprint), scopeFingerprint: String(row.scope_fingerprint), startedAt: String(row.started_at), endedAt: String(row.ended_at), activeDurationMs: Number(row.active_duration_ms), goalWords: Number(row.goal_words), netWords: Number(row.net_words), eventChainHead: String(row.event_chain_head), eventCount: Number(row.event_count), createdAt: String(row.created_at) }
+}
+
 function mapEntity(row: Row): Entity {
   return { id: String(row.id), projectId: String(row.project_id), type: row.type as Entity['type'], canonicalName: String(row.canonical_name), aliases: jsonParse(String(row.aliases_json), []), summary: String(row.summary), privacyLevel: row.privacy_level as Entity['privacyLevel'], createdAt: String(row.created_at), updatedAt: String(row.updated_at), deletedAt: row.deleted_at ? String(row.deleted_at) : null }
 }
@@ -1718,6 +2241,42 @@ function mapState(row: Row): EntityState {
 
 function mapMention(row: Row): Mention {
   return { id: String(row.id), entityId: String(row.entity_id), nodeId: String(row.node_id), quote: String(row.quote), startOffset: Number(row.start_offset), endOffset: Number(row.end_offset), confirmed: Boolean(row.confirmed), createdAt: String(row.created_at) }
+}
+
+function mapMobileAction(row: Row): MobileInboxAction {
+  return { id: String(row.id), itemId: String(row.item_id), action: row.action as MobileInboxAction['action'], note: String(row.note), createdAt: String(row.created_at) }
+}
+
+function mapMobileItem(row: Row, actions: MobileInboxAction[]): MobileInboxItem {
+  return { id: String(row.id), projectId: row.project_id ? String(row.project_id) : null, targetNodeId: row.target_node_id ? String(row.target_node_id) : null, kind: row.kind as MobileInboxItem['kind'], content: String(row.content), originDeviceId: row.origin_device_id ? String(row.origin_device_id) : null, createdAt: String(row.created_at), actions, currentAction: actions.at(-1)?.action ?? null }
+}
+
+function mapReviewDecision(row: Row): ReviewDecision {
+  return { id: String(row.id), feedbackId: String(row.feedback_id), decision: row.decision as ReviewDecision['decision'], note: String(row.note), createdAt: String(row.created_at) }
+}
+
+export function createReviewAnchor(plainText: string, paragraphIndex: number, startOffset: number, endOffset: number): ReviewAnchor {
+  const paragraphs = plainText.split(/\n+/); const paragraph = paragraphs[paragraphIndex] ?? ''
+  if (paragraphIndex < 0 || !paragraph || startOffset < 0 || endOffset <= startOffset || endOffset > paragraph.length) throw new Error('Review anchor range is invalid')
+  return { paragraphIndex, startOffset, endOffset, quote: paragraph.slice(startOffset, endOffset), paragraphHash: sha256(paragraph), contextBefore: paragraph.slice(Math.max(0, startOffset - 24), startOffset), contextAfter: paragraph.slice(endOffset, endOffset + 24) }
+}
+
+export function resolveReviewAnchor(plainText: string, anchor: ReviewAnchor): { status: 'exact' | 'candidate' | 'lost'; offset: number | null } {
+  const paragraphs = plainText.split(/\n+/); const paragraph = paragraphs[anchor.paragraphIndex]
+  let paragraphBase = -1; let scanFrom = 0
+  for (let index = 0; index <= anchor.paragraphIndex && index < paragraphs.length; index += 1) {
+    paragraphBase = plainText.indexOf(paragraphs[index], scanFrom)
+    if (paragraphBase < 0) break
+    scanFrom = paragraphBase + paragraphs[index].length
+  }
+  if (paragraph && sha256(paragraph) === anchor.paragraphHash && paragraph.slice(anchor.startOffset, anchor.endOffset) === anchor.quote) return { status: 'exact', offset: paragraphBase + anchor.startOffset }
+  const matches: number[] = []; let cursor = plainText.indexOf(anchor.quote)
+  while (cursor >= 0) {
+    const before = plainText.slice(Math.max(0, cursor - anchor.contextBefore.length), cursor); const after = plainText.slice(cursor + anchor.quote.length, cursor + anchor.quote.length + anchor.contextAfter.length)
+    if ((!anchor.contextBefore || before === anchor.contextBefore) && (!anchor.contextAfter || after === anchor.contextAfter)) matches.push(cursor)
+    cursor = plainText.indexOf(anchor.quote, cursor + Math.max(1, anchor.quote.length))
+  }
+  return matches.length === 1 ? { status: 'candidate', offset: matches[0] } : { status: 'lost', offset: null }
 }
 
 function mapForeshadowEvent(row: Row): ForeshadowEvent {

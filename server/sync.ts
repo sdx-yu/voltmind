@@ -5,6 +5,7 @@ import type {
   Entity,
   EntityState,
   ManuscriptNode,
+  MobileInboxItem,
   Project,
   ProvenanceEvent,
   Revision,
@@ -60,6 +61,7 @@ interface SyncPayload {
   scenes: SyncScenePayload[]
   entities: SyncEntityPayload[]
   attachments: SyncAttachmentPayload[]
+  mobileInbox?: MobileInboxItem[]
   provenance: ProvenanceEvent[]
   createdAt: string
 }
@@ -116,7 +118,8 @@ export class SyncService {
     const scenes = nodes.filter((node) => node.type === 'scene').map((node) => this.captureScene(projectId, node, vector))
     const entities = this.database.listEntities(projectId, true).map((entity) => this.captureEntity(projectId, entity, vector))
     const attachments = this.captureAttachments(projectId)
-    const payload: SyncPayload = { version: 1, project, nodes, scenes, entities, attachments, provenance: this.database.listProvenanceEvents(projectId), createdAt: nowIso() }
+    const mobileInbox = this.database.listMobileInbox(projectId)
+    const payload: SyncPayload = { version: 1, project, nodes, scenes, entities, attachments, mobileInbox, provenance: this.database.listProvenanceEvents(projectId), createdAt: nowIso() }
     const transfer = encryptPayload(payload, {
       projectFingerprint: projectFingerprint(projectId, config.keySalt), senderDeviceId: config.deviceId, senderDeviceName: config.deviceName,
       sequence, vector, keySalt: config.keySalt, keyVerifier: config.keyVerifier,
@@ -137,7 +140,7 @@ export class SyncService {
     validatePayload(payload)
     return {
       valid: true, projectFingerprint: transfer.projectFingerprint, senderDeviceName: transfer.senderDeviceName, sequence: transfer.sequence, vector: transfer.vector,
-      projectTitle: payload.project.title, sceneCount: payload.scenes.length, entityCount: payload.entities.length, attachmentCount: payload.attachments.length, provenanceEventCount: payload.provenance.length, createdAt: transfer.createdAt,
+      projectTitle: payload.project.title, sceneCount: payload.scenes.length, entityCount: payload.entities.length, attachmentCount: payload.attachments.length, mobileItemCount: payload.mobileInbox?.length ?? 0, provenanceEventCount: payload.provenance.length, createdAt: transfer.createdAt,
     }
   }
 
@@ -169,6 +172,7 @@ export class SyncService {
         appliedEntities += outcome.applied ? 1 : 0; conflictsCreated += outcome.conflict ? 1 : 0
       }
       this.writeAttachments(payload.project.id, payload.attachments)
+      this.writeMobileInbox(payload.project.id, payload.mobileInbox ?? [])
       const mergedVector = maxVector(config.vector, transfer.vector)
       const importedAt = nowIso()
       this.database.db.prepare('UPDATE sync_project_configs SET vector_json=?,updated_at=?,last_imported_at=? WHERE project_id=?').run(JSON.stringify(mergedVector), importedAt, importedAt, payload.project.id)
@@ -213,7 +217,7 @@ export class SyncService {
   runDrill(): SyncDrillResult {
     const checks: SyncDrillResult['checks'] = []
     const phrase = generateRecoveryPhrase(); const salt = randomBytes(16).toString('base64'); const key = deriveSyncKey(phrase, salt)
-    const sample: SyncPayload = { version: 1, project: { id: 'p', title: '机密标题', description: '', createdAt: '', updatedAt: '', deletedAt: null }, nodes: [], scenes: [], entities: [], attachments: [], provenance: [], createdAt: nowIso() }
+    const sample: SyncPayload = { version: 1, project: { id: 'p', title: '机密标题', description: '', createdAt: '', updatedAt: '', deletedAt: null }, nodes: [], scenes: [], entities: [], attachments: [], mobileInbox: [], provenance: [], createdAt: nowIso() }
     const transfer = encryptPayload(sample, { projectFingerprint: projectFingerprint('p', salt), senderDeviceId: 'a', senderDeviceName: '设备 A', sequence: 1, vector: { a: 1 }, keySalt: salt, keyVerifier: keyVerifier(key) }, key)
     checks.push({ code: 'E2EE', label: '服务端只见密文', passed: !JSON.stringify(transfer).includes('机密标题') && decryptPayload(transfer, phrase).project.title === '机密标题', detail: '标题与正文对象只存在于 AES-256-GCM 密文内' })
     let wrongKeyBlocked = false; try { decryptPayload(transfer, generateRecoveryPhrase()) } catch { wrongKeyBlocked = true }
@@ -258,6 +262,14 @@ export class SyncService {
       if (this.database.db.prepare('SELECT 1 FROM imported_sources WHERE project_id=? AND content_hash=?').get(projectId, attachment.contentHash)) continue
       const id = this.database.db.prepare('SELECT 1 FROM imported_sources WHERE id=?').get(attachment.id) ? newId() : attachment.id
       this.database.db.prepare('INSERT INTO imported_sources(id,project_id,file_name,mime_type,byte_size,content_hash,content_base64,created_at) VALUES(?,?,?,?,?,?,?,?)').run(id, projectId, attachment.fileName, attachment.mimeType, attachment.byteSize, attachment.contentHash, attachment.contentBase64, attachment.createdAt)
+    }
+  }
+
+  private writeMobileInbox(projectId: string, items: MobileInboxItem[]) {
+    for (const item of items) {
+      if (item.projectId !== null && item.projectId !== projectId) throw new Error('接力包中的移动收集项属于另一个项目')
+      this.database.createMobileInboxItem({ id: item.id, projectId: item.projectId, targetNodeId: item.targetNodeId, kind: item.kind, content: item.content, originDeviceId: item.originDeviceId, createdAt: item.createdAt })
+      for (const action of item.actions) this.database.createMobileInboxAction(action)
     }
   }
 
@@ -339,6 +351,7 @@ export class SyncService {
       for (const scene of payload.scenes) this.insertScene(scene)
       for (const entity of payload.entities) { this.writeEntity(entity); this.upsertObjectVersion(project.id, 'entity', entity.entity.id, entity.vector, entity.contentHash, entity.deleted) }
       this.writeAttachments(project.id, payload.attachments)
+      this.writeMobileInbox(project.id, payload.mobileInbox ?? [])
       this.appendProvenance(project.id, payload.provenance)
       const createdAt = nowIso(); const receiverId = newId()
       this.database.db.prepare('INSERT INTO sync_project_configs(project_id,device_id,device_name,key_salt,key_verifier,sequence,vector_json,created_at,updated_at,last_imported_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(project.id, receiverId, cleanDeviceName(deviceName), transfer.keySalt, transfer.keyVerifier, 0, JSON.stringify(transfer.vector), createdAt, createdAt, createdAt)
@@ -466,6 +479,11 @@ function parseTransfer(value: unknown): SyncTransferPackage {
 
 function validatePayload(payload: SyncPayload) {
   if (payload.version !== 1 || !payload.project?.id || !Array.isArray(payload.nodes) || !Array.isArray(payload.scenes) || !Array.isArray(payload.entities) || !Array.isArray(payload.attachments) || !Array.isArray(payload.provenance)) throw new Error('接力包载荷格式不正确')
+  if (payload.mobileInbox !== undefined && !Array.isArray(payload.mobileInbox)) throw new Error('接力包中的移动收集项格式不正确')
+  for (const item of payload.mobileInbox ?? []) {
+    if (!item || typeof item.id !== 'string' || item.id.length < 8 || (item.projectId !== null && item.projectId !== payload.project.id) || !['inspiration', 'scene_idea', 'review_note'].includes(item.kind) || typeof item.content !== 'string' || !item.content.trim() || !Array.isArray(item.actions) || Number.isNaN(Date.parse(item.createdAt))) throw new Error('接力包中的移动收集项格式不正确')
+    for (const action of item.actions) if (!action || typeof action.id !== 'string' || action.itemId !== item.id || !['filed', 'dismissed', 'revisit', 'approved'].includes(action.action) || typeof action.note !== 'string' || Number.isNaN(Date.parse(action.createdAt))) throw new Error('接力包中的移动收集动作格式不正确')
+  }
   for (const attachment of payload.attachments) { const bytes = Buffer.from(attachment.contentBase64, 'base64'); if (attachment.projectId !== payload.project.id || attachment.address !== `sha256:${attachment.contentHash}` || bytes.length !== attachment.byteSize || sha256(bytes) !== attachment.contentHash) throw new Error('接力包中的附件内容寻址校验失败') }
   validateEventChain(payload.provenance)
 }

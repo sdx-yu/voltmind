@@ -258,7 +258,7 @@
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/base64-js",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/base64-js/LICENSE"
   },
-  "bi-bu-dai@0.7.0": {
+  "bi-bu-dai@1.2.0": {
     "licenses": "UNLICENSED",
     "private": true,
     "path": "/Users/sundaxian/2026 /笔不怠",
@@ -646,6 +646,14 @@
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/isarray",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/isarray/README.md"
   },
+  "isomorphic.js@0.2.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dmonad/isomorphic.js",
+    "publisher": "Kevin Jahns",
+    "email": "kevin.jahns@protonmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/isomorphic.js",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/isomorphic.js/LICENSE"
+  },
   "jszip@3.10.1": {
     "licenses": "(MIT OR GPL-3.0-or-later)",
     "repository": "https://github.com/Stuk/jszip",
@@ -653,6 +661,14 @@
     "email": "stuart@stuartk.com",
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/jszip",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/jszip/LICENSE.markdown"
+  },
+  "lib0@0.2.117": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dmonad/lib0",
+    "publisher": "Kevin Jahns",
+    "email": "kevin.jahns@protonmail.com",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/lib0",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/lib0/LICENSE"
   },
   "lie@3.3.0": {
     "licenses": "MIT",
@@ -1247,6 +1263,13 @@
     "email": "oozcitak@gmail.com",
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/xmlbuilder",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/xmlbuilder/LICENSE"
+  },
+  "yjs@13.6.32": {
+    "licenses": "MIT",
+    "repository": "https://github.com/yjs/yjs",
+    "publisher": "Kevin Jahns",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/yjs",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/yjs/LICENSE"
   },
   "zod@4.4.3": {
     "licenses": "MIT",

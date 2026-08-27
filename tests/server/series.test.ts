@@ -15,13 +15,13 @@ describe('V1-C series canon and style samples', () => {
   beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bbd-series-')); database = new AppDatabase(path.join(dir, 'series.sqlite')) })
   afterEach(() => { database.close(); fs.rmSync(dir, { recursive: true, force: true }) })
 
-  it('backs up v4 and migrates the isolated series, delivery and provenance schemas through v7', () => {
+  it('backs up v4 and migrates the isolated schemas through v10', () => {
     const databasePath = database.databasePath
-    database.db.exec('DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DROP TABLE provenance_exports; DROP TABLE provenance_events; DROP TABLE delivery_check_runs; DROP TABLE project_delivery_rule_overrides; DROP TABLE delivery_rules; DROP TABLE delivery_templates; DROP TABLE read_aloud_preferences; DROP TABLE style_sample_preferences; DROP TABLE style_samples; DROP TABLE series_canon_overrides; DROP TABLE series_canon_entries; DROP TABLE series_projects; DROP TABLE series; DELETE FROM schema_migrations WHERE version IN (5,6,7,8);')
+    database.db.exec('DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DROP TABLE mobile_inbox_actions; DROP TABLE mobile_inbox_items; DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DROP TABLE provenance_exports; DROP TABLE provenance_events; DROP TABLE delivery_check_runs; DROP TABLE project_delivery_rule_overrides; DROP TABLE delivery_rules; DROP TABLE delivery_templates; DROP TABLE read_aloud_preferences; DROP TABLE style_sample_preferences; DROP TABLE style_samples; DROP TABLE series_canon_overrides; DROP TABLE series_canon_entries; DROP TABLE series_projects; DROP TABLE series; DELETE FROM schema_migrations WHERE version IN (5,6,7,8,9,10,11,12);')
     database.close(); database = new AppDatabase(databasePath)
-    expect(database.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 8 })
+    expect(database.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 12 })
     expect(database.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='series_canon_overrides'").get()).toMatchObject({ name: 'series_canon_overrides' })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v4-to-v8-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v4-to-v12-'))).toBe(true)
   })
 
   it('shares a baseline, isolates a book override, and preserves it across leaving', () => {

@@ -171,7 +171,7 @@ export interface Revision {
 }
 
 export type ProvenanceLabel = 'human' | 'ai_accepted' | 'human_after_ai' | 'import' | 'restore' | 'merge'
-export type ProvenanceEventType = 'human_edit' | 'ai_generated' | 'ai_failed' | 'ai_accepted' | 'ai_rejected' | 'ai_undone' | 'human_after_ai' | 'import' | 'restore' | 'merge' | 'replace' | 'replace_undone' | 'candidate_created' | 'candidate_accepted' | 'candidate_rejected' | 'sync_merge' | 'sync_conflict' | 'sync_conflict_resolved'
+export type ProvenanceEventType = 'human_edit' | 'ai_generated' | 'ai_failed' | 'ai_accepted' | 'ai_rejected' | 'ai_undone' | 'human_after_ai' | 'import' | 'restore' | 'merge' | 'replace' | 'replace_undone' | 'candidate_created' | 'candidate_accepted' | 'candidate_rejected' | 'sync_merge' | 'sync_conflict' | 'sync_conflict_resolved' | 'review_suggestion_accepted' | 'review_feedback_decided' | 'template_applied' | 'template_reverted'
 
 export interface ProvenanceEvent {
   id: string
@@ -300,6 +300,7 @@ export interface SyncPackageInspection {
   sceneCount: number
   entityCount: number
   attachmentCount: number
+  mobileItemCount: number
   provenanceEventCount: number
   createdAt: string
 }
@@ -318,6 +319,364 @@ export interface SyncApplyResult {
 export interface SyncDrillResult {
   ok: boolean
   checks: Array<{ code: string; label: string; passed: boolean; detail: string }>
+}
+
+export type MobileInboxKind = 'inspiration' | 'scene_idea' | 'review_note'
+export type MobileInboxActionType = 'filed' | 'dismissed' | 'revisit' | 'approved'
+
+export interface MobileInboxAction {
+  id: string
+  itemId: string
+  action: MobileInboxActionType
+  note: string
+  createdAt: string
+}
+
+export interface MobileInboxItem {
+  id: string
+  projectId: string | null
+  targetNodeId: string | null
+  kind: MobileInboxKind
+  content: string
+  originDeviceId: string | null
+  createdAt: string
+  actions: MobileInboxAction[]
+  currentAction: MobileInboxActionType | null
+}
+
+export interface MobileLibraryScene {
+  id: string
+  projectId: string
+  projectTitle: string
+  title: string
+  plainText: string
+  updatedAt: string
+  provenanceLabel: ProvenanceLabel | null
+}
+
+export type ReviewRole = 'editor' | 'beta_reader' | 'co_writer'
+export type ReviewFeedbackKind = 'comment' | 'suggestion'
+export type ReviewDecisionType = 'accepted' | 'rejected' | 'deferred'
+export type ReviewAnchorStatus = 'exact' | 'candidate' | 'lost'
+
+export interface ReviewAnchor {
+  paragraphIndex: number
+  startOffset: number
+  endOffset: number
+  quote: string
+  paragraphHash: string
+  contextBefore: string
+  contextAfter: string
+}
+
+export interface ReviewDecision {
+  id: string
+  feedbackId: string
+  decision: ReviewDecisionType
+  note: string
+  createdAt: string
+}
+
+export interface ReviewFeedback {
+  id: string
+  sessionId: string
+  sceneId: string
+  sceneTitle: string
+  kind: ReviewFeedbackKind
+  body: string
+  anchor: ReviewAnchor
+  originalText: string
+  replacementText: string
+  createdAt: string
+  decisions: ReviewDecision[]
+  currentDecision: ReviewDecisionType | null
+  anchorStatus: ReviewAnchorStatus
+  resolvedStartOffset: number | null
+}
+
+export interface ReviewSessionScene {
+  id: string
+  title: string
+  plainText: string
+  contentHash: string
+  provenanceLabel: ProvenanceLabel | null
+}
+
+export interface ReviewSession {
+  id: string
+  projectId: string | null
+  sourceProjectId: string
+  projectTitle: string
+  role: ReviewRole
+  reviewerName: string
+  sceneIds: string[]
+  scenes: ReviewSessionScene[]
+  includeProvenance: boolean
+  direction: 'authored' | 'received' | 'restored'
+  status: 'open' | 'closed' | 'archived'
+  expiresAt: string | null
+  createdAt: string
+  feedback: ReviewFeedback[]
+}
+
+export interface ReviewPackage {
+  format: 'bbd-review-v1'
+  protocolVersion: 1
+  mode: 'assignment' | 'response'
+  packageId: string
+  sessionId: string
+  projectFingerprint: string
+  keySalt: string
+  keyVerifier: string
+  nonce: string
+  authTag: string
+  ciphertextHash: string
+  ciphertext: string
+  createdAt: string
+}
+
+export interface ReviewPackageInspection {
+  valid: true
+  mode: 'assignment' | 'response'
+  sessionId: string
+  projectTitle: string
+  reviewerName: string
+  role: ReviewRole
+  sceneCount: number
+  feedbackCount: number
+  createdAt: string
+}
+
+export type SprintScope = 'scene' | 'project'
+export type SprintStatus = 'running' | 'paused' | 'completed' | 'cancelled'
+export type SprintClockStatus = 'ok' | 'sleep_reconciled' | 'clock_anomaly'
+export type SprintEventType = 'started' | 'paused' | 'resumed' | 'sleep_detected' | 'clock_anomaly' | 'completed' | 'cancelled'
+
+export interface SprintSnapshotScene {
+  sceneId: string
+  revisionId: string | null
+  contentHash: string
+  wordCount: number
+}
+
+export interface SprintSample {
+  id: string
+  sessionId: string
+  kind: 'start' | 'checkpoint' | 'end'
+  capturedAt: string
+  activeElapsedMs: number
+  totalWords: number
+  netWords: number
+  scenes: SprintSnapshotScene[]
+}
+
+export interface SprintEvent {
+  id: string
+  sessionId: string
+  type: SprintEventType
+  occurredAt: string
+  activeElapsedMs: number
+  metadata: Record<string, unknown>
+  previousHash: string | null
+  eventHash: string
+}
+
+export interface SprintResultCard {
+  id: string
+  sessionId: string
+  projectId: string
+  participantLabel: string
+  scope: SprintScope
+  projectFingerprint: string
+  scopeFingerprint: string
+  startedAt: string
+  endedAt: string
+  activeDurationMs: number
+  goalWords: number
+  netWords: number
+  eventChainHead: string
+  eventCount: number
+  createdAt: string
+}
+
+export interface SprintSession {
+  id: string
+  projectId: string
+  scope: SprintScope
+  sceneId: string | null
+  durationMinutes: number
+  goalWords: number
+  status: SprintStatus
+  clockStatus: SprintClockStatus
+  startedAt: string
+  plannedEndAt: string
+  pausedAt: string | null
+  endedAt: string | null
+  totalPausedMs: number
+  lastReconciledAt: string
+  activeElapsedMs: number
+  currentWords: number
+  netWords: number
+  samples: SprintSample[]
+  events: SprintEvent[]
+  resultCard: SprintResultCard | null
+}
+
+export type SprintShareCard = Omit<SprintResultCard, 'sessionId' | 'projectId'>
+
+export interface SprintPackage {
+  format: 'bbd-sprint-v1'
+  protocolVersion: 1
+  card: SprintShareCard
+  events: Array<Omit<SprintEvent, 'sessionId'>>
+  cardHash: string
+}
+
+export interface SprintPackageInspection {
+  valid: true
+  cardId: string
+  participantLabel: string
+  scope: SprintScope
+  startedAt: string
+  endedAt: string
+  activeDurationMs: number
+  goalWords: number
+  netWords: number
+  eventCount: number
+}
+
+export interface SprintBoardEntry {
+  card: SprintShareCard
+  cardHash: string
+  importedAt: string
+}
+
+export interface SprintBoardParticipant {
+  participantLabel: string
+  netWords: number
+  sprintCount: number
+}
+
+export interface SprintBoard {
+  id: string
+  projectId: string
+  name: string
+  period: 'day' | 'week'
+  targetWords: number
+  periodStartedAt: string
+  createdAt: string
+  updatedAt: string
+  entries: SprintBoardEntry[]
+  totalNetWords: number
+  participants: SprintBoardParticipant[]
+}
+
+export type TemplateCapability = 'project.summary.read' | 'plan.nodes.create' | 'local.rules.run'
+export type TemplatePackageStatus = 'enabled' | 'disabled' | 'uninstalled'
+
+export interface TemplateStructureNode {
+  localId: string
+  parentLocalId: string | null
+  type: 'chapter' | 'scene'
+  title: string
+  description: string
+  status: Extract<SceneStatus, 'idea' | 'planned'>
+}
+
+export interface TemplateRule {
+  id: string
+  kind: 'minimum_scene_count' | 'unique_titles'
+  title: string
+  config: Record<string, unknown>
+}
+
+export interface TemplateManifest {
+  packageId: string
+  name: string
+  version: string
+  description: string
+  authorLabel: string
+  license: string
+  sourceUrl: string
+  capabilities: TemplateCapability[]
+  structureHash: string
+}
+
+export interface TemplatePackage {
+  format: 'bbd-template-v1'
+  protocolVersion: 1
+  manifest: TemplateManifest
+  structure: { nodes: TemplateStructureNode[]; rules: TemplateRule[] }
+  packageHash: string
+}
+
+export interface TemplatePackageInspection {
+  valid: true
+  duplicate: boolean
+  collision: boolean
+  manifest: TemplateManifest
+  chapterCount: number
+  sceneCount: number
+  ruleCount: number
+  packageHash: string
+  warnings: string[]
+}
+
+export interface TemplateInstallation {
+  id: string
+  manifest: TemplateManifest
+  package: TemplatePackage
+  packageHash: string
+  status: TemplatePackageStatus
+  builtIn: boolean
+  installedAt: string
+  updatedAt: string
+}
+
+export interface TemplateGrant {
+  projectId: string
+  installationId: string
+  capability: TemplateCapability
+  granted: boolean
+  updatedAt: string
+}
+
+export interface TemplateRuleResult {
+  ruleId: string
+  title: string
+  passed: boolean
+  message: string
+}
+
+export interface TemplatePreviewNode extends TemplateStructureNode {
+  parentTitle: string
+  conflict: 'none' | 'title'
+}
+
+export interface TemplatePreview {
+  projectId: string
+  installationId: string
+  packageHash: string
+  previewHash: string
+  projectSummary: { title: string; description: string; chapterCount: number; sceneCount: number } | null
+  nodes: TemplatePreviewNode[]
+  conflicts: string[]
+  ruleResults: TemplateRuleResult[]
+  requiredCapabilities: TemplateCapability[]
+  missingCapabilities: TemplateCapability[]
+}
+
+export interface TemplateApplication {
+  id: string
+  projectId: string
+  installationId: string
+  packageName: string
+  packageVersion: string
+  previewHash: string
+  createdNodeIds: string[]
+  status: 'applied' | 'reverted'
+  appliedAt: string
+  revertedAt: string | null
 }
 
 export interface Entity {

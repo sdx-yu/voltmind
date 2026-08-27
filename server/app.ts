@@ -14,7 +14,10 @@ import { checkPovKnowledge } from './knowledge.js'
 import { runDeliveryCheck } from './delivery.js'
 import { buildProvenanceBundle, renderProvenanceHtml, verifyProvenanceBundle } from './provenance.js'
 import { SyncService } from './sync.js'
-import { nowIso, sha256 } from './utils.js'
+import { ReviewService } from './review.js'
+import { SprintService } from './sprint.js'
+import { TemplateService } from './template.js'
+import { newId, nowIso, sha256 } from './utils.js'
 
 const nodeInput = z.object({ parentId: z.string().nullable(), type: z.enum(['book', 'volume', 'chapter', 'scene']), title: z.string().trim().min(1).max(200), sortKey: z.number().int().optional() })
 const sceneInput = z.object({ contentJson: z.record(z.string(), z.unknown()), plainText: z.string(), sourceType: z.enum(['human', 'import', 'ai_accepted', 'restore', 'merge']).default('human'), sourceTaskId: z.string().nullable().default(null) })
@@ -27,12 +30,17 @@ const seriesInput = z.object({ name: z.string().trim().min(1).max(120), descript
 const seriesCanonInput = z.object({ type: z.enum(['character', 'location', 'item', 'event']), canonicalName: z.string().trim().min(1).max(100), aliases: z.array(z.string()).default([]), summary: z.string().max(3000).default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('normal') })
 const seriesOverrideInput = z.object({ canonicalName: z.string().trim().min(1).max(100), aliases: z.array(z.string()).default([]), summary: z.string().max(3000).default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('normal') })
 const styleSampleInput = z.object({ title: z.string().trim().min(1).max(120), content: z.string().trim().min(1).max(20000), guidance: z.string().max(1000).default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('author_only'), enabled: z.boolean().default(true) })
+const reviewPhraseInput = z.object({ recoveryPhrase: z.string().min(1).max(200) })
+const reviewPackageInput = reviewPhraseInput.extend({ package: z.unknown() })
 
 export function createApp(config: AppConfig, database = new AppDatabase(config.databasePath)) {
   const app = express()
   const vault = new LocalVault(config.dataDir)
   const ai = new AiService(database, vault)
   const sync = new SyncService(database)
+  const reviews = new ReviewService(database)
+  const sprints = new SprintService(database)
+  const templates = new TemplateService(database)
   const sessionToken = randomBytes(24).toString('hex')
   const allowedOrigins = new Set([`http://${config.host}:4318`, `http://${config.host}:${config.port}`])
 
@@ -343,6 +351,89 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   }))
   app.post('/api/sync/drill', route(async (_req, res) => res.json(sync.runDrill())))
 
+  app.get('/api/projects/:id/reviews', route(async (req, res) => res.json(database.listReviewSessions(param(req, 'id')).filter((session) => session.projectId === param(req, 'id')))))
+  app.get('/api/reviews/received', route(async (_req, res) => res.json(database.listReviewSessions().filter((session) => session.direction === 'received'))))
+  app.post('/api/projects/:id/reviews', route(async (req, res) => {
+    const input = z.object({ reviewerName: z.string().trim().min(1).max(120), role: z.enum(['editor', 'beta_reader', 'co_writer']), sceneIds: z.array(z.string()).min(1).max(100), includeProvenance: z.boolean().default(false), expiresAt: z.string().datetime().nullable().default(null) }).parse(req.body)
+    res.status(201).json(reviews.createAssignment(param(req, 'id'), input))
+  }))
+  app.post('/api/reviews/:id/export-assignment', route(async (req, res) => res.json(reviews.exportAssignment(param(req, 'id'), reviewPhraseInput.parse(req.body).recoveryPhrase))))
+  app.post('/api/reviews/:id/export-response', route(async (req, res) => res.json(reviews.exportResponse(param(req, 'id'), reviewPhraseInput.parse(req.body).recoveryPhrase))))
+  app.post('/api/reviews/inspect', route(async (req, res) => { const input = reviewPackageInput.parse(req.body); res.json(reviews.inspectPackage(input.package, input.recoveryPhrase)) }))
+  app.post('/api/reviews/import', route(async (req, res) => { const input = reviewPackageInput.extend({ targetProjectId: z.string().optional() }).parse(req.body); res.status(201).json(reviews.importPackage(input.package, input.recoveryPhrase, input.targetProjectId)) }))
+  app.post('/api/reviews/:id/feedback', route(async (req, res) => {
+    const input = z.object({ id: z.string().optional(), sceneId: z.string(), kind: z.enum(['comment', 'suggestion']), body: z.string().trim().min(1).max(5000), paragraphIndex: z.number().int().min(0), startOffset: z.number().int().min(0), endOffset: z.number().int().positive(), replacementText: z.string().max(20000).optional() }).parse(req.body)
+    res.status(201).json(reviews.addFeedback(param(req, 'id'), input))
+  }))
+  app.post('/api/projects/:projectId/reviews/feedback/:feedbackId/decide', route(async (req, res) => {
+    const input = z.object({ decision: z.enum(['accepted', 'rejected', 'deferred']), note: z.string().max(2000).default('') }).parse(req.body)
+    res.json(reviews.decide(param(req, 'projectId'), param(req, 'feedbackId'), input.decision, input.note))
+  }))
+
+  app.get('/api/projects/:id/sprints', route(async (req, res) => res.json(sprints.list(param(req, 'id')))))
+  app.post('/api/projects/:id/sprints', route(async (req, res) => {
+    const input = z.object({ scope: z.enum(['scene', 'project']), sceneId: z.string().nullable().optional(), durationMinutes: z.number().int().min(10).max(120), goalWords: z.number().int().min(1).max(50_000) }).parse(req.body)
+    res.status(201).json(sprints.start(param(req, 'id'), input))
+  }))
+  app.post('/api/sprints/:id/pause', route(async (req, res) => res.json(sprints.pause(param(req, 'id'), z.object({ reason: z.string().max(80).default('manual') }).parse(req.body ?? {}).reason))))
+  app.post('/api/sprints/:id/resume', route(async (req, res) => res.json(sprints.resume(param(req, 'id')))))
+  app.post('/api/sprints/:id/reconcile', route(async (req, res) => {
+    const input = z.object({ sleepDetected: z.boolean().default(false), lastObservedAt: z.string().datetime().optional(), reason: z.string().max(80).optional() }).parse(req.body ?? {})
+    res.json(sprints.reconcile(param(req, 'id'), input))
+  }))
+  app.post('/api/sprints/:id/complete', route(async (req, res) => res.json(sprints.complete(param(req, 'id'), z.object({ participantLabel: z.string().max(40).default('匿名作者') }).parse(req.body ?? {}).participantLabel))))
+  app.post('/api/sprints/:id/cancel', route(async (req, res) => res.json(sprints.cancel(param(req, 'id')))))
+  app.get('/api/sprint-cards/:id/export', route(async (req, res) => res.json(sprints.exportCard(param(req, 'id')))))
+  app.post('/api/sprint-cards/inspect', route(async (req, res) => res.json(sprints.inspect(z.object({ package: z.unknown() }).parse(req.body).package))))
+  app.get('/api/projects/:id/sprint-boards', route(async (req, res) => res.json(sprints.listBoards(param(req, 'id')))))
+  app.post('/api/projects/:id/sprint-boards', route(async (req, res) => {
+    const input = z.object({ name: z.string().trim().min(1).max(80), period: z.enum(['day', 'week']), targetWords: z.number().int().min(1).max(10_000_000), periodStartedAt: z.string().datetime() }).parse(req.body)
+    res.status(201).json(sprints.createBoard(param(req, 'id'), input))
+  }))
+  app.post('/api/sprint-boards/:id/cards/import', route(async (req, res) => res.status(201).json(sprints.importToBoard(param(req, 'id'), z.object({ package: z.unknown() }).parse(req.body).package))))
+  app.post('/api/sprint-boards/:id/cards/local/:cardId', route(async (req, res) => res.status(201).json(sprints.addLocalCard(param(req, 'id'), param(req, 'cardId')))))
+
+  app.get('/api/template-packages', route(async (req, res) => res.json(templates.listInstallations(req.query.includeUninstalled !== '0'))))
+  app.get('/api/template-packages/:id/export', route(async (req, res) => res.json(requireFound(templates.getInstallation(param(req, 'id')), 'Template package').package)))
+  app.post('/api/template-packages/inspect', route(async (req, res) => res.json(templates.inspectPackage(z.object({ package: z.unknown() }).parse(req.body).package))))
+  app.post('/api/template-packages', route(async (req, res) => res.status(201).json(templates.installPackage(z.object({ package: z.unknown() }).parse(req.body).package))))
+  app.patch('/api/template-packages/:id', route(async (req, res) => {
+    const input = z.object({ status: z.enum(['enabled', 'disabled', 'uninstalled']) }).parse(req.body)
+    res.json(templates.setInstallationStatus(param(req, 'id'), input.status))
+  }))
+  app.get('/api/projects/:projectId/template-packages/:packageId/grants', route(async (req, res) => res.json(templates.listGrants(param(req, 'projectId'), param(req, 'packageId')))))
+  app.put('/api/projects/:projectId/template-packages/:packageId/grants/:capability', route(async (req, res) => {
+    const capability = z.enum(['project.summary.read', 'plan.nodes.create', 'local.rules.run']).parse(param(req, 'capability'))
+    const granted = z.object({ granted: z.boolean() }).parse(req.body).granted
+    res.json(templates.setGrant(param(req, 'projectId'), param(req, 'packageId'), capability, granted))
+  }))
+  app.post('/api/projects/:projectId/template-packages/:packageId/preview', route(async (req, res) => res.json(templates.preview(param(req, 'projectId'), param(req, 'packageId')))))
+  app.post('/api/projects/:projectId/template-packages/:packageId/applications', route(async (req, res) => {
+    const input = z.object({ previewHash: z.string().length(64), conflictStrategy: z.enum(['cancel', 'rename']).default('cancel') }).parse(req.body)
+    res.status(201).json(templates.apply(param(req, 'projectId'), param(req, 'packageId'), input.previewHash, input.conflictStrategy))
+  }))
+  app.get('/api/projects/:id/template-applications', route(async (req, res) => res.json(templates.listApplications(param(req, 'id')))))
+  app.post('/api/template-applications/:id/revert', route(async (req, res) => res.json(templates.revert(param(req, 'id')))))
+
+  app.get('/api/mobile/inbox', route(async (req, res) => res.json(database.listMobileInbox(req.query.projectId ? String(req.query.projectId) : undefined))))
+  app.post('/api/mobile/inbox', route(async (req, res) => {
+    const input = z.object({ id: z.string().min(8).max(100), projectId: z.string().nullable(), targetNodeId: z.string().nullable(), kind: z.enum(['inspiration', 'scene_idea', 'review_note']), content: z.string().trim().min(1).max(10000), originDeviceId: z.string().max(100).nullable().default(null), createdAt: z.iso.datetime() }).parse(req.body)
+    res.status(201).json(database.createMobileInboxItem(input))
+  }))
+  app.post('/api/mobile/inbox/:id/actions', route(async (req, res) => {
+    const input = z.object({ id: z.string().min(8).max(100), action: z.enum(['filed', 'dismissed', 'revisit', 'approved']), note: z.string().max(1000).default(''), createdAt: z.iso.datetime() }).parse(req.body)
+    res.status(201).json(database.createMobileInboxAction({ ...input, itemId: param(req, 'id') }))
+  }))
+  app.get('/api/mobile/library', route(async (_req, res) => {
+    const projects = database.listProjects()
+    const scenes = projects.flatMap((project) => database.listNodes(project.id).filter((node) => node.type === 'scene').map((node) => {
+      const document = database.getScene(node.id)!; const revision = database.listRevisions(node.id)[0]
+      return { id: node.id, projectId: project.id, projectTitle: project.title, title: node.title, plainText: document.plainText, updatedAt: document.updatedAt, provenanceLabel: revision?.provenanceLabel ?? null }
+    })).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 100)
+    const sprintCards = projects.flatMap((project) => database.listSprintSessions(project.id).flatMap((session) => session.resultCard ? [session.resultCard] : [])).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50)
+    res.json({ projects, scenes, sprintCards })
+  }))
+
   app.post('/api/import', route(async (req, res) => {
     const input = z.object({ title: z.string().trim().min(1).max(200), chapters: z.array(z.object({ title: z.string().min(1).max(200), text: z.string(), contentJson: z.record(z.string(), z.unknown()) })).min(1), original: z.object({ fileName: z.string().min(1), mimeType: z.string(), byteSize: z.number().int().nonnegative(), contentHash: z.string().length(64), contentBase64: z.string() }) }).parse(req.body)
     const originalBytes = Buffer.from(input.original.contentBase64, 'base64'); const actualHash = sha256(originalBytes)
@@ -386,12 +477,12 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   }))
 
   app.get('/api/projects/:id/backup', route(async (req, res) => {
-    const archive = exportProject(database, param(req, 'id'))
+    const archive = exportProject(database, templates, param(req, 'id'))
     res.type('application/json').setHeader('Content-Disposition', `attachment; filename="project.bbd-backup"`).send(JSON.stringify(archive, null, 2))
   }))
   app.post('/api/backups/restore', route(async (req, res) => {
     const archive = backupSchema.parse(req.body)
-    const restored = importProject(database, archive)
+    const restored = importProject(database, templates, archive)
     res.status(201).json(restored)
   }))
 
@@ -406,10 +497,10 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验/i.test(message) ? 422 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|ID collision|outside this board period|title conflict|preview is stale|already reverted|必须明确选择|不能静默改写/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|Sprint event|Sprint result|Template structure hash|Template package hash|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled/i.test(message) ? 403 : 500
     return res.status(status).json({ error: message })
   })
-  return { app, database, ai, sync }
+  return { app, database, ai, sync, reviews, sprints, templates }
 }
 
 function route(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
@@ -485,14 +576,14 @@ function requireFound<T>(value: T | null, label: string): T {
 }
 
 const backupPayloadSchema = z.object({
-  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(),
+  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(),
 })
 const backupSchema = z.object({ format: z.literal('bbd-backup-v2'), checksum: z.string().length(64), payload: backupPayloadSchema }).superRefine((archive, context) => {
   if (sha256(JSON.stringify(archive.payload)) !== archive.checksum) context.addIssue({ code: 'custom', message: '备份校验失败，文件可能已损坏或被修改' })
 })
 type Backup = z.infer<typeof backupSchema>
 
-function exportProject(database: AppDatabase, projectId: string): Backup {
+function exportProject(database: AppDatabase, templates: TemplateService, projectId: string): Backup {
   const project = database.getProject(projectId)
   if (!project) throw new Error('Project not found')
   const nodes = database.listNodes(projectId, true)
@@ -514,11 +605,17 @@ function exportProject(database: AppDatabase, projectId: string): Backup {
   const delivery = { readAloudPreferences: database.getReadAloudPreferences(projectId), ruleOverrides: database.listDeliveryRuleOverrides(projectId), checkRuns: database.listDeliveryCheckRuns(projectId) }
   const aiTasks = database.db.prepare(`SELECT id,project_id AS projectId,node_id AS nodeId,task_type AS taskType,prompt_version AS promptVersion,model,context_hash AS contextHash,output_hash AS outputHash,input_tokens AS inputTokens,output_tokens AS outputTokens,status,created_at AS createdAt FROM ai_tasks WHERE project_id=? ORDER BY created_at,rowid`).all(projectId)
   const provenance = { events: database.listProvenanceEvents(projectId), exports: database.listProvenanceExports(projectId) }
-  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance }
+  const mobileInbox = database.listMobileInbox(projectId).filter((item) => item.projectId === projectId)
+  const review = database.listReviewSessions(projectId).filter((session) => session.projectId === projectId).map((session) => ({ id: session.id, projectTitle: session.projectTitle, role: session.role, reviewerName: session.reviewerName, sceneIds: session.sceneIds, scenes: session.scenes, includeProvenance: session.includeProvenance, status: session.status, expiresAt: session.expiresAt, createdAt: session.createdAt, feedback: session.feedback }))
+  const sprintSessions = database.listSprintSessions(projectId)
+  const sprintBoards = database.listSprintBoards(projectId).map((board) => ({ ...board, packages: database.listSprintBoardPackages(board.id) }))
+  const sprint = { sessions: sprintSessions, boards: sprintBoards }
+  const templateBundle = templates.exportProjectBundle(projectId)
+  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle }
   return { format: 'bbd-backup-v2', checksum: sha256(JSON.stringify(payload)), payload }
 }
 
-function importProject(database: AppDatabase, archive: Backup) {
+function importProject(database: AppDatabase, templates: TemplateService, archive: Backup) {
   const source = archive.payload
   const project = database.createProject(`${source.project.title}（恢复）`, source.project.description)
   const idMap = new Map<string, string>(); const entityMap = new Map<string, string>(); const mentionMap = new Map<string, string>(); const candidateMap = new Map<string, string>(); const taskMap = new Map<string, string>(); const revisionMap = new Map<string, string>()
@@ -605,6 +702,50 @@ function importProject(database: AppDatabase, archive: Backup) {
       run.createdAt ?? nowIso(),
     )
     if (source.provenance) database.replaceProvenanceForRestore(project.id, source.provenance.events, source.provenance.exports, { nodes: idMap, revisions: revisionMap, tasks: taskMap })
+    for (const session of source.review ?? []) {
+      const sessionId = randomBytes(16).toString('hex')
+      const mappedSceneIds = (session.sceneIds ?? []).map((id: string) => idMap.get(id)).filter(Boolean) as string[]
+      if (!mappedSceneIds.length) continue
+      database.createReviewSession({ id: sessionId, projectId: project.id, sourceProjectId: project.id, projectTitle: project.title, role: session.role, reviewerName: session.reviewerName, sceneIds: mappedSceneIds, scenes: (session.scenes ?? []).map((scene: any) => ({ ...scene, id: idMap.get(scene.id) })).filter((scene: any) => scene.id), includeProvenance: Boolean(session.includeProvenance), direction: 'restored', status: 'archived', projectFingerprint: '', keySalt: '', keyVerifier: '', expiresAt: session.expiresAt ?? null, createdAt: session.createdAt ?? nowIso() })
+      for (const feedback of session.feedback ?? []) {
+        const sceneId = idMap.get(String(feedback.sceneId)); if (!sceneId || !mappedSceneIds.includes(sceneId)) continue
+        const feedbackId = randomBytes(16).toString('hex')
+        database.db.prepare('INSERT INTO review_feedback(id,session_id,scene_id,scene_title,kind,body,anchor_json,original_text,replacement_text,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(feedbackId, sessionId, sceneId, feedback.sceneTitle, feedback.kind, feedback.body, JSON.stringify(feedback.anchor), feedback.originalText ?? '', feedback.replacementText ?? '', feedback.createdAt ?? nowIso())
+        for (const decision of feedback.decisions ?? []) database.db.prepare('INSERT INTO review_decisions(id,feedback_id,decision,note,created_at) VALUES(?,?,?,?,?)').run(randomBytes(16).toString('hex'), feedbackId, decision.decision, decision.note ?? '', decision.createdAt ?? nowIso())
+      }
+    }
+    for (const item of source.mobileInbox ?? []) {
+      const itemId = randomBytes(16).toString('hex')
+      database.createMobileInboxItem({ id: itemId, projectId: project.id, targetNodeId: item.targetNodeId ? idMap.get(String(item.targetNodeId)) ?? null : null, kind: item.kind, content: item.content, originDeviceId: null, createdAt: item.createdAt })
+      for (const action of item.actions ?? []) database.createMobileInboxAction({ id: randomBytes(16).toString('hex'), itemId, action: action.action, note: action.note ?? '', createdAt: action.createdAt })
+    }
+    for (const session of source.sprint?.sessions ?? []) {
+      const sessionId = newId(); const sceneId = session.sceneId ? idMap.get(String(session.sceneId)) ?? null : null
+      if (session.scope === 'scene' && !sceneId) continue
+      const sourceBaseline = session.samples?.find((sample: any) => sample.kind === 'start')?.scenes ?? []
+      const baseline = sourceBaseline.map((scene: any) => ({ ...scene, sceneId: idMap.get(String(scene.sceneId)) })).filter((scene: any) => scene.sceneId)
+      if (!baseline.length) continue
+      database.createSprintSession({ id: sessionId, projectId: project.id, scope: session.scope, sceneId, durationMinutes: session.durationMinutes, goalWords: session.goalWords, baseline, startedAt: session.startedAt, plannedEndAt: session.plannedEndAt })
+      database.db.prepare('DELETE FROM sprint_samples WHERE session_id=?').run(sessionId)
+      for (const sample of session.samples ?? []) {
+        const scenes = (sample.scenes ?? []).map((scene: any) => ({ ...scene, sceneId: idMap.get(String(scene.sceneId)) })).filter((scene: any) => scene.sceneId)
+        database.addSprintSample({ id: newId(), sessionId, kind: sample.kind, capturedAt: sample.capturedAt, activeElapsedMs: sample.activeElapsedMs, totalWords: sample.totalWords, netWords: sample.netWords, scenes })
+      }
+      for (const event of session.events ?? []) database.appendSprintEvent({ id: newId(), sessionId, type: event.type, occurredAt: event.occurredAt, activeElapsedMs: event.activeElapsedMs, metadata: event.metadata ?? {} })
+      const finalStatus = ['completed', 'cancelled'].includes(session.status) ? session.status : 'cancelled'
+      const endedAt = session.endedAt ?? archive.payload.exportedAt
+      if (!['completed', 'cancelled'].includes(session.status)) database.appendSprintEvent({ sessionId, type: 'cancelled', occurredAt: endedAt, activeElapsedMs: session.activeElapsedMs ?? 0, metadata: { reason: 'backup_restore' } })
+      database.updateSprintSession(sessionId, { status: finalStatus, clockStatus: session.clockStatus ?? 'ok', pausedAt: null, endedAt, totalPausedMs: session.totalPausedMs ?? 0, lastReconciledAt: endedAt })
+      if (finalStatus === 'completed' && session.resultCard) {
+        const events = database.getSprintSession(sessionId)!.events
+        database.createSprintResultCard({ ...session.resultCard, id: newId(), sessionId, projectId: project.id, projectFingerprint: sha256(`bbd-sprint-v1:project:${project.id}`), scopeFingerprint: sha256(`bbd-sprint-v1:scope:${project.id}:${session.scope}:${sceneId ?? 'all'}`), eventChainHead: events.at(-1)!.eventHash, eventCount: events.length })
+      }
+    }
+    for (const board of source.sprint?.boards ?? []) {
+      const restoredBoard = database.createSprintBoard({ projectId: project.id, name: board.name, period: board.period, targetWords: board.targetWords, periodStartedAt: board.periodStartedAt })
+      for (const sprintPackage of board.packages ?? []) database.addSprintBoardCard(restoredBoard.id, sprintPackage, board.updatedAt ?? nowIso())
+    }
+    if (source.templates) templates.importProjectBundle(project.id, source.templates, idMap)
     for (const node of source.nodes as any[]) if (node.deletedAt && idMap.has(node.id)) database.softDeleteNode(idMap.get(node.id)!, true)
     for (const entity of source.entities as any[]) if (entity.deletedAt && entityMap.has(entity.id)) database.updateEntity(entityMap.get(entity.id)!, { deletedAt: nowIso() })
     return database.getProject(project.id)
@@ -617,6 +758,20 @@ function importProject(database: AppDatabase, archive: Backup) {
 function cleanupProject(database: AppDatabase, projectId: string) {
   database.db.exec('PRAGMA foreign_keys=OFF')
   try {
+    database.db.prepare('DELETE FROM template_events WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM template_applications WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM template_grants WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM sprint_board_cards WHERE board_id IN (SELECT id FROM sprint_boards WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM sprint_boards WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM sprint_result_cards WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM sprint_events WHERE session_id IN (SELECT id FROM sprint_sessions WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM sprint_samples WHERE session_id IN (SELECT id FROM sprint_sessions WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM sprint_sessions WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM review_decisions WHERE feedback_id IN (SELECT f.id FROM review_feedback f JOIN review_sessions s ON s.id=f.session_id WHERE s.project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM review_feedback WHERE session_id IN (SELECT id FROM review_sessions WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM review_sessions WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM mobile_inbox_actions WHERE item_id IN (SELECT id FROM mobile_inbox_items WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM mobile_inbox_items WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM sync_conflicts WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM sync_updates WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM sync_object_versions WHERE project_id=?').run(projectId)
