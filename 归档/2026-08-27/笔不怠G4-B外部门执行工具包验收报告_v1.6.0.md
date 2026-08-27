@@ -2,7 +2,7 @@
 
 验收日期：2026-08-27（Asia/Singapore）
 
-实现基线：`06732024426cd0cd89cf43ac795ba6a2e6d80d01`
+实现基线：`4433e5589639b3dada4cdff139d40da5fff066e4`
 
 阶段结论：**G4-B 外部门执行工具包工程通过；公开发布 NO-GO。**
 
@@ -14,7 +14,7 @@
 - macOS 正式发布命令先硬检查完整 Xcode、Developer ID 和公证凭据，完成后复核 app/DMG 的 codesign、Gatekeeper、stapler 与哈希；
 - Windows 正式发布命令先检查 x64、代码签名私钥/有效期/EKU 与 RFC 3161 时间戳，再生成 NSIS/MSI 并复核 Authenticode；
 - Windows PowerShell 真机矩阵覆盖安装、卸载、微软拼音、搜狗拼音与强退恢复；
-- `/mobile-acceptance.html` 采集不含正文的真机证据，汇总器要求 360/390/430px、iOS Safari、Android Chrome 与五项闭环；
+- `/mobile-acceptance.html` 自行注册 Service Worker 并采集不含正文的真机证据，汇总器要求页面已被接管、360/390/430px、iOS Safari、Android Chrome 与五项闭环；
 - 《种子作者波次启动包》完成招募、同意、安全交付、支持、删除、停机和 2/4 周执行节奏；没有发送邀请或创建虚构作者。
 
 最终机器证据：
@@ -29,9 +29,9 @@
 | 检查 | 结果 |
 |---|---|
 | 脚本语法 | 8 个新增/修改 ESM 发布脚本经 `node --check` 通过 |
-| 专项测试 | runtime、移动矩阵与发布门 3 文件 7 项通过；覆盖 Windows ZIP/node.exe、平台拒绝、真机正反例与七门决策 |
+| 专项测试 | runtime、移动矩阵与发布门 3 文件 8 项通过；覆盖 Windows ZIP/node.exe、平台拒绝、前检 PASS/BLOCKED 语义、真机正反例与七门决策 |
 | TypeScript | app/server 两套 `tsc --noEmit` 通过 |
-| 全量自动化 | 39 个测试文件、139 项测试全部通过，0 失败；总时长 440.18 秒 |
+| 全量自动化 | 39 个测试文件、140 项测试全部通过，0 失败；最终总时长 491.76 秒 |
 | 生产 Web 构建 | Vite 2,155 模块通过；`mobile-acceptance.html` 与更新后的 `sw.js` 均进入 `dist` |
 | Node SEA sidecar | 重新生成成功；产物为 arm64 Mach-O；桌面包内 sidecar 严格签名结构通过 |
 | Tauri 桌面构建 | release profile 完成，生成 `.app` 与 1.6.0 DMG；移动验收页进入 app resources |
@@ -41,8 +41,8 @@
 
 ## 三、发布物料哈希
 
-- 1.6.0 app ZIP：`340db504cac02b8cf39e1c4f56c4e54c863c4d879e6d8d02b9d3af37a36d9466`
-- 1.6.0 DMG：`23865bb56864f7d806f79e7ca752b463dbd8f133e35278f82e5a869716a95426`
+- 1.6.0 app ZIP：`78fc837842077f7c9f8bbed252354a6bdc576bf63cc252290c02be5689b23c64`
+- 1.6.0 DMG：`47a7d8fc2770d7bdf561258a8f0fd23221689d5ace6885f34caba6758993a3ec`
 - CycloneDX 1.6 SBOM：`11565f15c082da517cbd70a33230f519d0c13ec4ce515e1018e6292abdb72375`
 - 第三方许可证：`e7506b0d95678d88b8c548de0d86fe2680336cbf5c2632adfa9985e819214709`
 

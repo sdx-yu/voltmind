@@ -1,10 +1,10 @@
 {
   "schemaVersion": "g4-release-readiness-v1",
-  "checkedAt": "2026-08-27T14:53:36.454Z",
+  "checkedAt": "2026-08-27T15:28:41.042Z",
   "releaseDecision": "NO-GO",
   "source": {
     "branch": "main",
-    "commit": "06732024426cd0cd89cf43ac795ba6a2e6d80d01",
+    "commit": "4433e5589639b3dada4cdff139d40da5fff066e4",
     "trackedChanges": false
   },
   "versions": {
@@ -30,8 +30,8 @@
     "checksumManifest": {
       "exists": true,
       "artifact": "release/笔不怠_1.6.0_aarch64.dmg",
-      "artifactSha256": "23865bb56864f7d806f79e7ca752b463dbd8f133e35278f82e5a869716a95426",
-      "recordedSha256": "23865bb56864f7d806f79e7ca752b463dbd8f133e35278f82e5a869716a95426",
+      "artifactSha256": "47a7d8fc2770d7bdf561258a8f0fd23221689d5ace6885f34caba6758993a3ec",
+      "recordedSha256": "47a7d8fc2770d7bdf561258a8f0fd23221689d5ace6885f34caba6758993a3ec",
       "artifactRecorded": true
     }
   },
