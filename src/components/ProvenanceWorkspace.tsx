@@ -4,7 +4,7 @@ import { ArrowLeft, Bot, CheckCircle2, Download, FileCheck2, FileJson2, Fingerpr
 import type { ManuscriptNode, Project, ProvenanceEvent, ProvenanceExportRecord, ProvenanceVerification, Revision } from '../../shared/types'
 import { api } from '../lib/api'
 import { Modal } from './Modal'
-import { Button, MetricStrip, PageHeader, WorkflowTemplate } from '../ui'
+import { Button, MetricStrip, PageHeader, SelectControl, WorkflowTemplate } from '../ui'
 
 type Props = {
   project: Project
@@ -78,7 +78,7 @@ export function ProvenanceWorkspace({ project, nodes, onSelectScene, onBack, not
 
     <div className="provenance-layout">
       <section className="provenance-card timeline-card-large">
-        <header><div><h3>项目时间线</h3><small>{visible.length} / {events.length} 条事件</small></div><div className="provenance-filters"><select aria-label="按场景筛选" value={nodeId} onChange={(event) => setNodeId(event.target.value)}><option value="">全部场景</option>{scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</select><div>{([['all','全部'],['human','人工'],['ai','AI'],['system','系统']] as const).map(([value,label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div></div></header>
+        <header><div><h3>项目时间线</h3><small>{visible.length} / {events.length} 条事件</small></div><div className="provenance-filters"><SelectControl aria-label="按场景筛选" value={nodeId} onChange={(event) => setNodeId(event.target.value)}><option value="">全部场景</option>{scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectControl><div>{([['all','全部'],['human','人工'],['ai','AI'],['system','系统']] as const).map(([value,label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div></div></header>
         <div className="provenance-timeline">{visible.length ? visible.map((event) => <article key={event.id} className={`provenance-event event-${eventGroup(event)}`}><span className="event-dot"/><div><header><strong>{eventLabel(event)}</strong><time>{new Date(event.createdAt).toLocaleString('zh-CN')}</time></header><p>{event.nodeTitle || '项目级动作'} · {actorLabel(event.actorType)}</p><footer><code>内容 {event.contentHash ? event.contentHash.slice(0, 12) : '—'}</code><code>事件 {event.eventHash.slice(0, 12)}</code>{event.sourceTaskId && <span>关联 AI 任务</span>}</footer></div><aside>{event.nodeId && <button className="button ghost compact" onClick={() => onSelectScene(event.nodeId!)}><LocateFixed size={12}/>定位</button>}{event.revisionId && <button className="button ghost compact" onClick={() => void showDiff(event)}>版本差异</button>}</aside></article>) : <div className="provenance-empty">当前筛选下没有来源事件。</div>}</div>
       </section>
 

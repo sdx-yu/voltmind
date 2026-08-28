@@ -33,7 +33,7 @@ describe('ReadAloudPanel', () => {
   it('reads the current scene locally and supports position, pause, resume, speed and stop', async () => {
     const notify = vi.fn()
     render(<ReadAloudPanel projectId="p" nodes={nodes} currentNodeId="scene" onClose={vi.fn()} onSelectScene={vi.fn()} notify={notify} />)
-    expect(await screen.findByRole('option', { name: '本地中文 · zh-CN' })).toBeInTheDocument()
+    expect(await screen.findByRole('combobox', { name: '朗读声音' })).toHaveTextContent('本地中文 · zh-CN')
     await userEvent.click(screen.getByRole('button', { name: '开始朗读' }))
     await waitFor(() => expect(synth.speak).toHaveBeenCalledTimes(1))
     expect(mocks.getScene).toHaveBeenCalledWith('scene')

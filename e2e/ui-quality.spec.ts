@@ -74,10 +74,33 @@ test('stores real bookshelf, editor and workflow baselines', async ({ page }) =>
   await expect(page.getByRole('heading', { name: '场景 1' })).toBeVisible()
   await expect(page).toHaveScreenshot('editor-paper-1440.png')
 
+  await page.getByRole('combobox', { name: '进度' }).click()
+  await expect(page.getByRole('listbox')).toBeVisible()
+  await expect(page).toHaveScreenshot('editor-select-paper-1440.png')
+  await page.keyboard.press('Escape')
+
   await page.setViewportSize({ width: 1024, height: 768 })
+  await page.getByRole('button', { name: '正典', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '故事中的事实' })).toBeVisible()
+  await expect(page).toHaveScreenshot('canon-paper-1024.png')
+
   await page.getByRole('button', { name: '交付', exact: true }).click()
   await expect(page.getByRole('heading', { name: '把故事安全地带出去' })).toBeVisible()
   await expect(page).toHaveScreenshot('delivery-paper-1024.png')
+})
+
+test('keeps branded selects keyboard-operable and viewport-bound', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await page.goto('/design-system')
+  const select = page.getByRole('combobox', { name: '场景状态' })
+  await select.focus()
+  await select.press('Enter')
+  await expect(page.getByRole('listbox')).toBeVisible()
+  await expect(page).toHaveScreenshot('gallery-select-paper-1024.png')
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await expect(select).toHaveText('修订中')
+  await expect(select).toBeFocused()
 })
 
 test('passes serious WCAG scans on the component system and core workspaces', async ({ page }) => {

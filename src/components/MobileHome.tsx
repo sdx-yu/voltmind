@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, BookOpen, Check, CloudOff, Download, Flag, Inbox, Lightbulb, RefreshCw, Send, Sparkles, Wifi } from 'lucide-react'
 import type { MobileInboxAction, MobileInboxActionType, MobileInboxItem, MobileInboxKind, MobileLibraryScene } from '../../shared/types'
 import { api } from '../lib/api'
+import { SelectControl } from '../ui'
 import {
   getMobileDeviceId,
   getMobileLibrary,
@@ -126,8 +127,8 @@ export function MobileHome() {
       </div>
       <textarea aria-label="记录内容" value={content} onChange={(event) => setContent(event.target.value)} placeholder={kind === 'review_note' ? '写下阅读时的判断或疑问…' : '先记下来，不打断思路…'} rows={5}/>
       <div className="mobile-targets">
-        <label>归属项目<select aria-label="归属项目" value={projectId} onChange={(event) => { setProjectId(event.target.value); setTargetNodeId('') }}><option value="">稍后整理</option>{library.projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</select></label>
-        <label>关联场景<select aria-label="关联场景" value={targetNodeId} onChange={(event) => setTargetNodeId(event.target.value)}><option value="">不关联场景</option>{projectScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</select></label>
+        <label>归属项目<SelectControl aria-label="归属项目" value={projectId} onChange={(event) => { setProjectId(event.target.value); setTargetNodeId('') }}><option value="">稍后整理</option>{library.projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</SelectControl></label>
+        <label>关联场景<SelectControl aria-label="关联场景" value={targetNodeId} onChange={(event) => setTargetNodeId(event.target.value)}><option value="">不关联场景</option>{projectScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectControl></label>
       </div>
       <button className="mobile-capture-button" disabled={!content.trim()} onClick={() => void capture()}><Send size={18}/>存入收集箱</button>
       {message && <p className="mobile-message" role="status">{message}</p>}

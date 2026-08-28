@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Button, ModalDialog, SegmentedControl, TextField } from './index'
+import { Button, ModalDialog, SearchField, SegmentedControl, SelectField, TextField } from './index'
 
 describe('UI foundation components', () => {
   afterEach(cleanup)
@@ -30,6 +30,26 @@ describe('UI foundation components', () => {
     expect(night).toHaveFocus()
     await userEvent.keyboard('{Enter}')
     expect(onChange).toHaveBeenCalledWith('night')
+  })
+
+  it('uses a branded listbox while preserving keyboard selection and focus', async () => {
+    const onValueChange = vi.fn()
+    render(<SelectField label="场景状态" value="draft" onValueChange={onValueChange}><option value="idea">想法</option><option value="draft">草稿</option><option value="revising">修订中</option></SelectField>)
+    const trigger = screen.getByRole('combobox', { name: '场景状态' })
+    trigger.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    expect(onValueChange).toHaveBeenCalledWith('revising')
+    expect(trigger).toHaveFocus()
+  })
+
+  it('keeps search in one control surface and offers an explicit clear action', async () => {
+    const onValueChange = vi.fn()
+    render(<SearchField label="搜索正典" value="雾港" onValueChange={onValueChange} />)
+    expect(screen.getByRole('searchbox', { name: '搜索正典' })).toHaveValue('雾港')
+    await userEvent.click(screen.getByRole('button', { name: '清空搜索' }))
+    expect(onValueChange).toHaveBeenCalledWith('')
   })
 
   it('closes a modal with Escape and preserves an accessible title', async () => {

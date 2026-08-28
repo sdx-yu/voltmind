@@ -2,7 +2,7 @@
 
 **笔耕不怠，写尽所思。**
 
-中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R～V2-V、R1-A～R1-C 执行能力与 UI-A～UI-E 已完成本机工程验证；真实种子作者、真实两周周期、跨平台正式分发与公开发布仍为 NO-GO，当前版本为 2.1.0。
+中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R～V2-V、R1-A～R1-C 执行能力与 UI-A～UI-F 已完成本机工程验证；真实种子作者、真实两周周期、跨平台正式分发与公开发布仍为 NO-GO，当前版本为 2.2.0。
 
 ## 开发
 
@@ -49,6 +49,7 @@ npm run release:macos:preflight
 - [UI-C 页面模板与核心工作台计划](docs/implementation/UIC_PLAN.md)
 - [UI-D 长尾工作流统一计划](docs/implementation/UID_PLAN.md)
 - [UI-E 质量门与收尾计划](docs/implementation/UIE_PLAN.md)
+- [UI-F 表单与浮层统一计划](docs/implementation/UIF_PLAN.md)
 - [UI 贡献与新增页面准入规范](docs/implementation/UI_CONTRIBUTION_GUIDE.md)
 - [G4-C UI 内测发行候选计划](docs/implementation/G4C_PLAN.md)
 - [需求追踪矩阵](docs/implementation/TRACEABILITY.md)
@@ -96,6 +97,7 @@ npm run release:macos:preflight
 - [UI-C 页面模板与核心工作台验收报告](归档/2026-08-28/笔不怠UI-C页面模板与核心工作台验收报告_v1.9.0.md)
 - [UI-D 长尾工作流统一验收报告](归档/2026-08-28/笔不怠UI-D长尾工作流统一验收报告_v2.0.0.md)
 - [UI-E 质量门与收尾验收报告](归档/2026-08-28/笔不怠UI-E质量门与收尾验收报告_v2.1.0.md)
+- [UI-F 表单与浮层统一验收报告](归档/2026-08-28/笔不怠UI-F表单与浮层统一验收报告_v2.2.0.md)
 - [G4-C 内测发行候选验收报告](归档/2026-08-28/笔不怠G4-C内测发行候选验收报告_v2.1.0.md)
 - [下一阶段 R1 真实作者验证与公开发布门](docs/implementation/R1_PLAN.md)
 - [R1-A 真实验证基础设施](docs/implementation/R1A_PLAN.md)

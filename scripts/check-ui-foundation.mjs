@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const uiDir = join(root, 'src/ui')
+const componentsDir = join(root, 'src/components')
 const tokens = readFileSync(join(uiDir, 'tokens.css'), 'utf8')
 const legacy = readFileSync(join(root, 'src/styles.css'), 'utf8')
 const index = readFileSync(join(uiDir, 'index.ts'), 'utf8')
@@ -26,6 +27,7 @@ const errors = []
 
 const requiredSemanticTokens = [
   '--surface-canvas', '--surface-paper', '--surface-sunken', '--surface-raised', '--surface-overlay',
+  '--surface-control', '--surface-control-hover', '--surface-control-disabled',
   '--text-primary', '--text-secondary', '--text-tertiary', '--text-inverse',
   '--border-faint', '--border-subtle', '--border-strong',
   '--action-primary', '--action-primary-hover', '--action-primary-pressed', '--action-subtle',
@@ -86,6 +88,10 @@ if (plot.includes('V1-A') || canon.includes('V1-C')) errors.push('作者界面�
 const [researchPage, cohortPage, wavePage] = workflowPages.slice(6).map(([, content]) => content)
 if (researchPage.includes('<strong>R1') || cohortPage.includes('<strong>R1') || wavePage.includes('<strong>R1')) errors.push('研究界面顶栏仍暴露研发阶段名')
 
+const nativeSelectFiles = readdirSync(componentsDir).filter((file) => file.endsWith('.tsx') && readFileSync(join(componentsDir, file), 'utf8').includes('<select'))
+if (nativeSelectFiles.length) errors.push(`业务组件仍包含原生选择框：${nativeSelectFiles.join('、')}`)
+if (!canon.includes('<SearchField') || canon.includes('className="canon-search"')) errors.push('正典搜索仍未收敛为单层 SearchField')
+
 const summary = {
   primitiveSlots: primitiveNames.size,
   semanticTokens: requiredSemanticTokens.length,
@@ -99,6 +105,7 @@ const summary = {
   commandPalettes: 2,
   legacyUniqueColors: legacyColors.size,
   legacyImportant,
+  nativeSelects: nativeSelectFiles.length,
 }
 
 if (errors.length) {

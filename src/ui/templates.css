@@ -93,8 +93,8 @@
 .ui-canon-pane-header h1 { margin: var(--space-1) 0 0; font: 650 var(--type-heading-size)/var(--type-heading-line) var(--font-editorial); }
 .ui-canon-list { padding: var(--space-1) var(--space-2); overflow: auto; }
 .ui-canon-list .ui-list-row { margin-bottom: var(--space-1); }
-.ui-canon-pane .canon-search { display: block; padding: var(--space-2) var(--space-4); }
-.ui-canon-pane .canon-search .ui-field { gap: var(--space-1); }
+.ui-canon-pane .ui-canon-search-slot { padding: var(--space-2) var(--space-4); }
+.ui-canon-pane .ui-canon-search-slot .ui-field { gap: var(--space-1); }
 .ui-canon-pane .entity-filters { padding: var(--space-1) var(--space-4) var(--space-2); overflow-x: auto; }
 .ui-canon-pane .entity-filters .ui-tabs { width: 100%; }
 .ui-canon-pane .entity-filters .ui-tabs button { min-width: 0; flex: 1; padding-inline: var(--space-1); }

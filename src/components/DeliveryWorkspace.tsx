@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Check, Download, ExternalLink, FileArchive, FileCheck2, Goal, LocateFixed, RefreshCw, ShieldAlert } from 'lucide-react'
 import type { DeliveryCheckResult, DeliveryCheckRun, DeliveryRule, DeliveryTemplate, Foreshadow, ManuscriptNode, Project } from '../../shared/types'
 import { api, downloadUrl } from '../lib/api'
-import { Badge, Button, Card, MetricStrip, PageHeader, WorkflowSteps, WorkflowTemplate } from '../ui'
+import { Badge, Button, Card, MetricStrip, PageHeader, SelectControl, WorkflowSteps, WorkflowTemplate } from '../ui'
 
 type Props = {
   project: Project
@@ -116,7 +116,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
       <Card className="delivery-card delivery-check-card">
         <header><h3>渠道规则检查</h3><span>{visibleResults.length ? `${visibleResults.length} 条提醒` : checkRun && activeTemplate && checkRun.templateId === activeTemplate.id ? '本次无自动风险' : '尚未检查'}</span></header>
         <div className="delivery-template-picker">
-          <label>检查模板<select aria-label="检查模板" value={activeTemplate?.id ?? ''} onChange={(event) => setTemplateId(event.target.value)}>{templates.map((template) => <option key={template.id} value={template.id}>{template.channel} · {template.name}</option>)}</select></label>
+          <label>检查模板<SelectControl aria-label="检查模板" value={activeTemplate?.id ?? ''} onChange={(event) => setTemplateId(event.target.value)}>{templates.map((template) => <option key={template.id} value={template.id}>{template.channel} · {template.name}</option>)}</SelectControl></label>
           {activeTemplate && <div className="template-provenance">
             <div><strong>{activeTemplate.version}</strong><span>核验 {activeTemplate.verifiedAt || '不适用'}</span>{isStale(activeTemplate) && <em><AlertTriangle size={12}/>建议重新核验</em>}</div>
             <p>{activeTemplate.sourceNote}</p>
@@ -143,7 +143,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
 
       <Card className="delivery-card" title="范围、导出与备份">
         <div className="export-options">
-          <label>文稿模板<select value={exportTemplate} onChange={(event) => setExportTemplate(event.target.value)}><option value="standard">标准章节</option><option value="submission">投稿版（含书名页）</option></select></label>
+          <label>文稿模板<SelectControl value={exportTemplate} onChange={(event) => setExportTemplate(event.target.value)}><option value="standard">标准章节</option><option value="submission">投稿版（含书名页）</option></SelectControl></label>
           <div><small>检查与导出范围</small>{chapters.map((chapter) => <label key={chapter.id}><input type="checkbox" checked={selectedChapters.includes(chapter.id)} onChange={(event) => setSelectedChapters((current) => event.target.checked ? [...current, chapter.id] : current.filter((id) => id !== chapter.id))} />{chapter.title}</label>)}</div>
         </div>
         <div className="check-list compact-check-list">

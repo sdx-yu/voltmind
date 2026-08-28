@@ -17,6 +17,7 @@ import {
   PageHeader,
   Pane,
   Popover,
+  SearchField,
   SegmentedControl,
   SelectField,
   Skeleton,
@@ -53,6 +54,7 @@ export function DesignGallery() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [toastOpen, setToastOpen] = useState(true)
   const [switchOn, setSwitchOn] = useState(true)
+  const [fieldSearch, setFieldSearch] = useState('雾港')
 
   useEffect(() => {
     const root = document.documentElement
@@ -70,7 +72,7 @@ export function DesignGallery() {
 
   return <main className="ui-gallery">
     <header className="ui-gallery-topbar">
-      <div className="ui-gallery-brand"><span>笔</span><div><strong>笔不怠 UI System</strong><small>UI-A～UI-E · 2.1.0 · 笔耕不怠，写尽所思。</small></div></div>
+      <div className="ui-gallery-brand"><span>笔</span><div><strong>笔不怠 UI System</strong><small>UI-A～UI-F · 2.2.0 · 笔耕不怠，写尽所思。</small></div></div>
       <div className="ui-gallery-controls">
         <SegmentedControl items={themeItems} value={theme} onChange={(value) => setTheme(value as GalleryTheme)} label="主题" />
         <SegmentedControl items={densityItems} value={density} onChange={(value) => setDensity(value as GalleryDensity)} label="密度" />
@@ -96,7 +98,7 @@ export function DesignGallery() {
 
       <GallerySection title="字段与选择" description="标签、帮助、错误、禁用和触控状态共用同一结构。">
         <div className="ui-gallery-grid">
-          <Sample title="表单字段"><div className="ui-gallery-stack"><TextField label="故事名称" defaultValue="雾港来信" description="仅保存在本地项目中" /><SelectField label="场景状态" defaultValue="draft"><option value="idea">想法</option><option value="draft">草稿</option><option value="complete">完成</option></SelectField><TextareaField label="场景目标" defaultValue="让主角在错误线索中发现真正的时间矛盾。" /><TextField label="章节编号" defaultValue="-1" error="章节编号必须大于 0" /></div></Sample>
+          <Sample title="表单字段"><div className="ui-gallery-stack"><SearchField label="搜索故事事实" value={fieldSearch} onValueChange={setFieldSearch} placeholder="名称、别名或简介" /><TextField label="故事名称" defaultValue="雾港来信" description="仅保存在本地项目中" /><SelectField label="场景状态" defaultValue="draft"><option value="idea">想法</option><option value="draft">草稿</option><option value="revising">修订中</option><option value="complete">完成</option><option value="published">已发布</option></SelectField><TextareaField label="场景目标" defaultValue="让主角在错误线索中发现真正的时间矛盾。" /><TextField label="章节编号" defaultValue="-1" error="章节编号必须大于 0" /></div></Sample>
           <Sample title="勾选与开关"><div className="ui-gallery-stack"><CheckboxField label="发送当前场景给 AI" description="调用前仍会显示上下文胶囊" defaultChecked /><CheckboxField label="包含仅本地正典" description="隐私字段不可发送" disabled /><SwitchField label="安静保存提示" description="只在保存异常时打断写作" checked={switchOn} onChange={(event) => setSwitchOn(event.target.checked)} /></div></Sample>
         </div>
       </GallerySection>
