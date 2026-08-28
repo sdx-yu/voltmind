@@ -1,7 +1,7 @@
 # 笔不怠 UI-F 表单与浮层统一验收报告 v2.2.0
 
 日期：2026-08-28  
-结论：**UI-F 本机工程与 macOS Chrome 代表环境验收通过**。原生选择浮窗和正典搜索框的两类可见问题已修复，业务页面的原生 `<select>` 已归零；本阶段未重新发行 2.2.0 桌面安装包，公开发布状态不变。
+结论：**UI-F 本机工程、macOS Chrome 代表环境与 2.2.0 Apple Silicon 内测包验收通过**。原生选择浮窗和正典搜索框的两类可见问题已修复，业务页面的原生 `<select>` 已归零；公开发布状态不变。
 
 ## 问题与设计判断
 
@@ -43,8 +43,24 @@
 | 组件展厅浮层 | 选项间距、选中勾号、阴影、圆角和错误字段关系清晰 |
 | 触控密度 | 输入本体与清空按钮达到 44px，未因组合控件缩小实际命中区 |
 
+## 2.2.0 内测交付
+
+安装包从已提交源码 `c1da969` 重建：
+
+| 制品 | 大小 | SHA-256 |
+|---|---:|---|
+| `release/笔不怠_2.2.0_aarch64.app.zip` | 45,046,622 bytes | `e021101f14f88f480e326e1fa3fd492b725e2bba498c347607519c941bfc1c10` |
+| `release/笔不怠_2.2.0_aarch64.dmg` | 45,021,078 bytes | `2613b7adf38357b37312f494f2fb4f3e814ed71944487a57b6994528ffa1f601` |
+
+- App `CFBundleShortVersionString` / `CFBundleVersion` 均为 2.2.0，Mach-O 架构为 arm64；
+- `codesign --verify --deep --strict` 通过，当前仍为 ad-hoc 签名；sidecar 保留 JIT 与 unsigned executable memory entitlement；
+- `hdiutil verify` 的 GPT/HFS/CRC 校验通过，App ZIP 完整解压测试通过；
+- 真实启动后仅监听随机回环端口 `127.0.0.1:65290`，`/api/health` 返回 `ok=true`、`integrity=ok`、`rescueMode=false`，首页标题包含产品名与 slogan；退出后端口关闭；
+- CycloneDX 1.6 SBOM 记录 213 个组件，生产许可证清单记录 222 项，`npm audit --omit=dev --audit-level=high` 为 0 个漏洞；
+- `release/SHA256SUMS` 共记录 37 项发布物料并逐项校验通过。
+
 ## 边界与后续
 
 - 本轮使用自定义 ARIA Listbox 行为，后续新增选择场景必须复用 `SelectControl` / `SelectField`，不得直接新增原生 `select`；
 - 可输入下拉、多选和超大数据虚拟列表未被现有需求触发，不在本阶段范围；
-- 版本元数据已提升到 2.2.0，但桌面 App/DMG、正式签名、公证、Windows 和移动真机未在本阶段重新交付；如需把本轮 UI 发给测试用户，应另行执行 2.2.0 桌面构建与发行验收。
+- 2.2.0 Apple Silicon 内测 App ZIP 与 DMG 已完成，可交给明确知情的内部测试者；正式 Developer ID 签名、公证、Windows 和移动真机仍未交付，不能把本包宣传为公开发布版本。

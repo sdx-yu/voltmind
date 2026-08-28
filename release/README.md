@@ -32,6 +32,8 @@
 - `笔不怠_1.6.0_aarch64.app.zip`：R1-C 应用压缩包；
 - `笔不怠_2.1.0_aarch64.dmg`：UI-A～UI-E 统一设计与质量门 macOS Apple Silicon 内测镜像；
 - `笔不怠_2.1.0_aarch64.app.zip`：UI-A～UI-E 应用压缩包；
+- `笔不怠_2.2.0_aarch64.dmg`：UI-F 表单与浮层统一 macOS Apple Silicon 内测镜像；
+- `笔不怠_2.2.0_aarch64.app.zip`：UI-F 应用压缩包；
 - `SHA256SUMS`：各版本应用包和上述物料的 SHA-256 校验。
 
 本目录不包含签名私钥或 API Key。macOS 内测包当前仅为 ad-hoc 签名，正式对外分发前仍需 Developer ID 签名与 Apple 公证。

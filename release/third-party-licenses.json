@@ -27,6 +27,12 @@
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/utils",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@floating-ui/utils/LICENSE"
   },
+  "@radix-ui/number@1.1.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/radix-ui/primitives",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/number",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/number/LICENSE"
+  },
   "@radix-ui/primitive@1.1.7": {
     "licenses": "MIT",
     "repository": "https://github.com/radix-ui/primitives",
@@ -141,6 +147,12 @@
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-roving-focus",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-roving-focus/LICENSE"
   },
+  "@radix-ui/react-select@2.3.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/radix-ui/primitives",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-select",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-select/LICENSE"
+  },
   "@radix-ui/react-slot@1.3.3": {
     "licenses": "MIT",
     "repository": "https://github.com/radix-ui/primitives",
@@ -177,6 +189,12 @@
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-use-layout-effect",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-use-layout-effect/LICENSE"
   },
+  "@radix-ui/react-use-previous@1.1.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/radix-ui/primitives",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-use-previous",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-use-previous/LICENSE"
+  },
   "@radix-ui/react-use-rect@1.1.4": {
     "licenses": "MIT",
     "repository": "https://github.com/radix-ui/primitives",
@@ -188,6 +206,12 @@
     "repository": "https://github.com/radix-ui/primitives",
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-use-size",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-use-size/LICENSE"
+  },
+  "@radix-ui/react-visually-hidden@1.2.11": {
+    "licenses": "MIT",
+    "repository": "https://github.com/radix-ui/primitives",
+    "path": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-visually-hidden",
+    "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/@radix-ui/react-visually-hidden/LICENSE"
   },
   "@radix-ui/rect@1.1.3": {
     "licenses": "MIT",
@@ -441,7 +465,7 @@
     "path": "/Users/sundaxian/2026 /笔不怠/node_modules/base64-js",
     "licenseFile": "/Users/sundaxian/2026 /笔不怠/node_modules/base64-js/LICENSE"
   },
-  "bi-bu-dai@2.1.0": {
+  "bi-bu-dai@2.2.0": {
     "licenses": "UNLICENSED",
     "private": true,
     "path": "/Users/sundaxian/2026 /笔不怠",
