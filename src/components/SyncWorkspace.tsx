@@ -84,6 +84,11 @@ export function SyncWorkspace({ project, onSynced, onBack, notify }: Props) {
     finally { setBusy(false) }
   }
 
+  async function copyRecoveryPhrase() {
+    try { await navigator.clipboard.writeText(shownPhrase); notify('success', '恢复短语已复制，请妥善保存') }
+    catch { notify('error', '复制失败，请手动选中恢复短语并复制') }
+  }
+
   if (!status) return <WorkflowTemplate className="sync-workspace"><p className="muted">正在读取设备接力状态…</p></WorkflowTemplate>
   const pending = conflicts.filter((conflict) => conflict.status === 'pending')
 
@@ -109,7 +114,7 @@ export function SyncWorkspace({ project, onSynced, onBack, notify }: Props) {
       <section className="sync-card sync-conflicts"><header><div><h3>需要作者决定的冲突</h3><small>正文并发编辑自动合并；删除/编辑、正典并发和来源链分叉必须显式决定。</small></div><span>{pending.length} 项待处理</span></header>{pending.length ? <div>{pending.map((conflict) => <article key={conflict.id}><AlertTriangle size={17}/><div><strong>{conflictLabel(conflict)}</strong><p>{summary(conflict.localSummary, '本机')} · {summary(conflict.remoteSummary, '接力包')}</p><code>{vectorLabel(conflict.localVector)} ↔ {vectorLabel(conflict.remoteVector)}</code></div><aside>{conflict.objectType === 'provenance' ? <><button className="button secondary compact" disabled={busy} onClick={() => void resolve(conflict, 'keep_local')}>保留本机链</button><button className="button ghost compact" disabled={busy} onClick={() => void resolve(conflict, 'acknowledge_remote')}>知悉远端分叉</button></> : <><button className="button secondary compact" disabled={busy} onClick={() => void resolve(conflict, 'keep_local')}>保留本机</button><button className="button ghost compact" disabled={busy} onClick={() => void resolve(conflict, 'use_remote')}>采用接力包</button></>}</aside></article>)}</div> : <div className="sync-empty"><CheckCircle2 size={18}/>没有需要人工决定的冲突</div>}</section>
     </>}
 
-    {shownPhrase && <Modal title="仅显示这一次：恢复短语" onClose={() => setShownPhrase('')}><div className="recovery-phrase"><AlertTriangle size={22}/><p>请立即抄写到密码管理器或离线纸张。关闭后应用无法再次显示，也无法替你找回。</p><code>{shownPhrase}</code><button className="button primary" onClick={() => void navigator.clipboard.writeText(shownPhrase).then(() => notify('success', '恢复短语已复制，请妥善保存'))}>复制恢复短语</button><label><input type="checkbox" onChange={(event) => { if (event.target.checked) setShownPhrase('') }}/><span>我已安全保存，关闭此提示</span></label></div></Modal>}
+    {shownPhrase && <Modal title="仅显示这一次：恢复短语" onClose={() => setShownPhrase('')}><div className="recovery-phrase"><AlertTriangle size={22}/><p>请立即抄写到密码管理器或离线纸张。关闭后应用无法再次显示，也无法替你找回。</p><code>{shownPhrase}</code><button className="button primary" onClick={() => void copyRecoveryPhrase()}>复制恢复短语</button><label><input type="checkbox" onChange={(event) => { if (event.target.checked) setShownPhrase('') }}/><span>我已安全保存，关闭此提示</span></label></div></Modal>}
     {pendingImport && <Modal title="接力包预检" onClose={() => setPendingImport(null)}><div className="sync-preview"><ShieldCheck size={23}/><h3>{pendingImport.inspection.projectTitle}</h3><p>{pendingImport.fileName} 已通过分块哈希、认证标签和恢复短语校验。</p><dl><div><dt>发送设备</dt><dd>{pendingImport.inspection.senderDeviceName}</dd></div><div><dt>序号</dt><dd>{pendingImport.inspection.sequence}</dd></div><div><dt>场景 / 正典</dt><dd>{pendingImport.inspection.sceneCount} / {pendingImport.inspection.entityCount}</dd></div><div><dt>移动收集项</dt><dd>{pendingImport.inspection.mobileItemCount}</dd></div><div><dt>内容寻址附件</dt><dd>{pendingImport.inspection.attachmentCount}</dd></div><div><dt>来源事件</dt><dd>{pendingImport.inspection.provenanceEventCount}</dd></div></dl><button className="button primary" disabled={busy} onClick={() => void applyImport()}>{busy ? '正在合并…' : '确认应用到当前项目'}</button></div></Modal>}
   </WorkflowTemplate>
 }

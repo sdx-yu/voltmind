@@ -72,7 +72,7 @@ export function DesignGallery() {
 
   return <main className="ui-gallery">
     <header className="ui-gallery-topbar">
-      <div className="ui-gallery-brand"><span>笔</span><div><strong>笔不怠 UI System</strong><small>UI-A～UI-F · 2.2.0 · 笔耕不怠，写尽所思。</small></div></div>
+      <div className="ui-gallery-brand"><span>笔</span><div><strong>笔不怠 UI System</strong><small>UI-A～UI-F · 2.2.1 · 笔耕不怠，写尽所思。</small></div></div>
       <div className="ui-gallery-controls">
         <SegmentedControl items={themeItems} value={theme} onChange={(value) => setTheme(value as GalleryTheme)} label="主题" />
         <SegmentedControl items={densityItems} value={density} onChange={(value) => setDensity(value as GalleryDensity)} label="密度" />

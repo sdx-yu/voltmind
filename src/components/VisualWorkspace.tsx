@@ -100,7 +100,7 @@ export function VisualWorkspace({ project, nodes, entities, onBack, notify }: Pr
   }
 
   return <section className="visual-workspace">
-    <header className="page-header"><div><button className="button ghost compact" onClick={onBack}><ArrowLeft size={15}/>返回规划</button><span className="eyebrow">视觉锚点 · 1.3.0</span><h2>让画面服从文字正典</h2><p>图片始终先成为候选；接受只绑定当前正典快照，不会用图片反写人物、地点、物品或剧情事实。</p></div><button className="button primary" onClick={() => setCreatingAnchor(true)}><Plus size={15}/>建立视觉锚点</button></header>
+    <header className="page-header"><div><button className="button ghost compact" onClick={onBack}><ArrowLeft size={15}/>返回规划</button><span className="eyebrow">文字正典视觉锚点</span><h2>让画面服从文字正典</h2><p>图片始终先成为候选；接受只绑定当前正典快照，不会用图片反写人物、地点、物品或剧情事实。</p></div><button className="button primary" onClick={() => setCreatingAnchor(true)}><Plus size={15}/>建立视觉锚点</button></header>
 
     <div className="visual-guardrail"><ShieldCheck size={19}/><div><strong>本阶段不连接远程图像 Provider</strong><p>视觉描述完全在本机由明确勾选的字段生成；`local_private` 正典、正文、密钥和未选择字段不会进入描述。作者可复制描述并在外部工具生成，再把结果作为本地候选导入。</p></div></div>
 

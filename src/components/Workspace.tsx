@@ -110,10 +110,10 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
     if (command === 'replace') { setReplaceMode(true); setSearching(true) }
     if (command === 'settings') { setSettingsTab('ai'); setSettings(true) }
     if (command === 'help') { setSettingsTab('help'); setSettings(true) }
-    if (command === 'focus' && view === 'write') enterFocus(!focusMode)
-    if (command === 'toggle-tree') toggleTree()
-    if (command === 'toggle-inspector') toggleInspector()
-    if (command === 'read-aloud' && view === 'write') setReadAloudOpen((value) => !value)
+    if (command === 'focus') { if (view === 'write') enterFocus(!focusMode); else notify('error', '专注模式仅在写作台可用') }
+    if (command === 'toggle-tree') { if (view === 'write') toggleTree(); else notify('error', '书稿树仅在写作台可用') }
+    if (command === 'toggle-inspector') { if (view === 'write') toggleInspector(); else notify('error', '场景检查器仅在写作台可用') }
+    if (command === 'read-aloud') { if (view === 'write') setReadAloudOpen((value) => !value); else notify('error', '本地朗读仅在写作台可用') }
     if (command === 'trash') void openTrash()
     if (command === 'bookshelf') onBack()
     if (command === 'command-palette') setPaletteOpen(true)
@@ -162,7 +162,11 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
     finally { setSheetBusy(false) }
   }
   async function openSplit(node: ManuscriptNode) {
-    try { setPendingSplit({ node, document: await api.getScene(node.id) }) }
+    try {
+      const document = await api.getScene(node.id)
+      if (document.plainText.length < 2) { notify('error', '场景至少需要 2 个字符才能拆分'); return }
+      setPendingSplit({ node, document })
+    }
     catch (error) { notify('error', error instanceof Error ? error.message : '场景加载失败') }
   }
   async function confirmSplit(offset: number) {
@@ -230,7 +234,7 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
     { id: 'review', title: '角色化审阅', description: '处理隔离的审阅任务包', section: '修订', icon: <MessageSquareText size={17} />, onSelect: () => navigate('review') },
     { id: 'provenance', title: '创作来源', description: '查看版本来源、哈希与接受关系', section: '修订', icon: <Fingerprint size={17} />, onSelect: () => navigate('provenance') },
     { id: 'search', title: '搜索书稿', description: '查找当前项目里的文字和场景', section: '全局工具', shortcut: '⌘F', icon: <Search size={17} />, onSelect: () => { setReplaceMode(false); setSearching(true) } },
-    { id: 'sync', title: '加密接力', description: '在设备间导出或恢复加密接力包', section: '全局工具', icon: <CloudCog size={17} />, onSelect: () => navigate('sync') },
+    { id: 'sync', title: '本地加密接力', description: '手动交换加密文件，不是云同步', section: '全局工具', icon: <CloudCog size={17} />, onSelect: () => navigate('sync') },
     { id: 'settings', title: '设置', description: 'AI、目标、显示与帮助', section: '全局工具', shortcut: '⌘,', icon: <Settings size={17} />, onSelect: () => { setSettingsTab('ai'); setSettings(true) } },
   ]
 
@@ -263,7 +267,7 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
         </div>
         <div className="topbar-action-group topbar-action-global">
           <IconButton onClick={() => setPaletteOpen(true)} label="打开命令面板" tooltip="打开命令面板（⌘K）"><Search size={18} /></IconButton>
-          <IconButton selected={view === 'sync'} onClick={() => navigate('sync')} label="加密接力"><CloudCog size={18} /></IconButton>
+          <IconButton selected={view === 'sync'} onClick={() => navigate('sync')} label="本地加密接力（非云同步）"><CloudCog size={18} /></IconButton>
           <IconButton onClick={() => { setSettingsTab('ai'); setSettings(true) }} label="设置"><Settings size={18} /></IconButton>
           <DropdownMenu label="项目更多操作" trigger={<IconButton label="项目更多操作"><Ellipsis size={18} /></IconButton>} items={[
             { id: 'search', label: '搜索书稿', icon: <Search size={15} />, hint: '⌘F', onSelect: () => { setReplaceMode(false); setSearching(true) } },

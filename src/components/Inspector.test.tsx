@@ -8,6 +8,7 @@ import { Inspector } from './Inspector'
 const mocks = vi.hoisted(() => ({
   listKnowledge: vi.fn(), listNodes: vi.fn(), createKnowledge: vi.fn(), trashKnowledge: vi.fn(), grantKnowledge: vi.fn(),
   listMentions: vi.fn(), suggestMentions: vi.fn(), currentStates: vi.fn(),
+  getContext: vi.fn(), getAiSettings: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -23,6 +24,8 @@ describe('Inspector knowledge panel', () => {
     mocks.listMentions.mockResolvedValue([])
     mocks.suggestMentions.mockResolvedValue([])
     mocks.currentStates.mockResolvedValue([])
+    mocks.getContext.mockResolvedValue([{ id: 's1', type: 'scene', title: '当前场景', content: '雨落在窗前。', selected: true, privacyLevel: 'normal', estimatedTokens: 8, reason: '当前正文' }])
+    mocks.getAiSettings.mockResolvedValue({ baseUrl: 'mock://local', model: '笔不怠演示模型', hasApiKey: false, credentialStore: 'protected_file' })
   })
   afterEach(cleanup)
 
@@ -38,6 +41,13 @@ describe('Inspector knowledge panel', () => {
     await userEvent.click(screen.getByRole('option', { name: '场景 2' }))
     await userEvent.click(screen.getByRole('button', { name: '建立' }))
     await waitFor(() => expect(mocks.createKnowledge).toHaveBeenCalledWith('p', expect.objectContaining({ title: '凶手身份', keywords: ['沈砚是凶手', '真凶沈砚'], firstRevealedNodeId: 's2' })))
+  })
+
+  it('labels the default AI provider as a non-networked demo before generation', async () => {
+    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
+    await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
+    expect(await screen.findByText('演示模式 · 固定候选 · 不联网')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '生成演示候选' })).toBeInTheDocument()
   })
 })
 

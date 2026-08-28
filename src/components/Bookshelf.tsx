@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BookOpen, FileArchive, FileKey2, FileText, FileUp, FlaskConical, LayoutTemplate, MessageSquareText, MoreHorizontal, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import type { Project } from '../../shared/types'
 import { api } from '../lib/api'
+import { onCommand } from '../lib/commands'
 import { formatRelativeTime, readWritingFile, splitChapters, textToTiptap } from '../lib/text'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
@@ -46,6 +47,16 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  useEffect(() => onCommand((command) => {
+    if (command === 'search' || command === 'command-palette') { setPaletteOpen(true); return }
+    if (command === 'trash') { void openTrash(); return }
+    if (command === 'view-review') { onOpenReview(); return }
+    if (command === 'view-sync') { syncRef.current?.click(); return }
+    if (command === 'bookshelf') return
+    if (command === 'help') { notify('error', '备份、接力恢复和回收站位于书架的“更多操作”中'); return }
+    notify('error', '这个命令需要先打开一个项目')
+  }), [notify, onOpenReview])
 
   async function createProject() {
     if (!title.trim()) return
@@ -142,7 +153,7 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
     { id: 'sync', title: '恢复加密接力包', description: '从另一台设备带回项目副本', section: '恢复', icon: <FileKey2 size={17} />, onSelect: () => syncRef.current?.click() },
     { id: 'backup', title: '恢复完整备份', description: '恢复为新项目，不覆盖现有内容', section: '恢复', icon: <RotateCcw size={17} />, onSelect: () => backupRef.current?.click() },
     { id: 'trash', title: '项目回收站', description: '查看并恢复已删除项目', section: '恢复', icon: <Trash2 size={17} />, onSelect: () => void openTrash() },
-    { id: 'research', title: 'R1 真实验证', description: '查看研究队列、批次与波次', section: '研究', icon: <FlaskConical size={17} />, onSelect: onOpenResearch },
+    { id: 'research', title: '真实作者验证', description: '研究负责人查看任务、批次与波次', section: '研究工具', icon: <FlaskConical size={17} />, onSelect: onOpenResearch },
   ]
 
   return <main className="bookshelf-page">
@@ -160,7 +171,7 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
           { id: 'sync', label: '恢复加密接力包', icon: <FileKey2 size={15} />, onSelect: () => syncRef.current?.click() },
           { id: 'backup', label: '恢复完整备份', icon: <RotateCcw size={15} />, onSelect: () => backupRef.current?.click() },
           { id: 'trash', label: '项目回收站', icon: <Trash2 size={15} />, onSelect: () => void openTrash() },
-          { id: 'research', label: 'R1 真实验证', icon: <FlaskConical size={15} />, onSelect: onOpenResearch },
+          { id: 'research', label: '真实作者验证', icon: <FlaskConical size={15} />, onSelect: onOpenResearch },
         ]} />
       </div>
     </header>

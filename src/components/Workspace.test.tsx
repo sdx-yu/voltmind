@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ManuscriptNode, Project } from '../../shared/types'
@@ -70,6 +70,20 @@ describe('Workspace chrome', () => {
     expect(confirm).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: '移到回收站' }))
     await waitFor(() => expect(mocks.trashNode).toHaveBeenCalledWith('scene'))
+  })
+
+  it('disables scene actions whose preconditions are not met', async () => {
+    render(<Workspace project={project} onBack={vi.fn()} notify={vi.fn()} />)
+    expect(await screen.findByRole('button', { name: '拆分 雨夜' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '合并 雨夜 与下一场景' })).toBeDisabled()
+  })
+
+  it('explains why a contextual desktop command cannot run in the current view', async () => {
+    const notify = vi.fn()
+    render(<Workspace project={project} onBack={vi.fn()} notify={notify} />)
+    await userEvent.click(await screen.findByRole('button', { name: '修订' }))
+    act(() => window.dispatchEvent(new CustomEvent('bbd:command', { detail: 'focus' })))
+    expect(notify).toHaveBeenCalledWith('error', '专注模式仅在写作台可用')
   })
 
   it('moves both side panes into accessible drawers on a single-column viewport', async () => {

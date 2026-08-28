@@ -11,6 +11,9 @@ type Props = {
   notify: (type: 'success' | 'error', message: string) => void
 }
 
+type ManualConfirmation = { checkRunId: string; confirmedAt: string }
+const MANUAL_CONFIRMATIONS_KEY = 'deliveryManualConfirmations'
+
 export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Props) {
   const [stats, setStats] = useState<{ todayNet: number; dailyGoal: number; projectGoal: number } | null>(null)
   const [foreshadows, setForeshadows] = useState<Foreshadow[]>([])
@@ -18,6 +21,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
   const [templateId, setTemplateId] = useState('')
   const [checkRun, setCheckRun] = useState<DeliveryCheckRun | null>(null)
   const [checking, setChecking] = useState(false)
+  const [manualConfirmations, setManualConfirmations] = useState<Record<string, ManualConfirmation>>({})
   const [exportTemplate, setExportTemplate] = useState('standard')
   const chapters = useMemo(() => nodes.filter((node) => node.type === 'chapter' && !node.deletedAt), [nodes])
   const scenes = useMemo(() => nodes.filter((node) => node.type === 'scene' && !node.deletedAt), [nodes])
@@ -36,6 +40,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
       api.listForeshadows(project.id).then(setForeshadows),
       loadTemplates(),
       api.listDeliveryChecks(project.id).then((runs) => setCheckRun(runs[0] ?? null)),
+      api.getSetting<Record<string, ManualConfirmation> | null>(project.id, MANUAL_CONFIRMATIONS_KEY).then((result) => setManualConfirmations(result.value ?? {})),
     ]).catch((error) => notify('error', error instanceof Error ? error.message : '交付台加载失败'))
   }, [project.id, nodes])
 
@@ -48,9 +53,14 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
 
   const activeTemplate = templates.find((template) => template.id === templateId) ?? templates[0]
   const activeRuleIds = new Set(activeTemplate?.rules.filter((rule) => rule.effectiveEnabled).map((rule) => rule.id) ?? [])
-  const visibleResults = checkRun && activeTemplate && checkRun.templateId === activeTemplate.id
-    ? checkRun.results.filter((result) => activeRuleIds.has(result.ruleId))
+  const activeCheckRun = checkRun && activeTemplate && checkRun.templateId === activeTemplate.id && sameScope(checkRun.chapterIds, selectedChapters) ? checkRun : null
+  const manualRules = activeTemplate?.rules.filter((rule) => rule.effectiveEnabled && rule.manual) ?? []
+  const pendingManualRules = manualRules.filter((rule) => !activeCheckRun || manualConfirmations[rule.id]?.checkRunId !== activeCheckRun.id)
+  const checkComplete = Boolean(activeCheckRun && pendingManualRules.length === 0)
+  const visibleResults = activeCheckRun
+    ? activeCheckRun.results.filter((result) => activeRuleIds.has(result.ruleId))
     : []
+  const hasPendingReview = visibleResults.length > 0 || Boolean(activeCheckRun && pendingManualRules.length)
   const totalWords = scenes.reduce((sum, scene) => sum + scene.wordCount, 0)
   const incomplete = scenes.filter((scene) => !['complete', 'published'].includes(scene.status))
   const empty = scenes.filter((scene) => scene.wordCount === 0)
@@ -80,6 +90,19 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
     }
   }
 
+  async function toggleManualConfirmation(rule: DeliveryRule) {
+    if (!activeCheckRun) { notify('error', '请先按当前范围运行检查'); return }
+    const confirmed = manualConfirmations[rule.id]?.checkRunId === activeCheckRun.id
+    const next = { ...manualConfirmations }
+    if (confirmed) delete next[rule.id]
+    else next[rule.id] = { checkRunId: activeCheckRun.id, confirmedAt: new Date().toISOString() }
+    try {
+      await api.setSetting(project.id, MANUAL_CONFIRMATIONS_KEY, next)
+      setManualConfirmations(next)
+      notify('success', confirmed ? '已撤销本次人工确认' : '已记录本次人工确认；重新检查后需再次确认')
+    } catch (error) { notify('error', error instanceof Error ? error.message : '人工确认保存失败') }
+  }
+
   function locate(result: DeliveryCheckResult) {
     if (!result.nodeId) return
     const node = nodes.find((item) => item.id === result.nodeId)
@@ -99,11 +122,11 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
   }
 
   return <WorkflowTemplate className="delivery-workspace">
-    <PageHeader eyebrow="交付" title="把故事安全地带出去" description="先确定范围，再检查风险，最后导出；提醒提供证据，但不会替你投稿。" actions={<Badge tone={visibleResults.length ? 'warning' : checkRun ? 'success' : 'neutral'}>{visibleResults.length ? `${visibleResults.length} 条待复核` : checkRun ? '检查完成' : '尚未检查'}</Badge>} />
+    <PageHeader eyebrow="交付" title="把故事安全地带出去" description="先确定范围，再检查风险，最后导出；提醒提供证据，但不会替你投稿。" actions={<Badge tone={hasPendingReview ? 'warning' : checkComplete ? 'success' : 'neutral'}>{visibleResults.length ? `${visibleResults.length} 条待复核` : activeCheckRun && pendingManualRules.length ? `${pendingManualRules.length} 项待人工确认` : checkComplete ? '检查完成' : '尚未检查'}</Badge>} />
     <WorkflowSteps label="交付步骤" items={[
       { id: 'scope', label: '选择范围', description: `${selectedChapters.length} 个章节`, state: selectedChapters.length ? 'complete' : 'current' },
-      { id: 'check', label: '检查风险', description: '自动规则与人工确认', state: checkRun ? 'complete' : selectedChapters.length ? 'current' : 'upcoming' },
-      { id: 'export', label: '导出与备份', description: '稿件或完整备份', state: checkRun ? 'current' : 'upcoming' },
+      { id: 'check', label: '检查风险', description: '自动规则与人工确认', state: checkComplete ? 'complete' : selectedChapters.length ? 'current' : 'upcoming' },
+      { id: 'export', label: '导出与备份', description: '稿件或完整备份', state: checkComplete ? 'current' : 'upcoming' },
     ]} />
     <MetricStrip label="交付摘要" items={[
       { id: 'words', icon: <FileCheck2 size={20} />, value: totalWords.toLocaleString('zh-CN'), label: `全书字数${stats ? ` / ${stats.projectGoal.toLocaleString('zh-CN')}` : ''}` },
@@ -114,7 +137,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
 
     <div className="delivery-columns">
       <Card className="delivery-card delivery-check-card">
-        <header><h3>渠道规则检查</h3><span>{visibleResults.length ? `${visibleResults.length} 条提醒` : checkRun && activeTemplate && checkRun.templateId === activeTemplate.id ? '本次无自动风险' : '尚未检查'}</span></header>
+        <header><h3>渠道规则检查</h3><span>{visibleResults.length ? `${visibleResults.length} 条提醒` : activeCheckRun ? pendingManualRules.length ? `${pendingManualRules.length} 项待人工确认` : '本次已完成' : '尚未检查'}</span></header>
         <div className="delivery-template-picker">
           <label>检查模板<SelectControl aria-label="检查模板" value={activeTemplate?.id ?? ''} onChange={(event) => setTemplateId(event.target.value)}>{templates.map((template) => <option key={template.id} value={template.id}>{template.channel} · {template.name}</option>)}</SelectControl></label>
           {activeTemplate && <div className="template-provenance">
@@ -124,11 +147,11 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
           </div>}
         </div>
         <div className="delivery-rule-list">
-          {activeTemplate?.rules.map((rule) => <label key={rule.id} className={rule.effectiveEnabled ? '' : 'disabled'}>
-            <input type="checkbox" checked={rule.effectiveEnabled} onChange={(event) => void toggleRule(rule, event.target.checked)} />
+          {activeTemplate?.rules.map((rule) => { const confirmation = manualConfirmations[rule.id]; const confirmed = Boolean(activeCheckRun && confirmation?.checkRunId === activeCheckRun.id); return <div key={rule.id} className={`delivery-rule-row ${rule.effectiveEnabled ? '' : 'disabled'}`}><label>
+            <input aria-label={`启用规则 ${rule.code}`} type="checkbox" checked={rule.effectiveEnabled} onChange={(event) => void toggleRule(rule, event.target.checked)} />
             <span><strong>{rule.code} · {rule.title}</strong><small>{rule.description}</small></span>
-            <em className={`rule-severity ${rule.severity}`}>{rule.manual ? '人工确认' : severityLabel(rule.severity)}</em>
-          </label>)}
+            <em className={`rule-severity ${rule.severity}`}>{rule.manual ? '需人工确认' : severityLabel(rule.severity)}</em>
+          </label>{rule.manual && rule.effectiveEnabled && <button className={`button compact ${confirmed ? 'secondary' : 'ghost'}`} disabled={!activeCheckRun} onClick={() => void toggleManualConfirmation(rule)}>{confirmed ? `已确认 · ${new Date(confirmation!.confirmedAt).toLocaleString('zh-CN')}` : activeCheckRun ? '标记本次已人工确认' : '先运行检查'}</button>}</div> })}
         </div>
         <Button className="full" variant="primary" loading={checking} disabled={!activeTemplate || !selectedChapters.length} leadingIcon={<RefreshCw size={15}/>} onClick={() => void runCheck()}>{checking ? '正在检查…' : '按所选范围检查'}</Button>
         <div className="delivery-results">
@@ -137,7 +160,7 @@ export function DeliveryWorkspace({ project, nodes, onSelectScene, notify }: Pro
             <div><header><strong>{result.ruleCode} · {result.ruleTitle}</strong><em>{severityLabel(result.severity)}</em></header><p>{result.message}</p>{result.quote && <blockquote>“{result.quote}”</blockquote>}</div>
             {result.nodeId && <Button variant="ghost" size="small" leadingIcon={<LocateFixed size={13}/>} onClick={() => locate(result)}>定位</Button>}
           </article>)}
-          {checkRun && activeTemplate && checkRun.templateId === activeTemplate.id && !visibleResults.length && <div className="delivery-no-results"><Check size={18}/><span>当前启用的自动规则没有发现风险；“人工确认”项仍需作者判断。</span></div>}
+          {activeCheckRun && !visibleResults.length && <div className="delivery-no-results"><Check size={18}/><span>{pendingManualRules.length ? '自动规则未发现风险；请完成上方的人工确认。' : '自动规则和人工确认均已完成。'}</span></div>}
         </div>
       </Card>
 
@@ -172,4 +195,10 @@ function isStale(template: DeliveryTemplate) {
   if (!template.verifiedAt || !template.staleAfterDays) return false
   const verified = new Date(`${template.verifiedAt}T00:00:00Z`).getTime()
   return Date.now() - verified > template.staleAfterDays * 86_400_000
+}
+
+function sameScope(left: string[], right: string[]) {
+  const sortedLeft = [...left].sort()
+  const sortedRight = [...right].sort()
+  return sortedLeft.length === sortedRight.length && sortedLeft.every((value, index) => value === sortedRight[index])
 }

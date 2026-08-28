@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Project } from '../../shared/types'
@@ -39,8 +39,17 @@ describe('Bookshelf shell', () => {
     await userEvent.click(screen.getByRole('option', { name: /雾港/ }))
     expect(onOpen).toHaveBeenCalledWith(project)
   })
+
+  it('routes native commands and explains project-only actions', async () => {
+    const notify = vi.fn()
+    renderBookshelf(vi.fn(), notify)
+    act(() => window.dispatchEvent(new CustomEvent('bbd:command', { detail: 'command-palette' })))
+    expect(await screen.findByRole('dialog', { name: '书架命令' })).toBeInTheDocument()
+    act(() => window.dispatchEvent(new CustomEvent('bbd:command', { detail: 'view-write' })))
+    expect(notify).toHaveBeenCalledWith('error', '这个命令需要先打开一个项目')
+  })
 })
 
-function renderBookshelf(onOpen = vi.fn()) {
-  return render(<Bookshelf projects={[project]} loading={false} onOpen={onOpen} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenReview={vi.fn()} onOpenResearch={vi.fn()} notify={vi.fn()} />)
+function renderBookshelf(onOpen = vi.fn(), notify = vi.fn()) {
+  return render(<Bookshelf projects={[project]} loading={false} onOpen={onOpen} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenReview={vi.fn()} onOpenResearch={vi.fn()} notify={notify} />)
 }

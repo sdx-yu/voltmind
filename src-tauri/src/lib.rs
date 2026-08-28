@@ -112,7 +112,7 @@ fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
   let template = MenuItem::with_id(app, "view-template", "结构模板", true, None::<&str>)?;
   let review = MenuItem::with_id(app, "view-review", "角色化审阅", true, None::<&str>)?;
   let provenance = MenuItem::with_id(app, "view-provenance", "创作来源", true, None::<&str>)?;
-  let sync = MenuItem::with_id(app, "view-sync", "加密接力", true, None::<&str>)?;
+  let sync = MenuItem::with_id(app, "view-sync", "本地加密接力（文件）", true, None::<&str>)?;
   let help = MenuItem::with_id(app, "help", "帮助与恢复", true, None::<&str>)?;
   let backup = MenuItem::with_id(app, "help", "备份与恢复说明", true, None::<&str>)?;
   let about = AboutMetadata {
