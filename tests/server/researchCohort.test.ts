@@ -82,7 +82,7 @@ describe('R1-B controlled cohort evidence', () => {
     const bundle = buildBundle('R1-000000000030', twoWeeks)
     await request(result.app).post('/api/research-cohort/import').set('Cookie', cookie).send({ package: bundle, evidenceClass: 'engineering_fixture', segment: 'web_serial', attestation: noAttestation, retentionUntil: futureDate() }).expect(201)
     const status = (await request(result.app).get('/api/research-cohort/status').set('Cookie', cookie).expect(200)).body
-    expect(status).toMatchObject({ appVersion: '1.6.0', aggregate: { engineeringFixtures: 1, externalAttestedParticipants: 0 }, privacy: { storesRawResearchPackages: false, fixturesCountTowardGates: false } })
+    expect(status).toMatchObject({ appVersion: '1.7.0', aggregate: { engineeringFixtures: 1, externalAttestedParticipants: 0 }, privacy: { storesRawResearchPackages: false, fixturesCountTowardGates: false } })
     const support = (await request(result.app).get('/api/support/bundle').set('Cookie', cookie).expect(200)).body
     expect(support.manifest.counts.cohortParticipants).toBe(1)
   })

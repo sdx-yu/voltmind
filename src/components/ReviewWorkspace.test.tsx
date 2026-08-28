@@ -32,7 +32,7 @@ describe('ReviewWorkspace', () => {
   it('keeps beta-reader feedback comment-only in the isolated reviewer workbench', async () => {
     mocks.listReceivedReviews.mockResolvedValue([receivedSession]); const user = userEvent.setup()
     render(<ReviewWorkspace project={project} nodes={nodes} onSelectScene={vi.fn()} onChanged={vi.fn()} onBack={vi.fn()} notify={vi.fn()}/>)
-    await user.click(await screen.findByRole('button', { name: '审阅者工作台' }))
+    await user.click(await screen.findByRole('tab', { name: '审阅者工作台' }))
     expect((await screen.findAllByText('试读者')).length).toBeGreaterThan(0)
     expect(screen.queryByRole('option', { name: '改写建议' })).not.toBeInTheDocument()
     expect(screen.getByText('仅保存隔离副本')).toBeInTheDocument()
@@ -42,7 +42,7 @@ describe('ReviewWorkspace', () => {
     render(<ReviewWorkspace project={null} nodes={[]} reviewerOnly onSelectScene={vi.fn()} onChanged={vi.fn()} onBack={vi.fn()} notify={vi.fn()}/>)
     expect(await screen.findByRole('button', { name: '返回书架' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '打开作者任务' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '作者处理' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: '作者处理' })).not.toBeInTheDocument()
   })
 
   it('reads a selected review file and imports only after package preflight', async () => {

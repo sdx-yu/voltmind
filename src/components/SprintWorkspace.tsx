@@ -149,7 +149,7 @@ export function SprintWorkspace({ project, nodes, activeSceneId, compact = false
   const completed = sessions.filter((session) => session.resultCard)
   const selectedBoard = boards.find((board) => board.id === selectedBoardId) ?? boards[0]
   return <section className="sprint-workspace">
-    <header className="page-header"><div>{onBack && <button className="button ghost compact" onClick={onBack}><ArrowLeft size={14}/>返回交付台</button>}<span className="eyebrow">安静冲刺与离线小组目标</span><h2>专注在字句，成果由版本证明</h2><p>计时不等于在线状态；净新增只看已保存版本。结果卡不含书名和正文，参与者名称不是认证身份。</p></div><button className="button ghost compact" onClick={() => void requestNotification(notify)}><Bell size={15}/>本地结束提醒</button></header>
+    <header className="page-header"><div>{onBack && <button className="button ghost compact" onClick={onBack}><ArrowLeft size={14}/>返回写作</button>}<span className="eyebrow">安静冲刺与离线小组目标</span><h2>专注在字句，成果由版本证明</h2><p>计时不等于在线状态；净新增只看已保存版本。结果卡不含书名和正文，参与者名称不是认证身份。</p></div><button className="button ghost compact" onClick={() => void requestNotification(notify)}><Bell size={15}/>本地结束提醒</button></header>
     {active ? <section className={`sprint-active-card ${active.clockStatus !== 'ok' ? 'needs-review' : ''}`}>
       <div className="sprint-clock"><span>{active.status === 'paused' ? '暂停中' : remaining ? '剩余时间' : '时间已到'}</span><strong>{formatDuration(remaining)}</strong><small>已计入 {formatDuration(elapsed)} · {active.scope === 'scene' ? '当前场景' : '整个项目'}</small></div>
       <div className="sprint-live-metrics"><article><strong>{signed(active.netWords)}</strong><span>净新增字数</span></article><article><strong>{active.goalWords}</strong><span>本次目标</span></article><article><strong>{active.samples.length}</strong><span>不可变采样点</span></article></div>

@@ -21,7 +21,7 @@ import { jsonParse, newId, nowIso, sha256 } from './utils.js'
 
 type Row = Record<string, unknown>
 
-export const APP_VERSION = '1.6.0'
+export const APP_VERSION = '1.7.0'
 export const RESEARCH_CONSENT_VERSION = 'r1-consent-v1' as const
 export const RESEARCH_CONSENT_TEXT = '我自愿参加笔不怠 R1 本地验证。我确认使用自己拥有权利的稿件；应用只在本机记录任务类型、耗时、完成情况、难度、预估节省时间和预定义问题码，不记录或上传正文、书名、正典、Prompt、密钥与设备路径；只有我主动导出研究包时数据才会离开本机；我可以随时退出并清除当前数据库中的研究记录。已有历史数据库快照按备份策略保留，需要由我另行管理；已交给研究负责人的副本需要另行联系删除。'
 export const RESEARCH_CONSENT_HASH = sha256(RESEARCH_CONSENT_TEXT)

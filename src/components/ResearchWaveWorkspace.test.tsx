@@ -14,7 +14,7 @@ describe('ResearchWaveWorkspace', () => {
 
   it('defaults to a non-counting rehearsal and requires all four readiness gates', async () => {
     const user = userEvent.setup(); render(<ResearchWaveWorkspace onBack={vi.fn()} notify={vi.fn()}/>)
-    expect(await screen.findByLabelText('R1-C 决策 NO-GO')).toBeInTheDocument()
+    expect(await screen.findByLabelText('真实执行 NO-GO')).toBeInTheDocument()
     expect(screen.getByLabelText('波次类型')).toHaveValue('engineering_rehearsal')
     expect(screen.getByText('真实执行未开始')).toBeInTheDocument()
     const create = screen.getByRole('button', { name: '创建波次草稿' }); expect(create).toBeDisabled()
@@ -38,5 +38,5 @@ describe('ResearchWaveWorkspace', () => {
 })
 
 const wave: ResearchWaveSummary = { id: '00000000-0000-4000-8000-000000000001', displayCode: 'WAVE-20260827-ABCD', kind: 'engineering_rehearsal', status: 'recruiting', windowStart: '2026-08-27T00:00:00.000Z', windowEnd: '2026-09-10T23:59:59.999Z', targetParticipants: 1, quotas: { web_serial: 1, revision_novel: 0, ai_assisted: 0, other_target: 0 }, readiness: { protocolReviewed: true, controlledRosterReady: true, deletionContactReady: true, supportRouteRehearsed: true }, protocolHash: 'a'.repeat(64), createdAt: '2026-08-27T00:00:00.000Z', updatedAt: '2026-08-27T00:00:00.000Z', participantCount: 0, twoWeekQualified: 0, coreLoopQualified: 0, openIncidents: 0, openCriticalIncidents: 0, incidents: [], evidenceClass: 'engineering_only', r1Decision: 'NO-GO' }
-const emptyStatus: ResearchWaveStatusResponse = { protocolVersion: 'r1c-wave-v1', appVersion: '1.6.0', waves: [], externalExecution: { waveCount: 0, activeWaveCount: 0, participantCount: 0, twoWeekQualified: 0, status: 'not_started' }, privacy: { storesNamesOrContacts: false, sendsInvitations: false, rehearsalsCountAsExternal: false, automaticR1Go: false } }
+const emptyStatus: ResearchWaveStatusResponse = { protocolVersion: 'r1c-wave-v1', appVersion: '1.7.0', waves: [], externalExecution: { waveCount: 0, activeWaveCount: 0, participantCount: 0, twoWeekQualified: 0, status: 'not_started' }, privacy: { storesNamesOrContacts: false, sendsInvitations: false, rehearsalsCountAsExternal: false, automaticR1Go: false } }
 const statusWithWave: ResearchWaveStatusResponse = { ...emptyStatus, waves: [wave] }

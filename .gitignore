@@ -1,6 +1,9 @@
 node_modules/
 dist/
 coverage/
+.ui-e-data/
+.ui-e-results/
+playwright-report/
 .DS_Store
 data/
 .tooling/

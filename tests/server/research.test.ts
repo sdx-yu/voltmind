@@ -76,11 +76,11 @@ describe('R1 local research evidence and release readiness', () => {
     const bundle = (await request(result.app).get('/api/research/export').set('Cookie', auth).expect(200)).body
     expect((await request(result.app).post('/api/research/inspect').set('Cookie', auth).send({ package: bundle }).expect(200)).body).toMatchObject({ ok: true, completedTasks: 1 })
     const support = (await request(result.app).get('/api/support/bundle').set('Cookie', auth).expect(200)).body
-    expect(support).toMatchObject({ format: 'bbd-support-v1', manifest: { appVersion: '1.6.0', database: { schemaVersion: 16, integrity: 'ok' }, counts: { cohortParticipants: 0, researchWaves: 0 }, privacy: { containsManuscriptText: false, containsPaths: false } } })
+    expect(support).toMatchObject({ format: 'bbd-support-v1', manifest: { appVersion: '1.7.0', database: { schemaVersion: 16, integrity: 'ok' }, counts: { cohortParticipants: 0, researchWaves: 0 }, privacy: { containsManuscriptText: false, containsPaths: false } } })
     expect(JSON.stringify(support)).not.toContain(project.title)
     expect(JSON.stringify(support)).not.toContain(dir)
     const readiness = (await request(result.app).get('/api/release/readiness').set('Cookie', auth).expect(200)).body
-    expect(readiness).toMatchObject({ appVersion: '1.6.0', publicRelease: 'NO-GO' })
+    expect(readiness).toMatchObject({ appVersion: '1.7.0', publicRelease: 'NO-GO' })
     expect(readiness.external).toContainEqual(expect.objectContaining({ gate: '真实作者验证', status: 'required' }))
   })
 

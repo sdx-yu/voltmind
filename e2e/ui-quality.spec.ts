@@ -1,0 +1,216 @@
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+
+type Project = { id: string; title: string; description: string; createdAt: string; updatedAt: string; deletedAt: string | null }
+type Node = { id: string; parentId: string | null; type: 'book' | 'volume' | 'chapter' | 'scene'; title: string }
+
+let project: Project
+let longProject: Project
+let longScene: Node
+
+test.describe.configure({ mode: 'serial' })
+
+test.beforeAll(async ({ request }) => {
+  await session(request)
+  const existing = await json<Project[]>(request.get('/api/projects'))
+  for (const item of existing.filter((item) => item.title.startsWith('[UI-E]'))) await request.delete(`/api/projects/${item.id}`)
+
+  project = await json<Project>(request.post('/api/projects', { data: { title: '[UI-E] 雾港来信', description: '视觉与键盘验收样稿' } }))
+  const nodes = await json<Node[]>(request.get(`/api/projects/${project.id}/tree`))
+  const scene = nodes.find((item) => item.type === 'scene')!
+  await request.put(`/api/scenes/${scene.id}`, { data: scenePayload('雾从河面漫上来，先吞没了对岸的灯。\n\n林照把未寄出的信收回口袋。') })
+
+  longProject = await json<Project>(request.post('/api/projects', { data: { title: '[UI-E] 二十万字性能稿', description: '只用于本机性能门' } }))
+  const longNodes = await json<Node[]>(request.get(`/api/projects/${longProject.id}/tree`))
+  longScene = longNodes.find((item) => item.type === 'scene')!
+  const text = `${'长夜无声。'.repeat(39_999)}唯一线索`
+  await request.put(`/api/scenes/${longScene.id}`, { data: scenePayload(text) })
+  const chapter = longNodes.find((item) => item.type === 'chapter')!
+  const next = await json<Node>(request.post(`/api/projects/${longProject.id}/nodes`, { data: { parentId: chapter.id, type: 'scene', title: '短场景' } }))
+  await request.put(`/api/scenes/${next.id}`, { data: scenePayload('天亮以后，线索仍在桌面。') })
+})
+
+test.afterAll(async ({ request }) => {
+  await session(request)
+  for (const item of [project, longProject]) if (item) await request.delete(`/api/projects/${item.id}`)
+})
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear()
+    localStorage.setItem('bbd-display', JSON.stringify({ fontSize: 18, paperWidth: 680, lineHeight: 2, theme: 'paper', density: 'comfortable' }))
+  })
+})
+
+test('stores stable visual baselines for themes, density and overlays', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/design-system')
+  await expect(page.getByRole('heading', { name: '温润纸感，克制工具感' })).toBeVisible()
+  await expect(page).toHaveScreenshot('gallery-paper-1440.png')
+
+  await page.getByRole('tab', { name: '夜间' }).click()
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await expect(page).toHaveScreenshot('gallery-night-1280.png')
+
+  await page.getByRole('tab', { name: '高对比' }).click()
+  await page.getByRole('tab', { name: '触控' }).click()
+  await page.setViewportSize({ width: 430, height: 932 })
+  await expect(page).toHaveScreenshot('gallery-contrast-touch-430.png')
+
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await page.getByRole('button', { name: '打开对话框' }).click()
+  await expect(page.getByRole('dialog', { name: '接受事实候选' })).toBeVisible()
+  await expect(page).toHaveScreenshot('gallery-dialog-1024.png')
+})
+
+test('stores real bookshelf, editor and workflow baselines', async ({ page }) => {
+  await onlyProjects(page, [project])
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: '继续写下去' })).toBeVisible()
+  await expect(page).toHaveScreenshot('bookshelf-paper-1440.png')
+
+  await page.getByRole('button', { name: project.title }).first().click()
+  await expect(page.getByRole('heading', { name: '场景 1' })).toBeVisible()
+  await expect(page).toHaveScreenshot('editor-paper-1440.png')
+
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await page.getByRole('button', { name: '交付', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '把故事安全地带出去' })).toBeVisible()
+  await expect(page).toHaveScreenshot('delivery-paper-1024.png')
+})
+
+test('passes serious WCAG scans on the component system and core workspaces', async ({ page }) => {
+  await page.goto('/design-system')
+  await assertA11y(page)
+
+  await onlyProjects(page, [project])
+  await page.goto('/')
+  await assertA11y(page)
+  await page.getByRole('button', { name: project.title }).first().click()
+  await expect(page.getByRole('heading', { name: '场景 1' })).toBeVisible()
+  await assertA11y(page)
+  await page.getByRole('button', { name: '交付', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '把故事安全地带出去' })).toBeVisible()
+  await assertA11y(page)
+})
+
+test('keeps overlays keyboard-contained and restores focus', async ({ page }) => {
+  await page.goto('/design-system')
+  const dialogTrigger = page.getByRole('button', { name: '打开对话框' })
+  await dialogTrigger.focus()
+  await dialogTrigger.press('Enter')
+  await expect(page.getByRole('dialog', { name: '接受事实候选' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialogTrigger).toBeFocused()
+
+  const drawerTrigger = page.getByRole('button', { name: '打开详情栏' })
+  await drawerTrigger.focus()
+  await drawerTrigger.press('Enter')
+  await expect(page.getByRole('dialog', { name: '正典详情' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(drawerTrigger).toBeFocused()
+})
+
+test('supports command keyboard flow, IME composition and a 200% reflow equivalent', async ({ page }) => {
+  await onlyProjects(page, [project])
+  await page.setViewportSize({ width: 720, height: 900 })
+  await page.goto('/?desktop=1')
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, isComposing: true, bubbles: true })))
+  await expect(page.getByRole('dialog', { name: '书架命令' })).toHaveCount(0)
+  await page.keyboard.press('Meta+k')
+  await expect(page.getByRole('dialog', { name: '书架命令' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: project.title }).first().click()
+  await expect(page.getByRole('heading', { name: '场景 1' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  await page.getByRole('button', { name: '交付', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '把故事安全地带出去' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+})
+
+test('keeps touch targets at 44px in touch density', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 932 })
+  await page.goto('/design-system')
+  await page.getByRole('tab', { name: '触控' }).click()
+  const violations = await page.locator('button:visible, a[href]:visible, input:visible, select:visible, textarea:visible').evaluateAll((elements) => elements.flatMap((element) => {
+    const rect = element.getBoundingClientRect()
+    if (element instanceof HTMLInputElement && ['checkbox', 'radio'].includes(element.type) && element.closest('label')?.getBoundingClientRect().height! >= 44) return []
+    return rect.width + .5 < 44 || rect.height + .5 < 44 ? [{ tag: element.tagName, name: element.getAttribute('aria-label') || element.textContent?.trim().slice(0, 40), width: Math.round(rect.width), height: Math.round(rect.height) }] : []
+  }))
+  expect(violations).toEqual([])
+})
+
+test('reflows across the frozen desktop, narrow and PWA viewport matrix', async ({ page }) => {
+  for (const width of [1440, 1280, 1024, 430, 390, 360]) {
+    for (const theme of ['宣纸', '夜间']) {
+      await test.step(`${width}px · ${theme}`, async () => {
+        await page.setViewportSize({ width, height: width <= 430 ? 800 : 768 })
+        await page.goto('/design-system')
+        if (theme === '夜间') await page.getByRole('tab', { name: theme }).click()
+        await expect(page.getByRole('heading', { name: '温润纸感，克制工具感' })).toBeVisible()
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+      })
+    }
+  }
+
+  for (const width of [430, 390, 360]) {
+    await test.step(`PWA ${width}px`, async () => {
+      await page.setViewportSize({ width, height: 800 })
+      await page.goto('/mobile-acceptance.html')
+      await expect(page.getByRole('heading', { name: '笔不怠 · 移动真机验收' })).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    })
+  }
+})
+
+test('loads, scrolls and switches a 200k-character manuscript within a bounded budget', async ({ page }) => {
+  await onlyProjects(page, [longProject])
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  const started = Date.now()
+  await page.getByRole('button', { name: longProject.title }).first().click()
+  await expect(page.getByRole('heading', { name: '场景 1' })).toBeVisible({ timeout: 8_000 })
+  expect(Date.now() - started).toBeLessThan(8_000)
+  const scrollDuration = await page.locator('.paper-scroll').evaluate(async (scroller) => {
+    const start = performance.now()
+    scroller.scrollTop = scroller.scrollHeight
+    await new Promise(requestAnimationFrame)
+    return performance.now() - start
+  })
+  expect(scrollDuration).toBeLessThan(1_000)
+  const switched = Date.now()
+  await page.getByRole('button', { name: /短场景/ }).first().click()
+  await expect(page.getByText('天亮以后，线索仍在桌面。')).toBeVisible()
+  expect(Date.now() - switched).toBeLessThan(2_500)
+})
+
+async function onlyProjects(page: Page, projects: Project[]) {
+  await page.route('**/api/projects', async (route) => {
+    const url = new URL(route.request().url())
+    if (route.request().method() === 'GET' && url.pathname === '/api/projects' && !url.search) await route.fulfill({ json: projects })
+    else await route.continue()
+  })
+}
+
+async function assertA11y(page: Page) {
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()
+  expect(result.violations.filter((item) => item.impact === 'critical' || item.impact === 'serious')).toEqual([])
+}
+
+async function session(request: APIRequestContext) {
+  let lastStatus = 'unreachable'
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      const response = await request.post('/api/session')
+      lastStatus = `${response.status()} ${response.statusText()}`
+      if (response.ok()) return
+    } catch (error) {
+      lastStatus = error instanceof Error ? error.message : String(error)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+  throw new Error(`本地 API 在 8 秒内未就绪：${lastStatus}`)
+}
+async function json<T>(responsePromise: Promise<import('@playwright/test').APIResponse>) { const response = await responsePromise; expect(response.ok(), await response.text()).toBe(true); return response.json() as Promise<T> }
+function scenePayload(text: string) { return { contentJson: { type: 'doc', content: text.split('\n\n').map((paragraph) => ({ type: 'paragraph', content: paragraph ? [{ type: 'text', text: paragraph }] : [] })) }, plainText: text, sourceType: 'human', sourceTaskId: null } }

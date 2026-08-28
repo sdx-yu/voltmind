@@ -9,12 +9,19 @@ export const APP_COMMANDS = [
   'read-aloud',
   'trash',
   'bookshelf',
+  'command-palette',
   'view-write',
   'view-plot',
+  'view-plan',
   'view-canon',
+  'view-revision',
   'view-deliver',
   'view-provenance',
   'view-sync',
+  'view-review',
+  'view-sprint',
+  'view-template',
+  'view-visual',
 ] as const
 
 export type AppCommand = (typeof APP_COMMANDS)[number]

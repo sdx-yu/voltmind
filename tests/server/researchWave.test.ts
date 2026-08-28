@@ -65,7 +65,7 @@ describe('R1-C controlled research waves', () => {
 
   it('exports a coordinator kit without roster, participant identifiers or internal wave IDs', () => {
     const waves = new ResearchWaveService(database('privacy')); const wave = waves.createWave(rehearsalInput, start); const kit = waves.exportKit(wave.id); const serialized = JSON.stringify(kit)
-    expect(kit).toMatchObject({ format: 'bbd-wave-kit-v1', manifest: { appVersion: '1.6.0', privacy: { containsNamesOrContacts: false, containsParticipantCodes: false, containsManuscriptText: false } } })
+    expect(kit).toMatchObject({ format: 'bbd-wave-kit-v1', manifest: { appVersion: '1.7.0', privacy: { containsNamesOrContacts: false, containsParticipantCodes: false, containsManuscriptText: false } } })
     expect(kit.manifestHash).toBe(sha256(stableStringify(kit.manifest)))
     expect(serialized).not.toContain(wave.id)
     expect(serialized).not.toContain('participantCodeHash')
@@ -79,7 +79,7 @@ describe('R1-C controlled research waves', () => {
     const created = (await request(result.app).post('/api/research-waves').set('Cookie', cookie).send(rehearsalInput).expect(201)).body
     await request(result.app).post(`/api/research-waves/${created.id}/transition`).set('Cookie', cookie).send({ next: 'recruiting' }).expect(200)
     const status = (await request(result.app).get('/api/research-waves/status').set('Cookie', cookie).expect(200)).body
-    expect(status).toMatchObject({ appVersion: '1.6.0', externalExecution: { waveCount: 0, participantCount: 0, status: 'not_started' }, privacy: { rehearsalsCountAsExternal: false, automaticR1Go: false } })
+    expect(status).toMatchObject({ appVersion: '1.7.0', externalExecution: { waveCount: 0, participantCount: 0, status: 'not_started' }, privacy: { rehearsalsCountAsExternal: false, automaticR1Go: false } })
     expect((await request(result.app).get(`/api/research-waves/${created.id}/kit`).set('Cookie', cookie).expect(200)).body).toMatchObject({ format: 'bbd-wave-kit-v1' })
   })
 })

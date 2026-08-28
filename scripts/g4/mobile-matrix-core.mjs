@@ -8,7 +8,7 @@ export function validateMobileEvidence(items, expectedRevision) {
   evidence.forEach((item, index) => {
     const prefix = `证据 ${index + 1}`
     if (item?.schemaVersion !== 'g4-mobile-device-v1') errors.push(`${prefix} schemaVersion 不正确`)
-    if (!/^1\.6\.0$/.test(item?.appVersion ?? '')) errors.push(`${prefix} 应用版本不是 1.6.0`)
+    if (!/^1\.7\.0$/.test(item?.appVersion ?? '')) errors.push(`${prefix} 应用版本不是 1.7.0`)
     if (!/^[a-f0-9]{7,40}$/i.test(item?.sourceRevision ?? '')) errors.push(`${prefix} 缺少源码修订号`)
     if (expectedRevision && !expectedRevision.startsWith(item?.sourceRevision ?? '')) errors.push(`${prefix} 源码修订号与当前提交不一致`)
     if (!Number.isFinite(item?.viewport?.width) || !Number.isFinite(item?.viewport?.height)) errors.push(`${prefix} 缺少视口尺寸`)

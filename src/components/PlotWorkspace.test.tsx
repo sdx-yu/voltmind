@@ -20,7 +20,7 @@ describe('PlotWorkspace', () => {
 
   it('compares narrative order with story-time order without changing scenes', async () => {
     render(<PlotWorkspace projectId="project" nodes={nodes} entities={[]} onSelectScene={vi.fn()} notify={vi.fn()} />)
-    await userEvent.click(screen.getByRole('button', { name: '故事时间' }))
+    await userEvent.click(screen.getByRole('tab', { name: '故事时间' }))
     const lane = screen.getByText('按实际发生先后').closest('.timeline-lane')!
     expect(lane.textContent?.indexOf('三日前')).toBeLessThan(lane.textContent?.indexOf('现在') ?? 0)
     expect(screen.getByText('2/2 场已定时')).toBeInTheDocument()
@@ -28,7 +28,7 @@ describe('PlotWorkspace', () => {
 
   it('creates a foreshadow with scene evidence through the visible workflow', async () => {
     render(<PlotWorkspace projectId="project" nodes={nodes} entities={[]} onSelectScene={vi.fn()} notify={vi.fn()} />)
-    await userEvent.click(screen.getByRole('button', { name: '伏笔看板' }))
+    await userEvent.click(screen.getByRole('tab', { name: '伏笔看板' }))
     await userEvent.click(screen.getByRole('button', { name: '建立伏笔' }))
     await userEvent.type(screen.getByLabelText('伏笔名称'), '停摆的怀表')
     await userEvent.selectOptions(screen.getByLabelText('建立场景'), 'late')

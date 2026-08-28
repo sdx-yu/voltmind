@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { diffWords } from 'diff'
 import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LockKeyhole, MessageSquareText, Plus, RotateCcw, Sparkles, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
 import type { AiContextItem, AiTaskResult, ContinuityIssue, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision } from '../../shared/types'
 import { api } from '../lib/api'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Modal } from './Modal'
+import { IconButton, Tabs } from '../ui'
 
 type Tab = 'scene' | 'canon' | 'check' | 'ai'
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -28,18 +29,8 @@ interface Props {
 
 export function Inspector({ projectId, node, entities, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('scene')
-  function onTabListKey(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
-    const index = TABS.findIndex((item) => item.id === tab)
-    const next = TABS[(index + (event.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]
-    event.preventDefault()
-    setTab(next.id)
-  }
   return <aside className="inspector" aria-label="场景检查器">
-    <nav className="inspector-tabs" role="tablist" aria-label="检查器分页" onKeyDown={onTabListKey}>
-      {TABS.map((item) => <button key={item.id} role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}>{item.label}</button>)}
-      {onClose && <button className="icon-button inspector-close" onClick={onClose} aria-label="关闭检查器"><X size={16} /></button>}
-    </nav>
+    <div className="ui-inspector-tabbar"><Tabs items={TABS} value={tab} onChange={(value) => setTab(value as Tab)} label="检查器分页" />{onClose && <IconButton size="small" className="inspector-close" onClick={onClose} label="关闭检查器"><X size={16} /></IconButton>}</div>
     <div className="inspector-scroll">
       {tab === 'scene' && <ScenePanel node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} notify={notify} />}
       {tab === 'canon' && <CanonPanel projectId={projectId} node={node} entities={entities} refreshEntities={refreshEntities} notify={notify} />}

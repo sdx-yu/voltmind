@@ -18,7 +18,7 @@ describe('DeliveryWorkspace', () => {
   it('keeps the first render usable while templates and history are loading', () => {
     render(<DeliveryWorkspace project={project} nodes={nodes} onSelectScene={vi.fn()} notify={vi.fn()} />)
     expect(screen.getByRole('heading', { name: '把故事安全地带出去' })).toBeInTheDocument()
-    expect(screen.getByText('尚未检查')).toBeInTheDocument()
+    expect(screen.getByText('尚未检查', { selector: '.ui-badge' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '按所选范围检查' })).toBeDisabled()
   })
 })

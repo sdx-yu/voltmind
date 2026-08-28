@@ -16,7 +16,7 @@ describe('ResearchWorkspace', () => {
 
   it('requires every explicit consent confirmation and states the no-upload boundary', async () => {
     const user = userEvent.setup(); render(<ResearchWorkspace projects={[project]} onBack={vi.fn()} onOpenCohort={vi.fn()} notify={vi.fn()}/>)
-    expect(await screen.findByText('知情同意')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '知情同意' })).toBeInTheDocument()
     expect(screen.getByText(/只有我主动导出研究包时数据才会离开本机/)).toBeInTheDocument()
     const submit = screen.getByRole('button', { name: '同意并生成匿名参与码' })
     expect(submit).toBeDisabled()
@@ -57,4 +57,4 @@ const enrollment = { id: 'enrollment', participantCode: 'R1-ABCDEF123456', conse
 const emptyStatus: ResearchStatus = { consent, enrollment: null, tasks: [], progress, privacy }
 const enrolledStatus: ResearchStatus = { ...emptyStatus, enrollment }
 const activeTask = { id: 'task', taskType: 'fact_lookup' as const, projectScopeHash: 'c'.repeat(64), status: 'active' as const, startedAt: '2026-08-27T00:00:00.000Z', completedAt: null, durationSeconds: null, goalAchieved: null, difficulty: null, minutesSaved: null, issueCodes: [] }
-const readiness = { appVersion: '1.6.0', publicRelease: 'NO-GO' as const, engineering: [{ gate: '数据库完整性', status: 'pass' as const, evidence: 'ok' }], external: [{ gate: '真实作者验证', status: 'required' as const, evidence: '至少 5 名完成两周' }] }
+const readiness = { appVersion: '1.7.0', publicRelease: 'NO-GO' as const, engineering: [{ gate: '数据库完整性', status: 'pass' as const, evidence: 'ok' }], external: [{ gate: '真实作者验证', status: 'required' as const, evidence: '至少 5 名完成两周' }] }

@@ -95,6 +95,7 @@ pub fn run() {
 
 fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
   let settings = MenuItem::with_id(app, "settings", "设置…", true, Some("CmdOrCtrl+,"))?;
+  let command_palette = MenuItem::with_id(app, "command-palette", "命令面板…", true, Some("CmdOrCtrl+K"))?;
   let search = MenuItem::with_id(app, "search", "查找", true, Some("CmdOrCtrl+F"))?;
   let replace = MenuItem::with_id(app, "replace", "查找与替换", true, Some("CmdOrCtrl+Shift+F"))?;
   let focus = MenuItem::with_id(app, "focus", "进入专注", true, Some("CmdOrCtrl+Shift+."))?;
@@ -102,9 +103,14 @@ fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
   let inspector = MenuItem::with_id(app, "toggle-inspector", "显示检查器", true, Some("CmdOrCtrl+Shift+I"))?;
   let read_aloud = MenuItem::with_id(app, "read-aloud", "本地朗读", true, None::<&str>)?;
   let write = MenuItem::with_id(app, "view-write", "写作", true, Some("CmdOrCtrl+1"))?;
-  let plot = MenuItem::with_id(app, "view-plot", "剧情", true, Some("CmdOrCtrl+2"))?;
+  let plan = MenuItem::with_id(app, "view-plan", "规划", true, Some("CmdOrCtrl+2"))?;
   let canon = MenuItem::with_id(app, "view-canon", "正典", true, Some("CmdOrCtrl+3"))?;
-  let deliver = MenuItem::with_id(app, "view-deliver", "交付", true, Some("CmdOrCtrl+4"))?;
+  let revision = MenuItem::with_id(app, "view-revision", "修订", true, Some("CmdOrCtrl+4"))?;
+  let deliver = MenuItem::with_id(app, "view-deliver", "交付", true, Some("CmdOrCtrl+5"))?;
+  let sprint = MenuItem::with_id(app, "view-sprint", "安静冲刺", true, None::<&str>)?;
+  let visual = MenuItem::with_id(app, "view-visual", "视觉故事板", true, None::<&str>)?;
+  let template = MenuItem::with_id(app, "view-template", "结构模板", true, None::<&str>)?;
+  let review = MenuItem::with_id(app, "view-review", "角色化审阅", true, None::<&str>)?;
   let provenance = MenuItem::with_id(app, "view-provenance", "创作来源", true, None::<&str>)?;
   let sync = MenuItem::with_id(app, "view-sync", "加密接力", true, None::<&str>)?;
   let help = MenuItem::with_id(app, "help", "帮助与恢复", true, None::<&str>)?;
@@ -149,6 +155,7 @@ fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
         .paste()
         .select_all_with_text("全选")
         .separator()
+        .item(&command_palette)
         .item(&search)
         .item(&replace)
         .build()?,
@@ -166,10 +173,15 @@ fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
     .item(
       &SubmenuBuilder::new(app, "前往")
         .item(&write)
-        .item(&plot)
+        .item(&plan)
         .item(&canon)
+        .item(&revision)
         .item(&deliver)
         .separator()
+        .item(&sprint)
+        .item(&visual)
+        .item(&template)
+        .item(&review)
         .item(&provenance)
         .item(&sync)
         .build()?,

@@ -2,6 +2,7 @@ import { useMemo, useState, type KeyboardEvent } from 'react'
 import { BookMarked, ChevronDown, ChevronRight, Combine, FilePlus2, FolderPlus, GripVertical, LibraryBig, MoreHorizontal, Search, Scissors, Trash2 } from 'lucide-react'
 import type { ManuscriptNode } from '../../shared/types'
 import { sceneStatusLabel, sceneStatusShort } from '../lib/status'
+import { Button, IconButton } from '../ui'
 
 interface Props {
   nodes: ManuscriptNode[]
@@ -54,12 +55,12 @@ export function ManuscriptTree({ nodes, selectedId, onSelect, onCreateVolume, on
   }
 
   return <aside className="manuscript-sidebar" aria-label="书稿结构">
-    <div className="sidebar-heading"><span>书稿</span><button className="icon-button" onClick={onSearch} aria-label="全局搜索"><Search size={17} /></button></div>
+    <div className="sidebar-heading"><span>书稿</span><IconButton size="small" onClick={onSearch} label="全局搜索"><Search size={17} /></IconButton></div>
     <div className="tree-scroll">
       {volumes.map((volume) => <div key={volume.id} className="tree-volume" onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(volume)}><div className="tree-row volume-row"><button className="tree-toggle" onClick={() => toggle(volume.id)} aria-label={collapsed.has(volume.id) ? '展开卷' : '折叠卷'}>{collapsed.has(volume.id) ? <ChevronRight size={15}/> : <ChevronDown size={15}/>}</button><LibraryBig size={14}/>{editing === volume.id ? <input className="inline-title" defaultValue={volume.title} autoFocus onBlur={(event) => { onUpdate(volume.id, { title: event.target.value || volume.title }); setEditing(null) }} /> : <button className="tree-title" onDoubleClick={() => setEditing(volume.id)} onClick={() => toggle(volume.id)} onKeyDown={(event) => keyboardMove(event, volume)} title="Alt+↑/↓ 排序"><span>{volume.title}</span></button>}<button className="tree-action" onClick={() => onCreateChapter(volume.id)} aria-label="在卷中添加章节"><FolderPlus size={13}/></button><button className="tree-action danger-hover" onClick={() => onTrash(volume)} aria-label={`删除 ${volume.title}`}><Trash2 size={13}/></button></div>{!collapsed.has(volume.id) && renderChapters(chapters.filter((chapter) => chapter.parentId === volume.id))}</div>)}
       {renderChapters(chapters.filter((chapter) => chapter.parentId === book?.id || !volumes.some((volume) => volume.id === chapter.parentId)))}
     </div>
-    <div className="tree-add-actions"><button className="add-chapter" onClick={() => onCreateChapter()}><FolderPlus size={15} />添加章节</button><button className="add-chapter" onClick={onCreateVolume}><LibraryBig size={15}/>添加卷</button></div>
+    <div className="tree-add-actions"><Button size="small" variant="ghost" leadingIcon={<FolderPlus size={15} />} onClick={() => onCreateChapter()}>添加章节</Button><Button size="small" variant="ghost" leadingIcon={<LibraryBig size={15}/>} onClick={onCreateVolume}>添加卷</Button></div>
     <div className="tree-legend"><BookMarked size={14} /><span>双击标题重命名</span><MoreHorizontal size={14} /></div>
   </aside>
 

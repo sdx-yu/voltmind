@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Download, FileHeart, FlaskConical, ShieldCheck, Stethoscope, TriangleAlert } from 'lucide-react'
 import type { Project, ReleaseReadiness, ResearchIssueCode, ResearchStatus, ResearchTaskType } from '../../shared/types'
 import { api } from '../lib/api'
+import { Button, PageHeader, WorkflowSteps, WorkflowTemplate } from '../ui'
 
 type Props = { projects: Project[]; onBack: () => void; onOpenCohort: () => void; notify: (type: 'success' | 'error', message: string) => void }
 
@@ -87,9 +88,10 @@ export function ResearchWorkspace({ projects, onBack, onOpenCohort, notify }: Pr
   if (!status) return <div className="workspace-loading"><span className="brand-mark">笔</span><p>正在读取验证计划…</p></div>
   const allConfirmed = Object.values(confirmations).every(Boolean)
   return <main className="research-workspace">
-    <header className="workspace-topbar research-topbar"><div className="workspace-title"><button className="icon-button" onClick={onBack} aria-label="返回书架"><ArrowLeft size={18}/></button><span className="mini-brand">笔</span><div><strong>R1 真实作者验证</strong><small>1.6.0 · 本机证据准备</small></div></div><span className="gate-badge no-go" aria-label="公开发布 NO-GO"><TriangleAlert size={14}/><span>公开发布 </span>NO-GO</span></header>
-    <section className="research-content">
-      <header className="page-header"><div><span className="eyebrow">真实验证，不造数据</span><h1>验证它是否真的减少翻资料、返工和穿帮</h1><p>这里建立可校验的本机研究记录。没有自动上传；本机测试、自动化测试和导出动作都不能替代真实作者与真实周期。</p></div><button className="button ghost" onClick={onOpenCohort}><FlaskConical size={16}/>研究负责人工作台</button></header>
+    <header className="workspace-topbar research-topbar"><div className="workspace-title"><button className="icon-button" onClick={onBack} aria-label="返回书架"><ArrowLeft size={18}/></button><span className="mini-brand">笔</span><div><strong>真实作者验证</strong><small>本机记录 · 不自动上传</small></div></div><span className="gate-badge no-go" aria-label="公开发布 NO-GO"><TriangleAlert size={14}/><span>公开发布 </span>NO-GO</span></header>
+    <WorkflowTemplate className="research-content">
+      <PageHeader eyebrow="真实验证，不造数据" title="验证它是否真的减少翻资料、返工和穿帮" description="这里建立可校验的本机研究记录。自动化和导出动作不能替代真实作者与真实周期。" actions={<Button variant="ghost" leadingIcon={<FlaskConical size={16}/>} onClick={onOpenCohort}>研究负责人工作台</Button>} />
+      <WorkflowSteps label="真实验证步骤" items={[{ id: 'consent', label: '知情同意', description: '自愿参与并可退出', state: status.enrollment ? 'complete' : 'current' }, { id: 'task', label: '完成真实任务', description: '只记录任务与结果', state: activeTask ? 'current' : status.progress.completedTasks ? 'complete' : status.enrollment ? 'current' : 'upcoming' }, { id: 'export', label: '自主导出证据', description: '决定是否交给负责人', state: status.progress.completedTasks ? 'current' : 'upcoming' }]} />
 
       {!status.enrollment ? <section className="research-consent panel-card"><div className="section-title"><ShieldCheck size={22}/><div><h2>知情同意</h2><p>版本 {status.consent.version} · 文本 SHA-256 {status.consent.textHash.slice(0, 12)}…</p></div></div><p className="consent-copy">{status.consent.text}</p><div className="consent-checks">
         <CheckBox checked={confirmations.adultOrAuthorized} onChange={(value) => setConfirmations((current) => ({ ...current, adultOrAuthorized: value }))}>我已成年或有权自行作出参与决定</CheckBox>
@@ -111,7 +113,7 @@ export function ResearchWorkspace({ projects, onBack, onOpenCohort, notify }: Pr
 
         <section className="withdraw-card"><div><strong>退出真实验证</strong><p>退出会删除当前数据库中的参与码、任务与研究事件，不影响书稿和版本；已有历史数据库快照需按备份策略另行管理。</p></div>{confirmWithdraw ? <div className="inline-actions"><button className="button danger" disabled={busy} onClick={() => void withdraw()}>确认退出并清除</button><button className="button ghost" onClick={() => setConfirmWithdraw(false)}>保留记录</button></div> : <button className="button ghost danger-ghost" onClick={() => setConfirmWithdraw(true)}>退出验证</button>}</section>
       </>}
-    </section>
+    </WorkflowTemplate>
   </main>
 }
 

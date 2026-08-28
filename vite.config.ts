@@ -30,6 +30,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**', '.ui-e-results/**', 'playwright-report/**'],
     // Crypto, SQLite migrations and encrypted package round-trips are deliberately
     // integration-heavy. Keep a finite ceiling while allowing release checks on
     // resource-constrained CI/desktop hosts.

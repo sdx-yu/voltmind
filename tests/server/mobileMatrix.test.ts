@@ -5,7 +5,7 @@ const revision = '0123456789abcdef0123456789abcdef01234567'
 const manualChecks = { imeComposition: true, offlineReopen: true, weakNetworkSave: true, pwaUpdate: true, encryptedHandoff: true }
 function evidence(width: number, userAgent: string) {
   return {
-    schemaVersion: 'g4-mobile-device-v1', appVersion: '1.6.0', sourceRevision: revision.slice(0, 8),
+    schemaVersion: 'g4-mobile-device-v1', appVersion: '1.7.0', sourceRevision: revision.slice(0, 8),
     viewport: { width, height: 800 }, runtime: { secureContext: true, serviceWorkerSupported: true, serviceWorkerControlled: true, touchPoints: 5, healthOk: true, userAgent },
     checks: manualChecks, screenshotReference: `device-${width}.png`, manuscriptContentRecorded: false,
   }

@@ -1,0 +1,209 @@
+/*
+ * 笔不怠 UI foundations v1.0
+ * Only this file may define raw colour values for the new UI system.
+ * Feature styles must consume semantic tokens.
+ */
+:root,
+[data-theme="paper"] {
+  color-scheme: light;
+
+  /* Primitive palette: 24 named slots shared by every theme. */
+  --rice-25: #fffefa;
+  --rice-50: #fbfaf6;
+  --rice-100: #f4f1e9;
+  --rice-200: #eeebe3;
+  --rice-300: #ddd8cc;
+  --rice-400: #bcb5a8;
+  --rice-500: #6b655b;
+  --rice-600: #5e594f;
+  --rice-700: #3b3832;
+  --rice-900: #26231f;
+  --green-50: #eef5f1;
+  --green-100: #dce8e1;
+  --green-300: #9bb5a7;
+  --green-500: #4f8069;
+  --green-700: #315c4a;
+  --green-900: #203e33;
+  --cinnabar-100: #f2e7e4;
+  --cinnabar-300: #dea082;
+  --cinnabar-500: #c96d45;
+  --cinnabar-700: #a84d46;
+  --cinnabar-900: #73362f;
+  --gold-100: #f8ead5;
+  --gold-700: #8f5b2c;
+  --blue-700: #4b5871;
+
+  /* Semantic surfaces. */
+  --surface-canvas: var(--rice-100);
+  --surface-paper: var(--rice-25);
+  --surface-sunken: var(--rice-200);
+  --surface-raised: var(--rice-25);
+  --surface-overlay: var(--rice-25);
+  --surface-scrim: color-mix(in srgb, var(--rice-900) 38%, transparent);
+  --surface-selected: var(--green-100);
+
+  /* Semantic text and borders. */
+  --text-primary: var(--rice-900);
+  --text-secondary: var(--rice-500);
+  --text-tertiary: color-mix(in srgb, var(--rice-500) 78%, var(--rice-25));
+  --text-inverse: var(--rice-25);
+  --border-faint: color-mix(in srgb, var(--rice-300) 55%, transparent);
+  --border-subtle: var(--rice-300);
+  --border-strong: var(--rice-400);
+
+  /* Actions, brand and focus. */
+  --action-primary: var(--green-700);
+  --action-primary-hover: var(--green-900);
+  --action-primary-pressed: color-mix(in srgb, var(--green-900) 88%, var(--rice-900));
+  --action-subtle: var(--green-100);
+  --action-subtle-hover: color-mix(in srgb, var(--green-100) 75%, var(--green-300));
+  --brand-accent: var(--cinnabar-700);
+  --focus-ring: var(--green-500);
+
+  /* Status semantics. */
+  --status-success: var(--green-700);
+  --status-success-surface: var(--green-50);
+  --status-warning: var(--gold-700);
+  --status-warning-surface: var(--gold-100);
+  --status-danger: var(--cinnabar-700);
+  --status-danger-surface: var(--cinnabar-100);
+  --status-info: var(--blue-700);
+  --status-info-surface: color-mix(in srgb, var(--blue-700) 10%, var(--rice-25));
+
+  /* Typography. */
+  --font-ui: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-editorial: "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --type-display-size: 2rem;
+  --type-display-line: 2.5rem;
+  --type-title-size: 1.5rem;
+  --type-title-line: 2rem;
+  --type-heading-size: 1.125rem;
+  --type-heading-line: 1.625rem;
+  --type-body-size: 0.875rem;
+  --type-body-line: 1.375rem;
+  --type-label-size: 0.8125rem;
+  --type-label-line: 1.125rem;
+  --type-caption-size: 0.75rem;
+  --type-caption-line: 1rem;
+
+  /* Spacing, shape, elevation, motion and layout. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --radius-control: 0.375rem;
+  --radius-card: 0.625rem;
+  --radius-container: 0.875rem;
+  --radius-pill: 999px;
+  --shadow-none: none;
+  --shadow-raised: 0 4px 14px color-mix(in srgb, var(--rice-900) 8%, transparent);
+  --shadow-floating: 0 12px 32px color-mix(in srgb, var(--rice-900) 14%, transparent);
+  --shadow-modal: 0 24px 72px color-mix(in srgb, var(--rice-900) 26%, transparent);
+  --motion-fast: 120ms;
+  --motion-standard: 180ms;
+  --motion-slow: 240ms;
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --control-height-sm: 2rem;
+  --control-height-md: 2.5rem;
+  --control-height-lg: 2.75rem;
+  --list-row-height: 2.5rem;
+  --pane-left-width: 17rem;
+  --pane-right-width: 21rem;
+
+  /* Legacy bridge. Existing pages migrate during UI-B/UI-C. */
+  --ui-font: var(--font-ui);
+  --paper-font: var(--font-editorial);
+  --paper: var(--surface-paper);
+  --canvas: var(--surface-canvas);
+  --panel: var(--surface-sunken);
+  --card: var(--surface-raised);
+  --line: var(--border-subtle);
+  --line-soft: var(--border-faint);
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --accent: var(--action-primary);
+  --accent-2: var(--brand-accent);
+  --accent-soft: var(--action-subtle);
+  --danger: var(--status-danger);
+  --danger-soft: var(--status-danger-surface);
+  --shadow: var(--shadow-floating);
+}
+
+[data-theme="night"] {
+  color-scheme: dark;
+  --rice-25: #1b1916;
+  --rice-50: #201d19;
+  --rice-100: #12110f;
+  --rice-200: #221f1b;
+  --rice-300: #3a342c;
+  --rice-400: #5b5348;
+  --rice-500: #a39b8e;
+  --rice-600: #c3baaa;
+  --rice-700: #d9d1c2;
+  --rice-900: #ebe4d6;
+  --green-50: #203027;
+  --green-100: #2a3830;
+  --green-300: #567565;
+  --green-500: #7ea892;
+  --green-700: #8db8a1;
+  --green-900: #b5d8c5;
+  --cinnabar-100: #3a2725;
+  --cinnabar-300: #925e4b;
+  --cinnabar-500: #d4a07a;
+  --cinnabar-700: #e18e84;
+  --cinnabar-900: #f0b1aa;
+  --gold-100: #3a3021;
+  --gold-700: #e7c98f;
+  --blue-700: #a9b7d8;
+  --surface-scrim: color-mix(in srgb, #000 58%, transparent);
+  --shadow-raised: none;
+  --shadow-floating: 0 12px 32px color-mix(in srgb, #000 28%, transparent);
+  --shadow-modal: 0 24px 72px color-mix(in srgb, #000 48%, transparent);
+}
+
+[data-theme="high-contrast"] {
+  color-scheme: light;
+  --rice-25: #fff;
+  --rice-50: #fff;
+  --rice-100: #fff;
+  --rice-200: #f2f2f2;
+  --rice-300: #777;
+  --rice-400: #555;
+  --rice-500: #333;
+  --rice-600: #222;
+  --rice-700: #111;
+  --rice-900: #000;
+  --green-50: #e5f7ed;
+  --green-100: #ccebd9;
+  --green-300: #32845d;
+  --green-500: #006b3f;
+  --green-700: #005331;
+  --green-900: #003d24;
+  --cinnabar-100: #ffe9e7;
+  --cinnabar-300: #d06056;
+  --cinnabar-500: #a43f34;
+  --cinnabar-700: #852b23;
+  --cinnabar-900: #681c16;
+  --gold-100: #fff2c7;
+  --gold-700: #604000;
+  --blue-700: #173f84;
+  --focus-ring: #005fcc;
+  --border-faint: var(--rice-300);
+  --border-subtle: var(--rice-400);
+  --border-strong: var(--rice-900);
+  --shadow-raised: none;
+  --shadow-floating: none;
+  --shadow-modal: 0 0 0 2px var(--rice-900);
+}
+
+@media (prefers-contrast: more) {
+  :root:not([data-theme]) {
+    --border-faint: var(--rice-400);
+    --border-subtle: var(--rice-500);
+    --focus-ring: var(--blue-700);
+  }
+}

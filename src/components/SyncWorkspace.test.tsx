@@ -15,10 +15,10 @@ describe('SyncWorkspace', () => {
   })
   afterEach(cleanup)
 
-  it('labels the feature as an engineering experiment and shows the recovery phrase only after initialization', async () => {
+  it('labels the feature as local file relay and shows the recovery phrase only after initialization', async () => {
     const user = userEvent.setup(); render(<SyncWorkspace project={project} onSynced={vi.fn()} notify={vi.fn()} />)
     expect(await screen.findByRole('heading', { name: '加密接力，不托管你的故事' })).toBeInTheDocument()
-    expect(screen.getByText('工程实验 · 暂无云服务')).toBeInTheDocument()
+    expect(screen.getByText(/本地文件 · 暂无云服务/)).toBeInTheDocument()
     expect(screen.queryByText(phrase)).not.toBeInTheDocument()
     await user.clear(screen.getByRole('textbox', { name: '设备名称' })); await user.type(screen.getByRole('textbox', { name: '设备名称' }), '书房电脑')
     await user.click(screen.getByRole('button', { name: '建立同步身份' }))

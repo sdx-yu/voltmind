@@ -3,11 +3,13 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import { Bold, Heading2, Italic, List, ListOrdered, Maximize2, Quote, Redo2, Undo2 } from 'lucide-react'
+import { Bold, Heading2, Italic, List, ListOrdered, Quote, Redo2, Undo2 } from 'lucide-react'
 import type { ManuscriptNode, SceneDocument } from '../../shared/types'
 import { api } from '../lib/api'
 import { sceneStatusLabel } from '../lib/status'
 import { countWords } from '../lib/text'
+import { IconButton, Toolbar, ToolGroup } from '../ui'
+import { SceneHeader, type EditorSaveState } from './SceneHeader'
 
 interface Props {
   node: ManuscriptNode
@@ -19,7 +21,7 @@ interface Props {
 
 export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }: Props) {
   const [document, setDocument] = useState<SceneDocument | null>(null)
-  const [saveState, setSaveState] = useState<'loading' | 'dirty' | 'saving' | 'saved' | 'error'>('loading')
+  const [saveState, setSaveState] = useState<EditorSaveState>('loading')
   const [words, setWords] = useState(node.wordCount)
   const loadingRef = useRef(true)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -112,24 +114,13 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
 
   if (!editor) return <div className="editor-loading">正在准备纸张…</div>
 
-  const stateLabel = { loading: '正在读取', dirty: '有未保存修改', saving: '正在保存', saved: '已保存到本机', error: '保存失败' }[saveState]
   return <section className={`editor-pane ${focusMode ? 'focus-mode' : ''}`}>
-    <header className="editor-header">
-      <div><span className="scene-kicker">{sceneStatusLabel(node.status)}</span><h2>{node.title}</h2></div>
-      <div className="editor-meta"><span>{words.toLocaleString('zh-CN')} 字</span><span className={`save-state save-${saveState}`}>{stateLabel}</span><button className="icon-button" onClick={() => onFocusMode(!focusMode)} aria-label={focusMode ? '退出专注模式' : '进入专注模式'}><Maximize2 size={17} /></button></div>
-    </header>
-    <div className="format-toolbar" role="toolbar" aria-label="文字格式">
-      <button className={editor.isActive('bold') ? 'active' : ''} onClick={() => editor.chain().focus().toggleBold().run()} aria-label="粗体"><Bold size={16} /></button>
-      <button className={editor.isActive('italic') ? 'active' : ''} onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="斜体"><Italic size={16} /></button>
-      <button className={editor.isActive('heading', { level: 2 }) ? 'active' : ''} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} aria-label="二级标题"><Heading2 size={16} /></button>
-      <span className="toolbar-separator" />
-      <button className={editor.isActive('bulletList') ? 'active' : ''} onClick={() => editor.chain().focus().toggleBulletList().run()} aria-label="无序列表"><List size={16} /></button>
-      <button className={editor.isActive('orderedList') ? 'active' : ''} onClick={() => editor.chain().focus().toggleOrderedList().run()} aria-label="有序列表"><ListOrdered size={16} /></button>
-      <button className={editor.isActive('blockquote') ? 'active' : ''} onClick={() => editor.chain().focus().toggleBlockquote().run()} aria-label="引用"><Quote size={16} /></button>
-      <span className="toolbar-spacer" />
-      <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} aria-label="撤销"><Undo2 size={16} /></button>
-      <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} aria-label="重做"><Redo2 size={16} /></button>
-    </div>
+    <SceneHeader title={node.title} status={sceneStatusLabel(node.status)} words={words} saveState={saveState} focusMode={focusMode} onFocusMode={onFocusMode} />
+    <Toolbar className="ui-editor-toolbar" label="文字格式">
+      <ToolGroup label="字形"><IconButton size="small" selected={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} label="粗体"><Bold size={16} /></IconButton><IconButton size="small" selected={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} label="斜体"><Italic size={16} /></IconButton><IconButton size="small" selected={editor.isActive('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} label="二级标题"><Heading2 size={16} /></IconButton></ToolGroup>
+      <ToolGroup label="段落"><IconButton size="small" selected={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} label="无序列表"><List size={16} /></IconButton><IconButton size="small" selected={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} label="有序列表"><ListOrdered size={16} /></IconButton><IconButton size="small" selected={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} label="引用"><Quote size={16} /></IconButton></ToolGroup>
+      <ToolGroup label="历史"><IconButton size="small" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} label="撤销"><Undo2 size={16} /></IconButton><IconButton size="small" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} label="重做"><Redo2 size={16} /></IconButton></ToolGroup>
+    </Toolbar>
     <div className="paper-scroll"><EditorContent editor={editor} /></div>
     <footer className="editor-footer"><span>{document ? `版本 ${document.contentHash.slice(0, 7)}` : '加载中'}</span><span>离线可写 · 自动留痕</span></footer>
   </section>

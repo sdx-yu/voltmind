@@ -4,6 +4,7 @@ import { ArrowLeft, Bot, CheckCircle2, Download, FileCheck2, FileJson2, Fingerpr
 import type { ManuscriptNode, Project, ProvenanceEvent, ProvenanceExportRecord, ProvenanceVerification, Revision } from '../../shared/types'
 import { api } from '../lib/api'
 import { Modal } from './Modal'
+import { Button, MetricStrip, PageHeader, WorkflowTemplate } from '../ui'
 
 type Props = {
   project: Project
@@ -66,14 +67,14 @@ export function ProvenanceWorkspace({ project, nodes, onSelectScene, onBack, not
     } catch (error) { notify('error', error instanceof Error ? error.message : '版本差异加载失败') }
   }
 
-  return <section className="provenance-workspace">
-    <header className="page-header"><div>{onBack && <button className="button ghost compact" onClick={onBack}><ArrowLeft size={15} />返回交付</button>}<span className="eyebrow">创作来源</span><h2>每一次选择，都有来处</h2><p>默认只记录动作、关系与哈希，不保存提示词或 AI 输出正文；作者可明确选择在导出中加入正文摘录。</p></div></header>
-    <div className="provenance-summary">
-      <Summary icon={<UserRound size={19}/>} value={humanCount} label="人工决策与编辑" />
-      <Summary icon={<Bot size={19}/>} value={aiCount} label="AI 参与事件" />
-      <Summary icon={<ShieldCheck size={19}/>} value={systemCount} label="导入、恢复与系统动作" />
-      <Summary icon={<Fingerprint size={19}/>} value={chainHead ? chainHead.slice(0, 12) : '尚无'} label="当前事件链头" code />
-    </div>
+  return <WorkflowTemplate className="provenance-workspace">
+    <PageHeader eyebrow="创作来源" title="每一次选择，都有来处" description="默认只记录动作、关系与哈希，不保存提示词或 AI 输出正文；只有明确选择时，导出才包含正文摘录。" backAction={onBack ? <Button variant="ghost" size="small" leadingIcon={<ArrowLeft size={15}/>} onClick={onBack}>返回修订台</Button> : undefined} />
+    <MetricStrip label="来源摘要" items={[
+      { id: 'human', icon: <UserRound size={19}/>, value: humanCount, label: '人工决策与编辑', tone: 'success' },
+      { id: 'ai', icon: <Bot size={19}/>, value: aiCount, label: 'AI 参与事件', tone: 'info' },
+      { id: 'system', icon: <ShieldCheck size={19}/>, value: systemCount, label: '导入、恢复与系统动作' },
+      { id: 'head', icon: <Fingerprint size={19}/>, value: chainHead ? chainHead.slice(0, 12) : '尚无', label: '当前事件链头' },
+    ]} />
 
     <div className="provenance-layout">
       <section className="provenance-card timeline-card-large">
@@ -88,10 +89,8 @@ export function ProvenanceWorkspace({ project, nodes, onSelectScene, onBack, not
       </aside>
     </div>
     {diff && <Modal title="版本与父版本差异" onClose={() => setDiff(null)} wide><div className="provenance-diff"><header><span>{sourceLabel(diff.revision.provenanceLabel)}</span><code>{diff.revision.contentHash}</code></header><p>{diffWords(diff.parentText, diff.revision.plainText).map((part, index) => <span key={index} className={part.added ? 'preview-added' : part.removed ? 'preview-removed' : ''}>{part.value}</span>)}</p></div></Modal>}
-  </section>
+  </WorkflowTemplate>
 }
-
-function Summary({ icon, value, label, code = false }: { icon: React.ReactNode; value: string | number; label: string; code?: boolean }) { return <article><span>{icon}</span><div><strong className={code ? 'hash-value' : ''}>{value}</strong><small>{label}</small></div></article> }
 function eventGroup(event: ProvenanceEvent): Exclude<EventFilter, 'all'> { return event.actorType === 'ai' ? 'ai' : event.actorType === 'human' ? 'human' : 'system' }
 function actorLabel(actor: ProvenanceEvent['actorType']) { return actor === 'human' ? '作者操作' : actor === 'ai' ? 'AI 生成' : '本地系统' }
 function eventLabel(event: ProvenanceEvent) { if (event.eventType === 'ai_accepted') return event.metadata.decision === 'accepted' ? '作者接受 AI 候选' : event.revisionId ? 'AI 内容写入版本' : '接受 AI 建议'; return ({ human_edit: '人工编辑', ai_generated: 'AI 候选生成', ai_failed: 'AI 任务失败', ai_rejected: '丢弃 AI 候选', ai_undone: '撤销 AI 接受', human_after_ai: 'AI 后人工修订', import: '导入', restore: '恢复版本', merge: '拆分或合并', replace: '批量替换', replace_undone: '撤销批量替换', candidate_created: '建立事实候选', candidate_accepted: '接受事实候选', candidate_rejected: '拒绝事实候选', sync_merge: '同步合并', sync_conflict: '发现同步冲突', sync_conflict_resolved: '解决同步冲突', review_suggestion_accepted: '接受审阅改写建议', review_feedback_decided: '处理审阅意见', template_applied: '应用结构模板', template_reverted: '撤销结构模板', visual_anchor_created: '建立视觉锚点', visual_anchor_refreshed: '刷新视觉锚点', visual_candidate_imported: '导入视觉候选', visual_candidate_accepted: '接受视觉候选', visual_candidate_rejected: '拒绝视觉候选', storyboard_updated: '更新场景故事板' } as const)[event.eventType] }

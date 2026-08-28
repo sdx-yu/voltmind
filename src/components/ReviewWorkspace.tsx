@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Check, Download, FileKey2, LocateFixed, MessageSquareText, Send, ShieldCheck, Upload, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, FileKey2, LocateFixed, MessageSquareText, Send, Upload, X } from 'lucide-react'
 import type { ManuscriptNode, Project, ReviewDecisionType, ReviewFeedback, ReviewPackage, ReviewRole, ReviewSession } from '../../shared/types'
 import { api } from '../lib/api'
+import { Button, InlineNotice, PageHeader, SegmentedControl, WorkflowSteps, WorkflowTemplate } from '../ui'
 
 type Props = {
   project: Project | null
@@ -106,9 +107,18 @@ export function ReviewWorkspace({ project, nodes, reviewerOnly = false, onSelect
     catch (error) { showError(error) } finally { setBusy(false) }
   }
 
-  return <section className="review-workspace">
-    <header className="page-header"><div><button className="button ghost compact" onClick={onBack}><ArrowLeft size={14}/>{reviewerOnly ? '返回书架' : '返回交付台'}</button><span className="eyebrow">角色化审阅接力</span><h2>把意见带回来，不把项目权限交出去</h2><p>任务与回应均为本地加密包；审阅者只拿到指定场景的隔离副本，作者逐条决定。</p></div><div className="review-mode-tabs">{!reviewerOnly && <button className={mode === 'author' ? 'active' : ''} onClick={() => setMode('author')}>作者处理</button>}<button className={mode === 'reviewer' ? 'active' : ''} onClick={() => setMode('reviewer')}>审阅者工作台</button></div></header>
-    <div className="review-security"><ShieldCheck size={18}/><span><strong>边界：</strong>不创建账号、不联网、不允许审阅者直接修改正典或来源记录。恢复短语不会写入包内。</span></div>
+  return <WorkflowTemplate className="review-workspace">
+    <PageHeader eyebrow="角色化审阅" title="把意见带回来，不把项目权限交出去" description="任务与回应均为本地加密包；审阅者只拿到指定场景的隔离副本，作者逐条决定。" backAction={<Button variant="ghost" size="small" leadingIcon={<ArrowLeft size={14}/>} onClick={onBack}>{reviewerOnly ? '返回书架' : '返回修订台'}</Button>} actions={!reviewerOnly ? <SegmentedControl label="审阅身份" value={mode} onChange={(value) => setMode(value as typeof mode)} items={[{ id: 'author', label: '作者处理' }, { id: 'reviewer', label: '审阅者工作台' }]} /> : undefined} />
+    <WorkflowSteps label="审阅接力步骤" items={mode === 'author' ? [
+      { id: 'assign', label: '限定范围', description: '选择角色和场景', state: authored.length ? 'complete' : 'current' },
+      { id: 'relay', label: '收回回应', description: '先预检再导入', state: authored.length ? 'current' : 'upcoming' },
+      { id: 'decide', label: '逐条决定', description: '采纳、暂缓或拒绝', state: authored.some((session) => session.feedback.length) ? 'current' : 'upcoming' },
+    ] : [
+      { id: 'open', label: '打开任务', description: '校验任务与短语', state: received.length ? 'complete' : 'current' },
+      { id: 'comment', label: '写下意见', description: '只在隔离副本中', state: received.length ? 'current' : 'upcoming' },
+      { id: 'return', label: '交回作者', description: '导出加密回应包', state: received.some((session) => session.feedback.length) ? 'current' : 'upcoming' },
+    ]} />
+    <InlineNotice className="review-security" tone="info" title="权限边界">不创建账号、不联网，审阅者不能直接修改正典或来源记录；恢复短语不会写入包内。</InlineNotice>
     {mode === 'author' && project ? <div className="review-grid">
       <section className="review-card"><header><h3>建立审阅任务</h3><span>1–100 个场景 · 5 MiB</span></header><label>审阅者<input value={reviewerName} maxLength={120} placeholder="例如：林编辑" onChange={(event) => setReviewerName(event.target.value)}/></label><label>角色<select value={role} onChange={(event) => setRole(event.target.value as ReviewRole)}><option value="editor">编辑 · 可评论、提改写</option><option value="beta_reader">试读者 · 只可评论</option><option value="co_writer">合著者 · 可评论、提改写</option></select></label><fieldset><legend>授权场景</legend>{scenes.map((scene) => <label key={scene.id} className="review-scene-check"><input type="checkbox" checked={sceneIds.includes(scene.id)} onChange={(event) => setSceneIds((current) => event.target.checked ? [...current, scene.id] : current.filter((id) => id !== scene.id))}/><span>{scene.title}<small>{scene.wordCount} 字</small></span></label>)}</fieldset><label className="review-inline"><input type="checkbox" checked={includeProvenance} onChange={(event) => setIncludeProvenance(event.target.checked)}/>随场景附上最近版本的来源标签</label><button className="button primary full" disabled={busy} onClick={() => void createAssignment()}><FileKey2 size={15}/>生成并下载任务包</button>{oneTime && <div className="review-secret"><strong>恢复短语只显示这一次</strong><code>{oneTime.phrase}</code><p>请复制后通过不同渠道发给 {oneTime.session.reviewerName}。遗失后无法解密，可重新建立任务。</p><button className="button secondary compact" onClick={() => void navigator.clipboard.writeText(oneTime.phrase).then(() => notify('success', '恢复短语已复制'))}>复制短语</button></div>}</section>
       <section className="review-card review-import"><header><h3>导入审阅回应</h3><span>先验包，再入库</span></header><PackageImport packageName={packageName} phrase={importPhrase} onFile={readPackage} onPhrase={setImportPhrase}/><button className="button secondary full" disabled={busy || !reviewPackage} onClick={() => void importSelected()}><Upload size={15}/>校验并导入回应</button></section>
@@ -118,7 +128,7 @@ export function ReviewWorkspace({ project, nodes, reviewerOnly = false, onSelect
       <section className="review-card reviewer-compose"><header><h3>写审阅意见</h3><span>{activeReceived ? roleNames[activeReceived.role] : '未选择任务'}</span></header><label>任务<select value={activeReceivedId} onChange={(event) => setActiveReceivedId(event.target.value)}><option value="">选择已导入任务</option>{received.map((session) => <option key={session.id} value={session.id}>{session.projectTitle} · {session.reviewerName}</option>)}</select></label><label>场景<select value={activeScene?.id ?? ''} onChange={(event) => { setActiveSceneId(event.target.value); setParagraphIndex(0); setQuote('') }}>{activeReceived?.scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</select></label>{activeReceived && activeScene && <><label>段落<select value={paragraphIndex} onChange={(event) => { setParagraphIndex(Number(event.target.value)); setQuote('') }}>{paragraphs.map((paragraph, index) => <option key={index} value={index}>第 {index + 1} 段 · {paragraph.slice(0, 28)}</option>)}</select></label><blockquote className="review-paragraph">{paragraphs[paragraphIndex]}</blockquote><label>引用原文<input value={quote} placeholder="复制当前段中要评论的连续文字" onChange={(event) => setQuote(event.target.value)}/></label><label>意见<textarea value={body} rows={3} maxLength={5000} onChange={(event) => setBody(event.target.value)}/></label><label>类型<select value={kind} onChange={(event) => setKind(event.target.value as ReviewFeedback['kind'])}><option value="comment">评论</option>{activeReceived.role !== 'beta_reader' && <option value="suggestion">改写建议</option>}</select></label>{kind === 'suggestion' && <label>建议替换为<textarea value={replacementText} rows={2} onChange={(event) => setReplacementText(event.target.value)}/></label>}<button className="button primary full" disabled={busy} onClick={() => void addFeedback()}><MessageSquareText size={15}/>保存到隔离副本</button></>}</section>
       <section className="review-card review-sessions"><header><h3>回应包</h3><span>交回作者后才生效</span></header>{received.map((session) => <SessionCard key={session.id} session={session} phrase={exportPhrases[session.id] ?? ''} onPhrase={(value) => setExportPhrases((current) => ({ ...current, [session.id]: value }))} onExport={() => void exportPackage(session)} busy={busy}>{session.feedback.map((feedback) => <FeedbackCard key={feedback.id} feedback={feedback}/>)}</SessionCard>)}</section>
     </div>}
-  </section>
+  </WorkflowTemplate>
 }
 
 function PackageImport({ packageName, phrase, onFile, onPhrase }: { packageName: string; phrase: string; onFile: (file?: File) => void; onPhrase: (value: string) => void }) { return <><label className="review-file"><Upload size={20}/><span>{packageName || '选择 .bbd-review 文件'}</span><input aria-label="选择审阅包" type="file" accept=".bbd-review,application/json" onChange={(event) => void onFile(event.target.files?.[0])}/></label><label>恢复短语<input type="password" value={phrase} autoComplete="off" placeholder="从另一条安全渠道取得" onChange={(event) => onPhrase(event.target.value)}/></label></> }
