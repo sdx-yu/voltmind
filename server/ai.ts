@@ -10,19 +10,27 @@ export interface AiSettings {
   apiKey: string
 }
 
+export type AiProviderKind = 'demo' | 'ollama' | 'blocked'
+
+const OLLAMA_BASE_URLS = new Set([
+  'http://127.0.0.1:11434/v1',
+  'http://localhost:11434/v1',
+])
+
 export class AiService {
   constructor(private readonly database: AppDatabase, private readonly vault: LocalVault) {}
 
-  getSettings(): Omit<AiSettings, 'apiKey'> & { hasApiKey: boolean; credentialStore: LocalVault['storage'] } {
+  getSettings(): Omit<AiSettings, 'apiKey'> & { hasApiKey: boolean; credentialStore: LocalVault['storage']; provider: AiProviderKind; costPolicy: 'local_only' } {
     const row = this.database.db.prepare('SELECT * FROM ai_settings WHERE id=1').get() as Record<string, unknown> | undefined
-    return { baseUrl: row ? String(row.base_url) : 'mock://local', model: row ? String(row.model) : '笔不怠演示模型', hasApiKey: Boolean(row?.encrypted_api_key), credentialStore: this.vault.storage }
+    const baseUrl = row ? String(row.base_url) : 'mock://local'
+    return { baseUrl, model: row ? String(row.model) : '笔不怠演示模型', hasApiKey: Boolean(row?.encrypted_api_key), credentialStore: this.vault.storage, provider: providerKind(baseUrl), costPolicy: 'local_only' }
   }
 
   saveSettings(settings: AiSettings) {
-    const encrypted = settings.apiKey ? this.vault.encrypt(settings.apiKey) : this.getEncryptedKey()
+    assertFreeLocalSettings(settings)
     this.database.db.prepare(`INSERT INTO ai_settings(id,base_url,model,encrypted_api_key,updated_at) VALUES(1,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET base_url=excluded.base_url,model=excluded.model,encrypted_api_key=excluded.encrypted_api_key,updated_at=excluded.updated_at`).run(
-      settings.baseUrl.trim(), settings.model.trim(), encrypted, nowIso(),
+      normalizeBaseUrl(settings.baseUrl), settings.model.trim(), '', nowIso(),
     )
     return this.getSettings()
   }
@@ -30,12 +38,17 @@ export class AiService {
   async testConnection(settings?: AiSettings): Promise<{ ok: boolean; message: string }> {
     const active = settings ?? this.loadFullSettings()
     if (active.baseUrl.startsWith('mock://')) return { ok: true, message: '本地演示模型可用；不会发送稿件。' }
-    if (!active.baseUrl || !active.model || !active.apiKey) return { ok: false, message: '请填写接口地址、模型和 API Key。' }
+    if (providerKind(active.baseUrl) !== 'ollama') return { ok: false, message: '零费用保护已拦截外网模型地址。请改用本机 Ollama。' }
+    if (!active.model.trim()) return { ok: false, message: '请选择一个本地模型。' }
     try {
-      const response = await fetch(`${active.baseUrl.replace(/\/$/, '')}/models`, { headers: { Authorization: `Bearer ${active.apiKey}` }, signal: AbortSignal.timeout(8_000) })
-      return response.ok ? { ok: true, message: '连接成功。' } : { ok: false, message: `连接失败：HTTP ${response.status}` }
+      const response = await fetch(`${normalizeBaseUrl(active.baseUrl)}/models`, { signal: AbortSignal.timeout(8_000) })
+      if (!response.ok) return { ok: false, message: `Ollama 响应异常：HTTP ${response.status}` }
+      const payload = await response.json() as { data?: Array<{ id?: string }> }
+      const models = (payload.data ?? []).map((item) => item.id).filter(Boolean)
+      if (!models.includes(active.model)) return { ok: false, message: `Ollama 已运行，但还没有 ${active.model}。请先执行：ollama pull ${active.model}` }
+      return { ok: true, message: `本地模型 ${active.model} 可用；稿件不出本机，不会产生 API 费用。` }
     } catch (error) {
-      return { ok: false, message: `连接失败：${error instanceof Error ? error.message : '未知错误'}` }
+      return { ok: false, message: '未检测到本机 Ollama。请先安装并启动 Ollama，再下载所选模型。' }
     }
   }
 
@@ -89,11 +102,12 @@ export class AiService {
       styleBudget -= tokens
       if (styleBudget <= 0) break
     }
-    return items
+    return providerKind(this.loadFullSettings().baseUrl) === 'ollama' ? fitLocalContext(items) : items
   }
 
   async runTask(input: { projectId: string; nodeId: string; taskType: string; instruction: string; selectedContextIds: string[] }): Promise<AiTaskResult> {
     const settings = this.loadFullSettings()
+    if (providerKind(settings.baseUrl) === 'blocked') throw new Error('零费用保护已停用外网 AI。请在设置中启用本地免费模型。')
     const context = this.buildContext(input.projectId, input.nodeId).filter((item) => input.selectedContextIds.includes(item.id) && item.privacyLevel !== 'local_private')
     const contextText = context.map((item) => `## ${item.title}\n${item.content}`).join('\n\n')
     const taskId = newId()
@@ -106,7 +120,7 @@ export class AiService {
     try {
       const output = settings.baseUrl.startsWith('mock://')
         ? runMockTask(input.taskType, input.instruction, this.database.getScene(input.nodeId)?.plainText ?? '')
-        : await callOpenAi(settings, prompt)
+        : await callOllama(settings, prompt, input.taskType)
       const outputTokens = estimateTokens(output)
       const outputHash = sha256(output)
       this.database.db.prepare('UPDATE ai_tasks SET output_hash=?,output_tokens=?,status=? WHERE id=?').run(outputHash, outputTokens, 'completed', taskId)
@@ -125,10 +139,38 @@ export class AiService {
     return { baseUrl: String(row.base_url), model: String(row.model), apiKey: this.vault.decrypt(String(row.encrypted_api_key ?? '')) }
   }
 
-  private getEncryptedKey(): string {
-    const row = this.database.db.prepare('SELECT encrypted_api_key FROM ai_settings WHERE id=1').get() as Record<string, unknown> | undefined
-    return row ? String(row.encrypted_api_key ?? '') : ''
+}
+
+function normalizeBaseUrl(value: string): string {
+  return value.trim().replace(/\/$/, '')
+}
+
+function providerKind(baseUrl: string): AiProviderKind {
+  const normalized = normalizeBaseUrl(baseUrl)
+  if (normalized.startsWith('mock://')) return 'demo'
+  if (OLLAMA_BASE_URLS.has(normalized)) return 'ollama'
+  return 'blocked'
+}
+
+function assertFreeLocalSettings(settings: AiSettings) {
+  const provider = providerKind(settings.baseUrl)
+  if (provider === 'blocked') throw new Error('零费用模式仅允许连接本机 Ollama，不能保存云端模型地址')
+  if (!settings.model.trim()) throw new Error('模型名称不能为空')
+}
+
+function fitLocalContext(items: AiContextItem[]): AiContextItem[] {
+  let remaining = 7_800
+  const fitted: AiContextItem[] = []
+  for (const item of items) {
+    const itemLimit = item.type === 'scene' ? Math.min(5_000, remaining) : Math.min(900, remaining)
+    if (itemLimit <= 0) break
+    const content = truncateToTokenBudget(item.content, itemLimit)
+    const estimatedTokens = estimateTokens(content)
+    if (!content || estimatedTokens <= 0) continue
+    fitted.push({ ...item, content, estimatedTokens })
+    remaining -= estimatedTokens
   }
+  return fitted
 }
 
 function truncateToTokenBudget(text: string, budget: number): string {
@@ -165,7 +207,15 @@ function buildPrompt(taskType: string, instruction: string, context: string): st
     continuity: '只报告有证据的连续性风险，逐项给出当前句与冲突事实。',
     extract_facts: '提取本场景明确发生的事实变化，不把猜测、比喻、梦境或角色谎言当成世界真相。',
   }
-  return `你是中文长篇创作助手。作者拥有最终决定权。\n任务：${taskRules[taskType] ?? taskType}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
+  const lengthRules: Record<string, string> = {
+    brainstorm: '总长不超过 500 个中文字符；三个方向都要简洁完整。',
+    continue: '续写 300–500 个中文字符，在完整句子处结束。',
+    rewrite: '只给改写后的完整候选，不解释过程，总长不超过 700 个中文字符。',
+    cold_read: '总长不超过 500 个中文字符。',
+    continuity: '最多列出 6 项，总长不超过 500 个中文字符。',
+    extract_facts: '最多列出 8 项，总长不超过 400 个中文字符。',
+  }
+  return `你是中文长篇创作助手。作者拥有最终决定权。不要展示思考过程。\n任务：${taskRules[taskType] ?? taskType}\n输出约束：${lengthRules[taskType] ?? '简洁作答。'}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
 }
 
 function runMockTask(taskType: string, instruction: string, text: string): string {
@@ -177,16 +227,22 @@ function runMockTask(taskType: string, instruction: string, text: string): strin
   return text ? `${text.slice(-300)}\n\n他没有立刻回答。短暂的沉默把真正的问题推到了两人之间。` : '先写下一句话，故事就会从那里开始。'
 }
 
-async function callOpenAi(settings: AiSettings, prompt: string): Promise<string> {
-  const response = await fetch(`${settings.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+async function callOllama(settings: AiSettings, prompt: string, taskType: string): Promise<string> {
+  if (providerKind(settings.baseUrl) !== 'ollama') throw new Error('零费用保护已拦截外网 AI 请求')
+  const ollamaRoot = normalizeBaseUrl(settings.baseUrl).replace(/\/v1$/, '')
+  const response = await fetch(`${ollamaRoot}/api/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${settings.apiKey}` },
-    body: JSON.stringify({ model: settings.model, messages: [{ role: 'user', content: prompt }], temperature: 0.7 }),
-    signal: AbortSignal.timeout(60_000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: settings.model, messages: [{ role: 'user', content: prompt }], stream: false, think: false, options: { temperature: 0.7, num_ctx: 8_192, num_predict: localOutputBudget(taskType) } }),
+    signal: AbortSignal.timeout(90_000),
   })
-  if (!response.ok) throw new Error(`AI provider returned HTTP ${response.status}`)
-  const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> }
-  const output = data.choices?.[0]?.message?.content
-  if (!output) throw new Error('AI provider returned an empty response')
+  if (!response.ok) throw new Error(`本地模型响应异常：HTTP ${response.status}`)
+  const data = await response.json() as { message?: { content?: string } }
+  const output = data.message?.content
+  if (!output) throw new Error('本地模型没有返回正文')
   return output
+}
+
+function localOutputBudget(taskType: string): number {
+  return ({ brainstorm: 600, continue: 700, rewrite: 800, cold_read: 600, continuity: 600, extract_facts: 500 } as Record<string, number>)[taskType] ?? 600
 }

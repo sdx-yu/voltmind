@@ -25,7 +25,7 @@ describe('Inspector knowledge panel', () => {
     mocks.suggestMentions.mockResolvedValue([])
     mocks.currentStates.mockResolvedValue([])
     mocks.getContext.mockResolvedValue([{ id: 's1', type: 'scene', title: '当前场景', content: '雨落在窗前。', selected: true, privacyLevel: 'normal', estimatedTokens: 8, reason: '当前正文' }])
-    mocks.getAiSettings.mockResolvedValue({ baseUrl: 'mock://local', model: '笔不怠演示模型', hasApiKey: false, credentialStore: 'protected_file' })
+    mocks.getAiSettings.mockResolvedValue({ baseUrl: 'mock://local', model: '笔不怠演示模型', hasApiKey: false, credentialStore: 'protected_file', provider: 'demo', costPolicy: 'local_only' })
   })
   afterEach(cleanup)
 

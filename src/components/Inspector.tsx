@@ -169,7 +169,7 @@ function CheckPanel({ node, notify }: Pick<Props, 'node' | 'notify'>) {
 
 function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' | 'notify'>) {
   const [context, setContext] = useState<AiContextItem[]>([])
-  const [provider, setProvider] = useState<{ baseUrl: string; model: string } | null>(null)
+  const [provider, setProvider] = useState<{ kind: 'demo' | 'ollama' | 'blocked'; model: string } | null>(null)
   const [contextOpen, setContextOpen] = useState(false)
   const [task, setTask] = useState('brainstorm')
   const [instruction, setInstruction] = useState('')
@@ -179,13 +179,14 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
   const [selectedSegments, setSelectedSegments] = useState<Set<number>>(new Set())
   useEffect(() => {
     void Promise.all([api.getContext(projectId, node.id), api.getAiSettings()])
-      .then(([nextContext, settings]) => { setContext(nextContext); setProvider({ baseUrl: settings.baseUrl, model: settings.model }) })
+      .then(([nextContext, settings]) => { setContext(nextContext); setProvider({ kind: settings.provider, model: settings.model }) })
       .catch((error) => notify('error', error instanceof Error ? error.message : 'AI 配置与上下文加载失败'))
     setResult(null); setAccepted(false)
   }, [projectId, node.id])
   const selected = context.filter((item) => item.selected)
   const tokens = selected.reduce((total, item) => total + item.estimatedTokens, 0)
-  const demoMode = provider?.baseUrl.startsWith('mock://') ?? true
+  const demoMode = provider?.kind !== 'ollama'
+  const providerLabel = !provider ? '正在确认模型状态…' : provider.kind === 'ollama' ? `本地免费 · ${provider.model} · API 费用 ¥0` : provider.kind === 'blocked' ? '外网模型已停用 · 零费用保护生效' : '演示模式 · 固定候选 · 不联网'
 
   async function run() {
     setRunning(true); setResult(null); setAccepted(false)
@@ -222,10 +223,10 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
       {contextOpen && <div className="context-items">{context.map((item) => <label key={`${item.type}-${item.id}`} className={item.privacyLevel === 'local_private' ? 'private' : ''}><input type="checkbox" checked={item.selected} disabled={item.privacyLevel === 'local_private'} onChange={() => toggle(item.id)} /><span><strong>{item.title}</strong><small>{item.privacyLevel === 'local_private' ? '仅本地，不会发送' : `${item.reason} · ${item.estimatedTokens} token`}</small></span></label>)}</div>}
     </section>
     <section className="inspector-section"><header><span className="section-icon"><Bot size={15} /></span><h3>创作助手</h3></header>
-      <p className={`ai-provider-status ${demoMode ? 'is-demo' : 'is-live'}`}>{provider ? demoMode ? '演示模式 · 固定候选 · 不联网' : `真实模型 · ${provider.model}` : '正在确认模型状态…'}</p>
+      <p className={`ai-provider-status ${provider?.kind === 'ollama' ? 'is-live' : 'is-demo'}`}>{providerLabel}</p>
       <div className="task-grid">{[['brainstorm','脑暴'],['continue','续写'],['rewrite','改写'],['cold_read','冷读']].map(([value,label]) => <button key={value} className={task === value ? 'active' : ''} onClick={() => setTask(value)}>{label}</button>)}</div>
       <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="补充你的要求（可选）" rows={3} />
-      <button className="button primary full" disabled={running || selected.length === 0} onClick={() => void run()}><WandSparkles size={16} />{running ? '正在思考…' : demoMode ? '生成演示候选' : '生成候选'}</button>
+      <button className="button primary full" disabled={running || selected.length === 0 || provider?.kind === 'blocked'} onClick={() => void run()}><WandSparkles size={16} />{running ? '正在思考…' : provider?.kind === 'blocked' ? '请先启用本地模型' : demoMode ? '生成演示候选' : '生成候选'}</button>
     </section>
     {result && <section className="ai-result"><header><span><Sparkles size={15} />{result.model}</span><small>{result.inputTokens} → {result.outputTokens} token</small></header><DiffText original={task === 'rewrite' ? context.find((item) => item.type === 'scene')?.content ?? '' : ''} value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} />
       <div className="candidate-actions">{accepted ? <><span className="accepted-label"><Check size={14} />所选句子已插入正文，并将记录为 AI 建议后接受</span><button className="reject" onClick={() => void undoAccept()}><RotateCcw size={14}/>撤销接受</button></> : <><button className="reject" onClick={() => void reject()}><X size={14} />丢弃</button><button className="accept" disabled={selectedSegments.size === 0} onClick={() => void accept()}><Check size={14} />接受所选 {selectedSegments.size} 句</button></>}</div>

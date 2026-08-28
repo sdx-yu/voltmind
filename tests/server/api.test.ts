@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import request from 'supertest'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { getConfig } from '../../server/config.js'
 import type { AppDatabase } from '../../server/db.js'
@@ -21,7 +21,7 @@ describe('local API', () => {
     const session = await request(app).post('/api/session')
     cookie = session.headers['set-cookie'][0].split(';')[0]
   })
-  afterEach(() => { database.close(); fs.rmSync(dir, { recursive: true, force: true }) })
+  afterEach(() => { vi.restoreAllMocks(); database.close(); fs.rmSync(dir, { recursive: true, force: true }) })
 
   it('rejects mutations without a local session', async () => {
     await request(app).post('/api/projects').send({ title: '拒绝' }).expect(401)
@@ -128,12 +128,24 @@ describe('local API', () => {
     expect(extracted.value).toContain('第一章正文'); expect(extracted.value).toContain('第二章正文')
   })
 
-  it('encrypts provider credentials and never returns or stores the plaintext key', async () => {
-    await request(app).put('/api/ai/settings').set('Cookie', cookie).send({ baseUrl: 'https://example.invalid/v1', model: 'model', apiKey: 'super-secret-key' }).expect(200)
+  it('enforces a zero-cost local-only AI boundary and needs no provider key', async () => {
+    await request(app).put('/api/ai/settings').set('Cookie', cookie).send({ baseUrl: 'https://paid.example/v1', model: 'paid-model', apiKey: 'super-secret-key' }).expect(400)
+    await request(app).put('/api/ai/settings').set('Cookie', cookie).send({ baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3.5:4b', apiKey: 'should-be-discarded' }).expect(200)
     const row = database.db.prepare('SELECT encrypted_api_key FROM ai_settings WHERE id=1').get() as { encrypted_api_key: string }
-    expect(row.encrypted_api_key).not.toContain('super-secret-key')
+    expect(row.encrypted_api_key).toBe('')
     const response = await request(app).get('/api/ai/settings').set('Cookie', cookie).expect(200)
-    expect(JSON.stringify(response.body)).not.toContain('super-secret-key')
+    expect(response.body).toMatchObject({ provider: 'ollama', costPolicy: 'local_only', hasApiKey: false })
+
+    const project = database.createProject('本地上下文限额'); const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    database.saveScene(scene.id, doc('长夜无声。'.repeat(20_000)), '长夜无声。'.repeat(20_000))
+    const context = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/context`).set('Cookie', cookie).expect(200)
+    expect(context.body.reduce((sum: number, item: { estimatedTokens: number }) => sum + item.estimatedTokens, 0)).toBeLessThanOrEqual(7_800)
+    expect(context.body[0].estimatedTokens).toBeLessThanOrEqual(5_000)
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: [{ id: 'qwen3.5:4b' }] }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const test = await request(app).post('/api/ai/test').set('Cookie', cookie).send({ baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3.5:4b', apiKey: '' }).expect(200)
+    expect(test.body).toMatchObject({ ok: true })
+    expect(test.body.message).toContain('不会产生 API 费用')
   })
 })
 

@@ -1,6 +1,6 @@
 [package]
 name = "bibudai"
-version = "2.2.1"
+version = "2.2.2"
 description = "笔不怠——笔耕不怠，写尽所思。"
 authors = ["笔不怠"]
 edition = "2021"
