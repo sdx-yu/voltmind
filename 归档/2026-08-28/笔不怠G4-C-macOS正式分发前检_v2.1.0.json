@@ -1,7 +1,7 @@
 {
   "schemaVersion": "g4-macos-release-v1",
-  "generatedAt": "2026-08-28T02:57:40.747Z",
-  "sourceRevision": "c8dd9ae6d4138f6006f18ab8f8679005a0d562f2",
+  "generatedAt": "2026-08-28T03:08:09.546Z",
+  "sourceRevision": "058849caea8666175db80d94f98aff552097765c",
   "host": {
     "platform": "darwin",
     "arch": "arm64"

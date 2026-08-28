@@ -1,11 +1,11 @@
 {
   "schemaVersion": "g4-release-readiness-v1",
-  "checkedAt": "2026-08-28T02:57:37.997Z",
+  "checkedAt": "2026-08-28T03:07:52.221Z",
   "releaseDecision": "NO-GO",
   "source": {
     "branch": "main",
-    "commit": "c8dd9ae6d4138f6006f18ab8f8679005a0d562f2",
-    "trackedChanges": true
+    "commit": "058849caea8666175db80d94f98aff552097765c",
+    "trackedChanges": false
   },
   "versions": {
     "package": "2.1.0",
@@ -18,7 +18,7 @@
     "sbom": {
       "exists": true,
       "valid": true,
-      "sha256": "1152e3b66806c1ae6f11c35d57c833e69790c185d81520afd9aa5bfe6403b7fa",
+      "sha256": "a9a20813dbc001e26d7e50bb1a78759b7424938e49d1778ba80aca9e4d703be9",
       "checksumRecorded": true
     },
     "thirdPartyLicenses": {
@@ -30,8 +30,8 @@
     "checksumManifest": {
       "exists": true,
       "artifact": "release/笔不怠_2.1.0_aarch64.dmg",
-      "artifactSha256": "9db4328ddd6803fcb6b7d1d1cb3df0f3af49cba7d810f678334bbb874c35746c",
-      "recordedSha256": "9db4328ddd6803fcb6b7d1d1cb3df0f3af49cba7d810f678334bbb874c35746c",
+      "artifactSha256": "31cd70fe0a8629026c832b2752b78450c83d48cac4e581d649510d1c50699841",
+      "recordedSha256": "31cd70fe0a8629026c832b2752b78450c83d48cac4e581d649510d1c50699841",
       "artifactRecorded": true
     }
   },
@@ -79,7 +79,7 @@
     {
       "id": "G4-SOURCE",
       "evidenceClass": "engineering",
-      "status": "BLOCKED",
+      "status": "PASS",
       "requirement": "版本一致且受跟踪源码无改动"
     },
     {
