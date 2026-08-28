@@ -57,7 +57,7 @@
 - `hdiutil verify` 的 GPT/HFS/CRC 校验通过，App ZIP 完整解压测试通过；
 - 真实启动后仅监听随机回环端口 `127.0.0.1:65290`，`/api/health` 返回 `ok=true`、`integrity=ok`、`rescueMode=false`，首页标题包含产品名与 slogan；退出后端口关闭；
 - CycloneDX 1.6 SBOM 记录 213 个组件，生产许可证清单记录 222 项，`npm audit --omit=dev --audit-level=high` 为 0 个漏洞；
-- `release/SHA256SUMS` 共记录 37 项发布物料并逐项校验通过。
+- `release/SHA256SUMS` 当前记录 5 项发布物料并逐项校验通过；历史安装包已从工作区清理，仍可从对应 Git 提交重建。
 
 ## 边界与后续
 
