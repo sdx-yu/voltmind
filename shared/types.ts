@@ -1064,6 +1064,51 @@ export interface EntityState {
   createdAt: string
 }
 
+export interface EntityProfileField {
+  id: string
+  entityId: string
+  category: string
+  label: string
+  value: string
+  sortKey: number
+  privacyLevel: PrivacyLevel
+  createdAt: string
+  updatedAt: string
+}
+
+export type RelationshipDirection = 'directed' | 'mutual'
+
+export interface RelationshipState {
+  id: string
+  relationshipId: string
+  statusLabel: string
+  note: string
+  validFromNodeId: string | null
+  validToNodeId: string | null
+  worldTimeFrom: string | null
+  worldTimeTo: string | null
+  sourceNodeId: string | null
+  evidence: string
+  createdAt: string
+}
+
+export interface EntityRelationship {
+  id: string
+  projectId: string
+  sourceEntityId: string
+  targetEntityId: string
+  relationType: string
+  direction: RelationshipDirection
+  label: string
+  summary: string
+  privacyLevel: PrivacyLevel
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+  states: RelationshipState[]
+  currentState: RelationshipState | null
+}
+
 export interface Mention {
   id: string
   entityId: string
@@ -1192,7 +1237,7 @@ export interface WritingStats {
 
 export interface AiContextItem {
   id: string
-  type: 'scene' | 'entity' | 'state' | 'history' | 'style' | 'foreshadow' | 'knowledge'
+  type: 'scene' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'foreshadow' | 'knowledge'
   title: string
   content: string
   reason: string

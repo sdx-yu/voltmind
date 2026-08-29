@@ -27,6 +27,10 @@ import { newId, nowIso, sha256 } from './utils.js'
 const nodeInput = z.object({ parentId: z.string().nullable(), type: z.enum(['book', 'volume', 'chapter', 'scene']), title: z.string().trim().min(1).max(200), sortKey: z.number().int().optional() })
 const sceneInput = z.object({ contentJson: z.record(z.string(), z.unknown()), plainText: z.string(), sourceType: z.enum(['human', 'import', 'ai_accepted', 'restore', 'merge']).default('human'), sourceTaskId: z.string().nullable().default(null) })
 const entityInput = z.object({ type: z.enum(['character', 'location', 'item', 'event']), canonicalName: z.string().trim().min(1).max(100), aliases: z.array(z.string()).default([]), summary: z.string().default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('normal') })
+const privacyLevel = z.enum(['normal', 'author_only', 'local_private'])
+const profileFieldInput = z.object({ category: z.string().trim().min(1).max(40), label: z.string().trim().min(1).max(60), value: z.string().max(5000).default(''), sortKey: z.number().int().optional(), privacyLevel: privacyLevel.default('author_only') })
+const relationshipInput = z.object({ sourceEntityId: z.string(), targetEntityId: z.string(), relationType: z.string().trim().min(1).max(60), direction: z.enum(['directed', 'mutual']).default('mutual'), label: z.string().trim().max(80).default(''), summary: z.string().max(2000).default(''), privacyLevel: privacyLevel.default('normal') })
+const relationshipStateInput = z.object({ statusLabel: z.string().trim().min(1).max(80), note: z.string().max(2000).default(''), validFromNodeId: z.string().nullable().default(null), validToNodeId: z.string().nullable().default(null), worldTimeFrom: z.string().nullable().default(null), worldTimeTo: z.string().nullable().default(null), sourceNodeId: z.string().nullable().default(null), evidence: z.string().max(2000).default('') })
 const replaceInput = z.object({ query: z.string().min(1), replacement: z.string(), scopes: z.array(z.enum(['body', 'title', 'canon'])).min(1) })
 const foreshadowStatus = z.enum(['planted', 'reinforced', 'misdirected', 'resolved'])
 const foreshadowInput = z.object({ title: z.string().trim().min(1).max(120), summary: z.string().max(1000).default(''), importance: z.enum(['low', 'medium', 'high']).default('medium'), plannedPayoff: z.string().max(1000).default(''), nodeId: z.string().nullable().optional(), evidence: z.string().max(1000).default(''), note: z.string().max(1000).default('') })
@@ -252,6 +256,16 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     const input = z.object({ attributeKey: z.string().min(1), value: z.unknown(), validFromNodeId: z.string().nullable().default(null), validToNodeId: z.string().nullable().default(null), worldTimeFrom: z.string().nullable().default(null), worldTimeTo: z.string().nullable().default(null), sourceMentionId: z.string().nullable().default(null) }).parse(req.body)
     res.status(201).json(database.createState({ entityId: param(req, 'id'), ...input }))
   }))
+  app.get('/api/entities/:id/profile-fields', route(async (req, res) => res.json(database.listProfileFields(param(req, 'id')))))
+  app.post('/api/entities/:id/profile-fields', route(async (req, res) => res.status(201).json(database.createProfileField({ entityId: param(req, 'id'), ...profileFieldInput.parse(req.body) }))))
+  app.patch('/api/profile-fields/:id', route(async (req, res) => res.json(requireFound(database.updateProfileField(param(req, 'id'), profileFieldInput.partial().parse(req.body)), 'Profile field'))))
+  app.delete('/api/profile-fields/:id', route(async (req, res) => res.json({ ok: database.deleteProfileField(param(req, 'id')) })))
+
+  app.get('/api/projects/:id/relationships', route(async (req, res) => res.json(database.listRelationships(param(req, 'id'), typeof req.query.entityId === 'string' ? req.query.entityId : null, typeof req.query.atNodeId === 'string' ? req.query.atNodeId : null, req.query.trash === '1'))))
+  app.post('/api/projects/:id/relationships', route(async (req, res) => res.status(201).json(database.createRelationship({ projectId: param(req, 'id'), ...relationshipInput.parse(req.body) }))))
+  app.patch('/api/relationships/:id', route(async (req, res) => res.json(requireFound(database.updateRelationship(param(req, 'id'), relationshipInput.omit({ sourceEntityId: true, targetEntityId: true }).partial().extend({ deletedAt: z.string().nullable().optional() }).parse(req.body)), 'Relationship'))))
+  app.delete('/api/relationships/:id', route(async (req, res) => res.json(requireFound(database.updateRelationship(param(req, 'id'), { deletedAt: nowIso() }), 'Relationship'))))
+  app.post('/api/relationships/:id/states', route(async (req, res) => res.status(201).json(database.createRelationshipState({ relationshipId: param(req, 'id'), ...relationshipStateInput.parse(req.body) }))))
 
   app.get('/api/scenes/:id/mentions', route(async (req, res) => res.json(database.listMentions(param(req, 'id')))))
   app.get('/api/scenes/:id/current-states', route(async (req, res) => res.json(currentStatesAtScene(database, param(req, 'id')))))
@@ -677,7 +691,7 @@ function requireFound<T>(value: T | null, label: string): T {
 }
 
 const backupPayloadSchema = z.object({
-  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
+  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), profileFields: z.array(z.any()).optional(), relationships: z.array(z.any()).optional(), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
 })
 const backupSchema = z.object({ format: z.literal('bbd-backup-v2'), checksum: z.string().length(64), payload: backupPayloadSchema }).superRefine((archive, context) => {
   if (sha256(JSON.stringify(archive.payload)) !== archive.checksum) context.addIssue({ code: 'custom', message: '备份校验失败，文件可能已损坏或被修改' })
@@ -692,6 +706,8 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const revisions = nodes.filter((node) => node.type === 'scene').flatMap((node) => database.listRevisions(node.id))
   const entities = database.listEntities(projectId, true)
   const states = entities.flatMap((entity) => database.listStates(entity.id))
+  const profileFields = entities.flatMap((entity) => database.listProfileFields(entity.id))
+  const relationships = database.listRelationships(projectId, null, null, true)
   const sceneIds = nodes.filter((node) => node.type === 'scene').map((node) => node.id)
   const mentions = sceneIds.flatMap((nodeId) => database.listMentions(nodeId))
   const candidates = ['pending', 'accepted', 'accepted_modified', 'ignored', 'exception'].flatMap((status) => database.listCandidates(projectId, status))
@@ -713,14 +729,14 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const sprint = { sessions: sprintSessions, boards: sprintBoards }
   const templateBundle = templates.exportProjectBundle(projectId)
   const visualBundle = visuals.exportProjectBundle(projectId)
-  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
+  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, profileFields, relationships, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
   return { format: 'bbd-backup-v2', checksum: sha256(JSON.stringify(payload)), payload }
 }
 
 function importProject(database: AppDatabase, templates: TemplateService, visuals: VisualService, archive: Backup) {
   const source = archive.payload
   const project = database.createProject(`${source.project.title}（恢复）`, source.project.description)
-  const idMap = new Map<string, string>(); const entityMap = new Map<string, string>(); const mentionMap = new Map<string, string>(); const candidateMap = new Map<string, string>(); const taskMap = new Map<string, string>(); const revisionMap = new Map<string, string>()
+  const idMap = new Map<string, string>(); const entityMap = new Map<string, string>(); const relationshipMap = new Map<string, string>(); const mentionMap = new Map<string, string>(); const candidateMap = new Map<string, string>(); const taskMap = new Map<string, string>(); const revisionMap = new Map<string, string>()
   try {
     const defaults = database.listNodes(project.id); const book = defaults.find((item) => item.type === 'book')!
     for (const node of defaults.filter((item) => item.type === 'scene')) { database.db.prepare('DELETE FROM scene_search WHERE node_id=?').run(node.id); database.db.prepare('DELETE FROM scene_documents WHERE node_id=?').run(node.id) }
@@ -754,8 +770,16 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
       const created = database.createMention({ entityId: entityMap.get(mention.entityId)!, nodeId: idMap.get(mention.nodeId)!, quote: mention.quote, startOffset: mention.startOffset, endOffset: mention.endOffset, confirmed: mention.confirmed }); mentionMap.set(mention.id, created.id)
     }
     for (const state of source.states as any[]) database.createState({ entityId: entityMap.get(state.entityId)!, attributeKey: state.attributeKey, value: state.value, validFromNodeId: state.validFromNodeId ? idMap.get(state.validFromNodeId) ?? null : null, validToNodeId: state.validToNodeId ? idMap.get(state.validToNodeId) ?? null : null, worldTimeFrom: state.worldTimeFrom, worldTimeTo: state.worldTimeTo, sourceMentionId: state.sourceMentionId ? mentionMap.get(state.sourceMentionId) ?? null : null })
+    for (const field of (source.profileFields ?? []) as any[]) database.createProfileField({ entityId: entityMap.get(field.entityId)!, category: field.category, label: field.label, value: field.value, sortKey: field.sortKey, privacyLevel: field.privacyLevel })
+    for (const relationship of (source.relationships ?? []) as any[]) {
+      const created = database.createRelationship({ projectId: project.id, sourceEntityId: entityMap.get(relationship.sourceEntityId)!, targetEntityId: entityMap.get(relationship.targetEntityId)!, relationType: relationship.relationType, direction: relationship.direction, label: relationship.label, summary: relationship.summary, privacyLevel: relationship.privacyLevel })
+      relationshipMap.set(relationship.id, created.id)
+      for (const state of relationship.states ?? []) database.createRelationshipState({ relationshipId: created.id, statusLabel: state.statusLabel, note: state.note, validFromNodeId: state.validFromNodeId ? idMap.get(state.validFromNodeId) ?? null : null, validToNodeId: state.validToNodeId ? idMap.get(state.validToNodeId) ?? null : null, worldTimeFrom: state.worldTimeFrom, worldTimeTo: state.worldTimeTo, sourceNodeId: state.sourceNodeId ? idMap.get(state.sourceNodeId) ?? null : null, evidence: state.evidence })
+      if (relationship.deletedAt) database.updateRelationship(created.id, { deletedAt: nowIso() })
+    }
     for (const candidate of source.candidates as any[]) {
-      const created = database.createCandidate({ projectId: project.id, nodeId: candidate.nodeId ? idMap.get(candidate.nodeId) ?? null : null, targetType: candidate.targetType, targetId: candidate.targetType.startsWith('entity') && candidate.targetId ? entityMap.get(candidate.targetId) ?? null : candidate.targetId, operation: candidate.operation, before: candidate.before, after: candidate.after, evidence: candidate.evidence, confidence: candidate.confidence, sourceTaskId: candidate.sourceTaskId ? taskMap.get(String(candidate.sourceTaskId)) ?? null : null }); candidateMap.set(candidate.id, created.id)
+      const mappedTargetId = candidate.targetType === 'relationship_state' && candidate.targetId ? relationshipMap.get(candidate.targetId) ?? null : candidate.targetType.startsWith('entity') && candidate.targetId ? entityMap.get(candidate.targetId) ?? null : candidate.targetId
+      const created = database.createCandidate({ projectId: project.id, nodeId: candidate.nodeId ? idMap.get(candidate.nodeId) ?? null : null, targetType: candidate.targetType, targetId: mappedTargetId, operation: candidate.operation, before: candidate.before, after: candidate.after, evidence: candidate.evidence, confidence: candidate.confidence, sourceTaskId: candidate.sourceTaskId ? taskMap.get(String(candidate.sourceTaskId)) ?? null : null }); candidateMap.set(candidate.id, created.id)
       if (candidate.status !== 'pending') database.db.prepare('UPDATE candidate_changes SET status=?,resolved_at=? WHERE id=?').run(candidate.status, candidate.resolvedAt, created.id)
     }
     let previousHash: string | null = null

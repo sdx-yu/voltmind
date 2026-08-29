@@ -8,6 +8,8 @@ import type {
   DeliveryRule,
   DeliveryTemplate,
   Entity,
+  EntityProfileField,
+  EntityRelationship,
   EntityState,
   Foreshadow,
   ForeshadowEvent,
@@ -23,6 +25,7 @@ import type {
   ProvenanceExportRecord,
   ProvenanceLabel,
   ReadAloudPreferences,
+  RelationshipState,
   ReviewAnchor,
   ReviewDecision,
   ReviewFeedback,
@@ -66,7 +69,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 16)
+    backupBeforeMigration(databasePath, 17)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -1074,6 +1077,59 @@ export class AppDatabase {
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(16, nowIso())
       })
     }
+    if (version < 17) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE entity_profile_fields (
+            id TEXT PRIMARY KEY,
+            entity_id TEXT NOT NULL REFERENCES entities(id),
+            category TEXT NOT NULL,
+            label TEXT NOT NULL,
+            value TEXT NOT NULL DEFAULT '',
+            sort_key INTEGER NOT NULL DEFAULT 1000,
+            privacy_level TEXT NOT NULL DEFAULT 'author_only',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_profile_fields_entity ON entity_profile_fields(entity_id, sort_key, created_at);
+
+          CREATE TABLE entity_relationships (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            source_entity_id TEXT NOT NULL REFERENCES entities(id),
+            target_entity_id TEXT NOT NULL REFERENCES entities(id),
+            relation_type TEXT NOT NULL,
+            direction TEXT NOT NULL CHECK(direction IN ('directed','mutual')),
+            label TEXT NOT NULL DEFAULT '',
+            summary TEXT NOT NULL DEFAULT '',
+            privacy_level TEXT NOT NULL DEFAULT 'normal',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT,
+            CHECK(source_entity_id <> target_entity_id)
+          );
+          CREATE INDEX idx_relationships_project ON entity_relationships(project_id, deleted_at, updated_at);
+          CREATE INDEX idx_relationships_source ON entity_relationships(source_entity_id, deleted_at);
+          CREATE INDEX idx_relationships_target ON entity_relationships(target_entity_id, deleted_at);
+
+          CREATE TABLE relationship_states (
+            id TEXT PRIMARY KEY,
+            relationship_id TEXT NOT NULL REFERENCES entity_relationships(id),
+            status_label TEXT NOT NULL,
+            note TEXT NOT NULL DEFAULT '',
+            valid_from_node_id TEXT REFERENCES manuscript_nodes(id),
+            valid_to_node_id TEXT REFERENCES manuscript_nodes(id),
+            world_time_from TEXT,
+            world_time_to TEXT,
+            source_node_id TEXT REFERENCES manuscript_nodes(id),
+            evidence TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_relationship_states_relation ON relationship_states(relationship_id, world_time_from, created_at);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(17, nowIso())
+      })
+    }
     const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()
     const reviewColumns = reviewTable ? this.db.prepare('PRAGMA table_info(review_sessions)').all() as Row[] : []
     if (reviewColumns.length && !reviewColumns.some((column) => String(column.name) === 'scene_snapshots_json')) this.db.exec("ALTER TABLE review_sessions ADD COLUMN scene_snapshots_json TEXT NOT NULL DEFAULT '[]'")
@@ -1708,6 +1764,132 @@ export class AppDatabase {
 
   listStates(entityId: string): EntityState[] {
     return (this.db.prepare('SELECT * FROM entity_states WHERE entity_id=? ORDER BY world_time_from, created_at').all(entityId) as Row[]).map(mapState)
+  }
+
+  listProfileFields(entityId: string): EntityProfileField[] {
+    return (this.db.prepare('SELECT * FROM entity_profile_fields WHERE entity_id=? ORDER BY sort_key,created_at').all(entityId) as Row[]).map(mapProfileField)
+  }
+
+  createProfileField(input: Omit<EntityProfileField, 'id' | 'createdAt' | 'updatedAt' | 'sortKey'> & { sortKey?: number }): EntityProfileField {
+    const entity = this.getEntity(input.entityId)
+    if (!entity) throw new Error('Entity not found')
+    const id = newId(); const time = nowIso()
+    const sortKey = input.sortKey ?? Number((this.db.prepare('SELECT COALESCE(MAX(sort_key),0)+1000 AS next FROM entity_profile_fields WHERE entity_id=?').get(input.entityId) as Row).next)
+    this.db.prepare('INSERT INTO entity_profile_fields(id,entity_id,category,label,value,sort_key,privacy_level,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').run(
+      id, input.entityId, input.category.trim(), input.label.trim(), input.value, sortKey, input.privacyLevel, time, time,
+    )
+    this.touchProject(entity.projectId)
+    this.logOperation(entity.projectId, 'profile_field', id, 'create', null, null, 'human')
+    return this.getProfileField(id)!
+  }
+
+  getProfileField(id: string): EntityProfileField | null {
+    const row = this.db.prepare('SELECT * FROM entity_profile_fields WHERE id=?').get(id) as Row | undefined
+    return row ? mapProfileField(row) : null
+  }
+
+  updateProfileField(id: string, patch: Partial<Pick<EntityProfileField, 'category' | 'label' | 'value' | 'sortKey' | 'privacyLevel'>>): EntityProfileField | null {
+    const current = this.getProfileField(id)
+    if (!current) return null
+    const entity = this.getEntity(current.entityId)
+    this.db.prepare('UPDATE entity_profile_fields SET category=?,label=?,value=?,sort_key=?,privacy_level=?,updated_at=? WHERE id=?').run(
+      patch.category?.trim() ?? current.category, patch.label?.trim() ?? current.label, patch.value ?? current.value, patch.sortKey ?? current.sortKey, patch.privacyLevel ?? current.privacyLevel, nowIso(), id,
+    )
+    if (entity) { this.touchProject(entity.projectId); this.logOperation(entity.projectId, 'profile_field', id, 'update', null, null, 'human') }
+    return this.getProfileField(id)
+  }
+
+  deleteProfileField(id: string): boolean {
+    const field = this.getProfileField(id); if (!field) return false
+    const entity = this.getEntity(field.entityId)
+    this.db.prepare('DELETE FROM entity_profile_fields WHERE id=?').run(id)
+    if (entity) { this.touchProject(entity.projectId); this.logOperation(entity.projectId, 'profile_field', id, 'delete', null, null, 'human') }
+    return true
+  }
+
+  createRelationship(input: Omit<EntityRelationship, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'states' | 'currentState'>): EntityRelationship {
+    const source = this.getEntity(input.sourceEntityId); const target = this.getEntity(input.targetEntityId)
+    if (!source || !target || source.projectId !== input.projectId || target.projectId !== input.projectId) throw new Error('Relationship entities must belong to this project')
+    if (source.id === target.id) throw new Error('Relationship cannot link an entity to itself')
+    const duplicate = input.direction === 'mutual'
+      ? this.db.prepare("SELECT 1 FROM entity_relationships WHERE project_id=? AND relation_type=? AND direction='mutual' AND deleted_at IS NULL AND ((source_entity_id=? AND target_entity_id=?) OR (source_entity_id=? AND target_entity_id=?))").get(input.projectId, input.relationType, source.id, target.id, target.id, source.id)
+      : this.db.prepare("SELECT 1 FROM entity_relationships WHERE project_id=? AND relation_type=? AND direction='directed' AND source_entity_id=? AND target_entity_id=? AND deleted_at IS NULL").get(input.projectId, input.relationType, source.id, target.id)
+    if (duplicate) throw new Error('Relationship already exists')
+    const id = newId(); const time = nowIso()
+    this.db.prepare('INSERT INTO entity_relationships(id,project_id,source_entity_id,target_entity_id,relation_type,direction,label,summary,privacy_level,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(
+      id, input.projectId, source.id, target.id, input.relationType.trim(), input.direction, input.label.trim(), input.summary, input.privacyLevel, time, time,
+    )
+    this.touchProject(input.projectId); this.logOperation(input.projectId, 'relationship', id, 'create', null, null, 'human')
+    return this.getRelationship(id)!
+  }
+
+  getRelationship(id: string, atNodeId: string | null = null): EntityRelationship | null {
+    const row = this.db.prepare('SELECT * FROM entity_relationships WHERE id=?').get(id) as Row | undefined
+    if (!row) return null
+    return this.mapRelationship(row, atNodeId)
+  }
+
+  listRelationships(projectId: string, entityId: string | null = null, atNodeId: string | null = null, includeDeleted = false): EntityRelationship[] {
+    const rows = entityId
+      ? this.db.prepare(`SELECT * FROM entity_relationships WHERE project_id=? AND (source_entity_id=? OR target_entity_id=?) ${includeDeleted ? '' : 'AND deleted_at IS NULL'} ORDER BY updated_at DESC,rowid DESC`).all(projectId, entityId, entityId)
+      : this.db.prepare(`SELECT * FROM entity_relationships WHERE project_id=? ${includeDeleted ? '' : 'AND deleted_at IS NULL'} ORDER BY updated_at DESC,rowid DESC`).all(projectId)
+    return (rows as Row[]).map((row) => this.mapRelationship(row, atNodeId))
+  }
+
+  updateRelationship(id: string, patch: Partial<Pick<EntityRelationship, 'relationType' | 'direction' | 'label' | 'summary' | 'privacyLevel' | 'deletedAt'>>): EntityRelationship | null {
+    const current = this.getRelationship(id)
+    if (!current) return null
+    this.db.prepare('UPDATE entity_relationships SET relation_type=?,direction=?,label=?,summary=?,privacy_level=?,deleted_at=?,updated_at=? WHERE id=?').run(
+      patch.relationType?.trim() ?? current.relationType, patch.direction ?? current.direction, patch.label?.trim() ?? current.label, patch.summary ?? current.summary, patch.privacyLevel ?? current.privacyLevel, patch.deletedAt === undefined ? current.deletedAt : patch.deletedAt, nowIso(), id,
+    )
+    this.touchProject(current.projectId); this.logOperation(current.projectId, 'relationship', id, 'update', null, null, 'human')
+    return this.getRelationship(id)
+  }
+
+  createRelationshipState(input: Omit<RelationshipState, 'id' | 'createdAt'>): RelationshipState {
+    const relationship = this.getRelationship(input.relationshipId)
+    if (!relationship) throw new Error('Relationship not found')
+    if (input.validFromNodeId && (this.getNode(input.validFromNodeId)?.projectId !== relationship.projectId || this.getNode(input.validFromNodeId)?.type !== 'scene')) throw new Error('Relationship state scene belongs to another project')
+    if (input.validToNodeId && (this.getNode(input.validToNodeId)?.projectId !== relationship.projectId || this.getNode(input.validToNodeId)?.type !== 'scene')) throw new Error('Relationship state scene belongs to another project')
+    if (input.sourceNodeId && this.getNode(input.sourceNodeId)?.projectId !== relationship.projectId) throw new Error('Relationship evidence scene belongs to another project')
+    const id = newId(); const createdAt = nowIso()
+    const nodes = this.listNodes(relationship.projectId); const order = narrativeSceneOrder(nodes)
+    if (input.worldTimeFrom && input.worldTimeTo && input.worldTimeFrom >= input.worldTimeTo) throw new Error('Relationship state interval is invalid')
+    if (input.validFromNodeId && input.validToNodeId && (order.get(input.validFromNodeId) ?? Number.MAX_SAFE_INTEGER) >= (order.get(input.validToNodeId) ?? -1)) throw new Error('Relationship state interval is invalid')
+    this.transaction(() => {
+      const before = this.listRelationshipStates(input.relationshipId)
+      if (input.worldTimeFrom) {
+        const previous = before.filter((state) => (state.worldTimeFrom || state.worldTimeTo) && !state.worldTimeTo && (state.worldTimeFrom ?? '') < input.worldTimeFrom!).at(-1)
+        if (previous) this.db.prepare('UPDATE relationship_states SET world_time_to=? WHERE id=?').run(input.worldTimeFrom, previous.id)
+      } else if (input.validFromNodeId) {
+        const nextStart = order.get(input.validFromNodeId) ?? Number.MAX_SAFE_INTEGER
+        const previous = before.filter((state) => !state.worldTimeFrom && !state.worldTimeTo && !state.validToNodeId && (state.validFromNodeId ? order.get(state.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1) < nextStart).at(-1)
+        if (previous) this.db.prepare('UPDATE relationship_states SET valid_to_node_id=? WHERE id=?').run(input.validFromNodeId, previous.id)
+      }
+      const states = this.listRelationshipStates(input.relationshipId)
+      if (states.some((state) => relationshipStateIntervalsOverlap(state, input, nodes))) throw new Error('Relationship state interval overlaps an existing value')
+      this.db.prepare('INSERT INTO relationship_states(id,relationship_id,status_label,note,valid_from_node_id,valid_to_node_id,world_time_from,world_time_to,source_node_id,evidence,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(
+        id, input.relationshipId, input.statusLabel.trim(), input.note, input.validFromNodeId, input.validToNodeId, input.worldTimeFrom, input.worldTimeTo, input.sourceNodeId, input.evidence, createdAt,
+      )
+      this.db.prepare('UPDATE entity_relationships SET updated_at=? WHERE id=?').run(createdAt, input.relationshipId)
+      this.touchProject(relationship.projectId); this.logOperation(relationship.projectId, 'relationship_state', id, 'create', null, null, 'human')
+    })
+    return this.getRelationshipState(id)!
+  }
+
+  getRelationshipState(id: string): RelationshipState | null {
+    const row = this.db.prepare('SELECT * FROM relationship_states WHERE id=?').get(id) as Row | undefined
+    return row ? mapRelationshipState(row) : null
+  }
+
+  listRelationshipStates(relationshipId: string): RelationshipState[] {
+    return (this.db.prepare('SELECT * FROM relationship_states WHERE relationship_id=? ORDER BY world_time_from,created_at').all(relationshipId) as Row[]).map(mapRelationshipState)
+  }
+
+  private mapRelationship(row: Row, atNodeId: string | null): EntityRelationship {
+    const states = this.listRelationshipStates(String(row.id))
+    const currentState = resolveRelationshipState(states, atNodeId, atNodeId ? this.listNodes(String(row.project_id)) : [])
+    return { ...mapRelationshipBase(row), states, currentState }
   }
 
   createMention(input: Omit<Mention, 'id' | 'createdAt'>): Mention {
@@ -2345,6 +2527,21 @@ export class AppDatabase {
       })
       return
     }
+    if (candidate.targetType === 'relationship_state' && candidate.targetId) {
+      const value = after as Record<string, unknown>
+      this.createRelationshipState({
+        relationshipId: candidate.targetId,
+        statusLabel: String(value.statusLabel ?? value.status_label ?? '关系变化'),
+        note: typeof value.note === 'string' ? value.note : '',
+        validFromNodeId: candidate.nodeId,
+        validToNodeId: typeof value.validToNodeId === 'string' ? value.validToNodeId : null,
+        worldTimeFrom: typeof value.worldTimeFrom === 'string' ? value.worldTimeFrom : null,
+        worldTimeTo: typeof value.worldTimeTo === 'string' ? value.worldTimeTo : null,
+        sourceNodeId: candidate.nodeId,
+        evidence: candidate.evidence.quote ?? '',
+      })
+      return
+    }
     if (candidate.targetType === 'entity' && candidate.targetId && candidate.operation === 'update') {
       this.updateEntity(candidate.targetId, after as Partial<Entity>)
       return
@@ -2465,6 +2662,55 @@ function mapEntity(row: Row): Entity {
 
 function mapState(row: Row): EntityState {
   return { id: String(row.id), entityId: String(row.entity_id), attributeKey: String(row.attribute_key), value: jsonParse(String(row.value_json), null), validFromNodeId: row.valid_from_node_id ? String(row.valid_from_node_id) : null, validToNodeId: row.valid_to_node_id ? String(row.valid_to_node_id) : null, worldTimeFrom: row.world_time_from ? String(row.world_time_from) : null, worldTimeTo: row.world_time_to ? String(row.world_time_to) : null, sourceMentionId: row.source_mention_id ? String(row.source_mention_id) : null, createdAt: String(row.created_at) }
+}
+
+function mapProfileField(row: Row): EntityProfileField {
+  return { id: String(row.id), entityId: String(row.entity_id), category: String(row.category), label: String(row.label), value: String(row.value), sortKey: Number(row.sort_key), privacyLevel: row.privacy_level as EntityProfileField['privacyLevel'], createdAt: String(row.created_at), updatedAt: String(row.updated_at) }
+}
+
+function mapRelationshipBase(row: Row): Omit<EntityRelationship, 'states' | 'currentState'> {
+  return { id: String(row.id), projectId: String(row.project_id), sourceEntityId: String(row.source_entity_id), targetEntityId: String(row.target_entity_id), relationType: String(row.relation_type), direction: row.direction as EntityRelationship['direction'], label: String(row.label), summary: String(row.summary), privacyLevel: row.privacy_level as EntityRelationship['privacyLevel'], createdAt: String(row.created_at), updatedAt: String(row.updated_at), deletedAt: row.deleted_at ? String(row.deleted_at) : null }
+}
+
+function mapRelationshipState(row: Row): RelationshipState {
+  return { id: String(row.id), relationshipId: String(row.relationship_id), statusLabel: String(row.status_label), note: String(row.note), validFromNodeId: row.valid_from_node_id ? String(row.valid_from_node_id) : null, validToNodeId: row.valid_to_node_id ? String(row.valid_to_node_id) : null, worldTimeFrom: row.world_time_from ? String(row.world_time_from) : null, worldTimeTo: row.world_time_to ? String(row.world_time_to) : null, sourceNodeId: row.source_node_id ? String(row.source_node_id) : null, evidence: String(row.evidence), createdAt: String(row.created_at) }
+}
+
+function resolveRelationshipState(states: RelationshipState[], atNodeId: string | null, nodes: ManuscriptNode[]): RelationshipState | null {
+  if (!states.length) return null
+  if (!atNodeId) return states.at(-1) ?? null
+  const atNode = nodes.find((node) => node.id === atNodeId)
+  const order = narrativeSceneOrder(nodes); const at = order.get(atNodeId) ?? Number.MAX_SAFE_INTEGER
+  const matching = states.filter((state) => {
+    if (atNode?.storyTime && (state.worldTimeFrom || state.worldTimeTo)) return (!state.worldTimeFrom || state.worldTimeFrom <= atNode.storyTime) && (!state.worldTimeTo || atNode.storyTime < state.worldTimeTo)
+    const from = state.validFromNodeId ? order.get(state.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
+    const to = state.validToNodeId ? order.get(state.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
+    return from <= at && at < to
+  })
+  return matching.at(-1) ?? null
+}
+
+function relationshipStateIntervalsOverlap(a: RelationshipState, b: Omit<RelationshipState, 'id' | 'createdAt'>, nodes: ManuscriptNode[]): boolean {
+  const aWorld = Boolean(a.worldTimeFrom || a.worldTimeTo); const bWorld = Boolean(b.worldTimeFrom || b.worldTimeTo)
+  if (aWorld || bWorld) {
+    if (!aWorld || !bWorld) return true
+    return (a.worldTimeFrom ?? '') < (b.worldTimeTo ?? '\uffff') && (b.worldTimeFrom ?? '') < (a.worldTimeTo ?? '\uffff')
+  }
+  const order = narrativeSceneOrder(nodes)
+  const aFrom = a.validFromNodeId ? order.get(a.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
+  const aTo = a.validToNodeId ? order.get(a.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
+  const bFrom = b.validFromNodeId ? order.get(b.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
+  const bTo = b.validToNodeId ? order.get(b.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
+  return aFrom < bTo && bFrom < aTo
+}
+
+function narrativeSceneOrder(nodes: ManuscriptNode[]): Map<string, number> {
+  const volumes = nodes.filter((node) => node.type === 'volume').sort((a, b) => a.sortKey - b.sortKey)
+  const volumeRank = new Map(volumes.map((node, index) => [node.id, index]))
+  const chapters = nodes.filter((node) => node.type === 'chapter').sort((a, b) => (volumeRank.get(a.parentId ?? '') ?? -1) - (volumeRank.get(b.parentId ?? '') ?? -1) || a.sortKey - b.sortKey)
+  const result = new Map<string, number>(); let index = 0
+  for (const chapter of chapters) for (const scene of nodes.filter((node) => node.type === 'scene' && node.parentId === chapter.id).sort((a, b) => a.sortKey - b.sortKey)) result.set(scene.id, index++)
+  return result
 }
 
 function mapMention(row: Row): Mention {

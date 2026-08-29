@@ -2,7 +2,7 @@
 
 **笔耕不怠，写尽所思。**
 
-中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R～V2-V、R1-A～R1-C 执行能力、UI-A～UI-F、功能真值修复与本地免费 AI 已完成本机工程验证；真实种子作者、真实两周周期、跨平台正式分发与公开发布仍为 NO-GO，当前版本为 2.2.2。
+中文长篇作者的本地优先剧情操作系统。MVP、RC1、V1-A～V1-M、V2-R～V2-V、R1-A～R1-C 执行能力、UI-A～UI-F、功能真值修复、本地免费 AI 与正典关系层 v1 已完成本机工程验证；真实种子作者、真实两周周期、跨平台正式分发与公开发布仍为 NO-GO，当前版本为 2.3.0。
 
 ## 开发
 
@@ -51,6 +51,8 @@ npm run release:macos:preflight
 - [UI-E 质量门与收尾计划](docs/implementation/UIE_PLAN.md)
 - [UI-F 表单与浮层统一计划](docs/implementation/UIF_PLAN.md)
 - [2.2.1 功能真值修复计划](docs/implementation/FUNCTION_TRUTH_PLAN.md)
+- [2.3.0 正典关系层 v1 计划](docs/implementation/CANON_RELATION_V1_PLAN.md)
+- [2.3.0 正典关系层 v1 验收报告](归档/2026-08-29/笔不怠正典关系层v1验收报告_v2.3.0.md)
 - [UI 贡献与新增页面准入规范](docs/implementation/UI_CONTRIBUTION_GUIDE.md)
 - [G4-C UI 内测发行候选计划](docs/implementation/G4C_PLAN.md)
 - [需求追踪矩阵](docs/implementation/TRACEABILITY.md)

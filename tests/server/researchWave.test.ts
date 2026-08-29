@@ -20,13 +20,13 @@ describe('R1-C controlled research waves', () => {
 
   it('backs up schema v15 and creates wave tables plus immutable cohort assignment', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP INDEX idx_research_cohort_participants_wave; ALTER TABLE research_cohort_participants DROP COLUMN wave_id; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DELETE FROM schema_migrations WHERE version=16;')
+    db.db.exec('DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP INDEX idx_research_cohort_participants_wave; ALTER TABLE research_cohort_participants DROP COLUMN wave_id; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DELETE FROM schema_migrations WHERE version IN (16,17);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 16 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 17 })
     expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name LIKE 'research_wave%'").get()).toMatchObject({ count: 3 })
     expect(db.db.prepare('PRAGMA table_info(research_cohort_participants)').all()).toContainEqual(expect.objectContaining({ name: 'wave_id' }))
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v15-to-v16-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v15-to-v17-'))).toBe(true)
   })
 
   it('freezes external targets, quotas, readiness and the 14–42 day UTC window', () => {

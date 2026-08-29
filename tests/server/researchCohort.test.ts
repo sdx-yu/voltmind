@@ -23,12 +23,12 @@ describe('R1-B controlled cohort evidence', () => {
 
   it('backs up schema v14 before creating the three coordinator tables', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DELETE FROM schema_migrations WHERE version IN (15,16);')
+    db.db.exec('DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DELETE FROM schema_migrations WHERE version IN (15, 16,17);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 16 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 17 })
     expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name LIKE 'research_cohort_%'").get()).toMatchObject({ count: 3 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v14-to-v16-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v14-to-v17-'))).toBe(true)
   })
 
   it('never counts fixtures and requires all four attestations for an external sample', () => {

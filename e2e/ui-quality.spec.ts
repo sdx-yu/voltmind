@@ -3,6 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 type Project = { id: string; title: string; description: string; createdAt: string; updatedAt: string; deletedAt: string | null }
 type Node = { id: string; parentId: string | null; type: 'book' | 'volume' | 'chapter' | 'scene'; title: string }
+type Entity = { id: string; canonicalName: string }
 
 let project: Project
 let longProject: Project
@@ -103,6 +104,33 @@ test('keeps branded selects keyboard-operable and viewport-bound', async ({ page
   await revising.press('Enter')
   await expect(select).toHaveText('修订中')
   await expect(select).toBeFocused()
+})
+
+test('projects dossier and temporal relationships from canon into an accessible graph', async ({ page, request }) => {
+  await session(request)
+  const scene = (await json<Node[]>(request.get(`/api/projects/${project.id}/tree`))).find((item) => item.type === 'scene')!
+  const lin = await json<Entity>(request.post(`/api/projects/${project.id}/entities`, { data: { type: 'character', canonicalName: '林照', aliases: [], summary: '雾港调查员', privacyLevel: 'normal' } }))
+  const shen = await json<Entity>(request.post(`/api/projects/${project.id}/entities`, { data: { type: 'character', canonicalName: '沈砚', aliases: [], summary: '旧案证人', privacyLevel: 'normal' } }))
+  await json(request.post(`/api/entities/${lin.id}/profile-fields`, { data: { category: '语言', label: '口头禅', value: '证据先行', privacyLevel: 'author_only' } }))
+  const relationship = await json<{ id: string }>(request.post(`/api/projects/${project.id}/relationships`, { data: { sourceEntityId: lin.id, targetEntityId: shen.id, relationType: 'alliance', direction: 'mutual', label: '调查搭档', summary: '旧案让两人再次合作', privacyLevel: 'normal' } }))
+  await json(request.post(`/api/relationships/${relationship.id}/states`, { data: { statusLabel: '互相信任', note: '交换关键证据', validFromNodeId: scene.id, validToNodeId: null, worldTimeFrom: null, worldTimeTo: null, sourceNodeId: scene.id, evidence: '林照把未寄出的信收回口袋' } }))
+
+  await onlyProjects(page, [project])
+  await page.goto('/')
+  await page.getByRole('button', { name: project.title }).first().click()
+  await page.getByRole('button', { name: '正典', exact: true }).click()
+  await page.getByRole('button', { name: /林照/ }).first().click()
+  await page.getByRole('tab', { name: '档案' }).click()
+  await expect(page.getByText('证据先行')).toBeVisible()
+  await page.getByRole('tab', { name: '关系' }).click()
+  await expect(page.locator('.relationship-current .ui-badge', { hasText: '互相信任' })).toBeVisible()
+  await page.getByRole('tab', { name: '关联图' }).click()
+  const graphNode = page.getByRole('button', { name: '打开沈砚，关系：互相信任' })
+  await graphNode.focus()
+  await expect(graphNode).toBeFocused()
+  await graphNode.press('Enter')
+  await expect(page.getByRole('heading', { name: '沈砚' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })
 
 test('passes serious WCAG scans on the component system and core workspaces', async ({ page }) => {

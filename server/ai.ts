@@ -68,7 +68,21 @@ export class AiService {
         content: entity.summary || '暂无简介', reason: '当前场景人物或设定', privacyLevel: entity.privacyLevel,
         selected: entity.privacyLevel !== 'local_private', estimatedTokens: estimateTokens(entity.summary || entity.canonicalName),
       })
+      for (const field of this.database.listProfileFields(entity.id).filter((item) => item.privacyLevel !== 'local_private')) {
+        const content = `${field.label}：${field.value}`
+        items.push({ id: `profile:${field.id}`, type: 'entity', title: `${entity.canonicalName}档案 · ${field.category}`, content, reason: '当前场景实体的作者档案', privacyLevel: field.privacyLevel, selected: true, estimatedTokens: estimateTokens(content) })
+      }
       for (const state of this.database.listStates(entity.id)) items.push(stateContext(state, entity.canonicalName, entity.privacyLevel))
+    }
+    const entityById = new Map(entities.map((entity) => [entity.id, entity]))
+    const mentionedIds = new Set(mentionedNames.map((entity) => entity.id))
+    for (const relationship of this.database.listRelationships(projectId, null, nodeId).filter((item) => item.currentState && item.privacyLevel !== 'local_private' && (mentionedIds.has(item.sourceEntityId) || mentionedIds.has(item.targetEntityId)))) {
+      const source = entityById.get(relationship.sourceEntityId); const target = entityById.get(relationship.targetEntityId)
+      if (!source || !target) continue
+      const arrow = relationship.direction === 'mutual' ? ' ↔ ' : ' → '
+      const state = relationship.currentState!
+      const content = `${source.canonicalName}${arrow}${target.canonicalName}\n关系：${relationship.label || relationship.relationType}\n当前状态：${state.statusLabel}${state.note ? `\n${state.note}` : ''}`
+      items.push({ id: `relationship:${relationship.id}`, type: 'relationship', title: `当前关系：${source.canonicalName} / ${target.canonicalName}`, content, reason: '与当前场景实体相连且在本场景有效', privacyLevel: relationship.privacyLevel, selected: relationship.privacyLevel !== 'local_private', estimatedTokens: estimateTokens(content) })
     }
     const nodes = this.database.listNodes(projectId).filter((item) => item.type === 'scene' && item.id !== nodeId && item.sortKey < node.sortKey).sort((a, b) => b.sortKey - a.sortKey).slice(0, 2)
     for (const previous of nodes) {

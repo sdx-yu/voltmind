@@ -1,4 +1,4 @@
-const CURRENT_SHELL = 'bbd-shell-v2.2.2'
+const CURRENT_SHELL = 'bbd-shell-v2.3.0'
 const SHELL_PREFIX = 'bbd-shell-'
 const CORE = ['/', '/?mobile=1', '/mobile-acceptance.html', '/manifest.webmanifest', '/pwa-192.png', '/pwa-512.png']
 

@@ -87,25 +87,91 @@
 .ui-template-drawer-content > .inspector { width: 100%; height: 100%; border: 0; }
 .ui-template-drawer .ui-dialog-body { padding: 0; }
 
-.ui-canon-pane { min-height: 0; border-right: 1px solid var(--border-subtle); background: var(--surface-sunken); }
+.ui-canon-pane { min-height: 0; border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; background: var(--surface-sunken); }
 .ui-canon-pane .ui-pane-body { padding: 0; }
 .ui-canon-pane-header { padding: var(--space-6) var(--space-4) var(--space-3); display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
 .ui-canon-pane-header h1 { margin: var(--space-1) 0 0; font: 650 var(--type-heading-size)/var(--type-heading-line) var(--font-editorial); }
-.ui-canon-list { padding: var(--space-1) var(--space-2); overflow: auto; }
+.ui-canon-pane .canon-create-action { box-shadow: none; }
+.ui-canon-pane .canon-create-action:hover:not(:disabled) { transform: none; box-shadow: none; }
+.ui-canon-pane .canon-create-action:active:not(:disabled) { transform: scale(.98); box-shadow: inset 0 1px 2px color-mix(in srgb, var(--rice-900) 18%, transparent); }
+.ui-canon-list { flex: 1; min-height: 4rem; padding: var(--space-1) var(--space-2); overflow: auto; }
 .ui-canon-list .ui-list-row { margin-bottom: var(--space-1); }
+.ui-canon-list .ui-list-row.is-selected { box-shadow: inset 3px 0 var(--action-primary); }
+.canon-list-empty { min-height: 6.5rem; padding: var(--space-6) var(--space-3); display: grid; place-items: center; align-content: center; gap: var(--space-2); text-align: center; color: var(--text-secondary); }
+.canon-list-empty p { margin: 0; font-size: var(--type-caption-size); }
+.canon-list-empty button { min-height: var(--control-height-sm); padding: 0 var(--space-2); border: 0; border-radius: var(--radius-control); color: var(--action-primary); background: transparent; font: 650 var(--type-caption-size)/var(--type-caption-line) var(--font-ui); cursor: pointer; }
+.canon-list-empty button:hover { background: var(--action-subtle); }
+.canon-list-empty button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .ui-canon-pane .ui-canon-search-slot { padding: var(--space-2) var(--space-4); }
 .ui-canon-pane .ui-canon-search-slot .ui-field { gap: var(--space-1); }
 .ui-canon-pane .entity-filters { padding: var(--space-1) var(--space-4) var(--space-2); overflow-x: auto; }
 .ui-canon-pane .entity-filters .ui-tabs { width: 100%; }
 .ui-canon-pane .entity-filters .ui-tabs button { min-width: 0; flex: 1; padding-inline: var(--space-1); }
-.ui-canon-pane .candidate-inbox { width: calc(100% - var(--space-4)); margin: var(--space-2); border: 1px solid var(--border-subtle); }
+.ui-canon-pane .entity-filters .ui-tabs button[aria-selected="true"] { box-shadow: inset 0 0 0 1px var(--border-faint); }
+.canon-support-nav { margin: var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); overflow: hidden; background: color-mix(in srgb, var(--surface-paper) 22%, transparent); }
+.ui-canon-pane .candidate-inbox { width: 100%; margin: 0; border: 0; border-radius: 0; }
+.ui-canon-pane .candidate-inbox + .candidate-inbox { border-top: 1px solid var(--border-faint); }
+.ui-canon-pane .candidate-inbox.is-selected { box-shadow: inset 3px 0 var(--action-primary); }
 .ui-canon-pane .candidate-inbox .ui-list-row-icon { flex: 0 0 auto; text-align: initial; }
 .ui-canon-pane .candidate-inbox .ui-list-row-copy { min-width: 0; flex: 1; text-align: left; }
 .ui-canon-pane .candidate-inbox .ui-list-row-copy strong { min-width: 0; padding: 0; border-radius: 0; background: transparent; font-size: var(--type-label-size); }
 .ui-canon-pane .candidate-inbox .ui-list-row-meta { flex: 0 0 auto; text-align: initial; }
+.canon-row-chevron { flex: 0 0 auto; color: var(--text-tertiary); transition: transform var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
+.ui-canon-pane .candidate-inbox:hover .canon-row-chevron, .ui-canon-pane .candidate-inbox.is-selected .canon-row-chevron { color: var(--action-primary); transform: translateX(2px); }
 .ui-canon-pane .candidate-inbox.has-items { border-color: var(--status-warning); color: var(--status-warning); background: var(--status-warning-surface); }
 .ui-detail-form { display: grid; gap: var(--space-4); }
 .ui-library-mobile-back { display: none; }
+
+/* 2.3.0 canon dossier and temporal relationship projection */
+.canon-detail-tabs { margin-top: var(--space-5); padding-bottom: var(--space-1); overflow-x: auto; }
+.canon-detail-tabs .ui-tabs { min-width: 30rem; padding: var(--space-1); border: 1px solid var(--border-faint); border-radius: var(--radius-card); background: var(--surface-sunken); }
+.canon-detail-tabs .ui-tabs button { min-width: 0; flex: 1; }
+.profile-groups { display: grid; gap: var(--space-5); }
+.profile-groups > section > header { margin-bottom: var(--space-2); display: flex; justify-content: space-between; color: var(--text-secondary); }
+.profile-groups > section > header strong { color: var(--text-primary); font: 650 var(--type-label-size)/var(--type-label-line) var(--font-ui); }
+.profile-groups > section > header small { font-size: var(--type-caption-size); }
+.profile-field-row { padding: var(--space-3) 0; border-top: 1px solid var(--border-faint); display: grid; grid-template-columns: minmax(7rem, .45fr) minmax(12rem, 1fr) auto; align-items: start; gap: var(--space-3); }
+.profile-field-row > div:first-child { display: grid; gap: var(--space-1); }
+.profile-field-row > div:first-child input { min-width: 0; min-height: var(--control-height-sm); padding: 0 var(--space-2); font-size: var(--type-caption-size); }
+.profile-field-row > div:first-child input:nth-child(2) { color: var(--text-primary); font-weight: 650; }
+.profile-field-row > div:first-child small { color: var(--text-tertiary); font-size: var(--type-caption-size); }
+.profile-field-row textarea { min-height: var(--control-height-md); resize: vertical; }
+.profile-field-row > div:last-child { display: flex; gap: var(--space-1); }
+.relationship-panel { display: grid; gap: var(--space-3); }
+.relationship-toolbar-controls { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); }
+.relationship-toolbar label { min-width: min(22rem, 55%); display: grid; gap: var(--space-1); color: var(--text-secondary); font-size: var(--type-caption-size); }
+.relationship-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.relationship-list .canon-card { margin-top: 0; }
+.relationship-card.is-inactive { background: var(--surface-sunken); }
+.relationship-card > header { flex-wrap: wrap; gap: var(--space-2); }
+.relationship-counterpart { width: 100%; min-height: var(--control-height-md); padding: 0 var(--space-3); border: 1px solid var(--border-faint); border-radius: var(--radius-control); display: flex; align-items: center; justify-content: space-between; color: var(--action-primary); background: var(--surface-control); cursor: pointer; }
+.relationship-counterpart:hover { border-color: var(--action-primary); background: var(--action-subtle); }
+.relationship-counterpart:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.relationship-card > .ui-card-body > p { color: var(--text-secondary); font-size: var(--type-body-size); line-height: var(--type-body-line); }
+.relationship-current { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-control); display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); background: var(--surface-sunken); }
+.relationship-current > small { width: 100%; color: var(--text-tertiary); }
+.relationship-current > span { color: var(--text-secondary); font-size: var(--type-caption-size); }
+.relationship-current > button { width: 100%; padding: var(--space-2) 0 0; border: 0; border-top: 1px solid var(--border-faint); display: flex; align-items: center; gap: var(--space-1); color: var(--action-primary); background: transparent; text-align: left; cursor: pointer; }
+.relationship-card details { margin-top: var(--space-3); border-top: 1px solid var(--border-faint); }
+.relationship-card summary { padding-top: var(--space-3); color: var(--text-secondary); font-size: var(--type-caption-size); cursor: pointer; }
+.relationship-history { display: grid; gap: var(--space-2); padding-top: var(--space-2); }
+.relationship-history article { padding: var(--space-2); border-left: 2px solid var(--border-strong); display: grid; gap: var(--space-1); background: var(--surface-sunken); }
+.relationship-history strong { font-size: var(--type-label-size); }
+.relationship-history small { color: var(--text-tertiary); font-size: var(--type-caption-size); }
+.relationship-history p { margin: 0; color: var(--text-secondary); font-size: var(--type-caption-size); }
+.relationship-graph-card { margin-top: 0; }
+.relationship-graph { position: relative; min-height: 25rem; overflow: hidden; border: 1px solid var(--border-faint); border-radius: var(--radius-card); background: radial-gradient(circle at center, var(--action-subtle), transparent 32%), var(--surface-sunken); }
+.relationship-graph svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.relationship-graph line { stroke: var(--action-primary); stroke-width: .38; vector-effect: non-scaling-stroke; }
+.relationship-graph line.inactive { stroke: var(--border-strong); stroke-dasharray: 2 2; }
+.relationship-graph text { fill: var(--text-secondary); font: 2.3px var(--font-ui); text-anchor: middle; paint-order: stroke; stroke: var(--surface-sunken); stroke-width: .8px; }
+.relationship-graph > button, .relationship-graph .graph-center { position: absolute; width: 7.5rem; min-height: 3.5rem; padding: var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); display: grid; place-items: center; align-content: center; gap: var(--space-1); transform: translate(-50%, -50%); text-align: center; background: var(--surface-paper); color: var(--text-primary); }
+.relationship-graph > button { cursor: pointer; }
+.relationship-graph > button:hover { border-color: var(--action-primary); background: var(--action-subtle); }
+.relationship-graph > button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; z-index: 2; }
+.relationship-graph .graph-center { left: 50%; top: 50%; border-color: var(--action-primary); color: var(--action-primary); font-weight: 700; background: var(--surface-selected); z-index: 1; }
+.relationship-graph > button strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: var(--type-label-size); white-space: nowrap; }
+.relationship-graph > button small { color: var(--text-secondary); font-size: var(--type-caption-size); }
 
 @media (max-width: 1279px) {
   .ui-template-editor-three { grid-template-columns: var(--workspace-tree-width, 16.25rem) minmax(0, 1fr); }
@@ -118,6 +184,7 @@
   .ui-template-editor-details { grid-template-columns: minmax(0, 1fr); }
   .ui-template-library { grid-template-columns: minmax(13.5rem, 15rem) minmax(0, 1fr); }
   .ui-template-board { padding: var(--space-6); }
+  .relationship-list { grid-template-columns: 1fr; }
   .ui-template-board > .ui-page-header { top: calc(var(--space-6) * -1); margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-4); padding: var(--space-6); }
   .ui-template-workflow { padding: var(--space-6); }
   .ui-metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }

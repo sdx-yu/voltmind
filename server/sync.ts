@@ -3,6 +3,8 @@ import { diffChars } from 'diff'
 import * as Y from 'yjs'
 import type {
   Entity,
+  EntityProfileField,
+  EntityRelationship,
   EntityState,
   ManuscriptNode,
   MobileInboxItem,
@@ -37,6 +39,8 @@ interface SyncScenePayload {
 interface SyncEntityPayload {
   entity: Entity
   states: EntityState[]
+  profileFields?: EntityProfileField[]
+  relationships?: EntityRelationship[]
   vector: SyncVector
   contentHash: string
   deleted: boolean
@@ -167,6 +171,7 @@ export class SyncService {
         const outcome = this.applyScene(payload.project.id, remote, transfer)
         appliedScenes += outcome.applied ? 1 : 0; mergedScenes += outcome.merged ? 1 : 0; conflictsCreated += outcome.conflict ? 1 : 0
       }
+      for (const remote of payload.entities) if (!this.database.getEntity(remote.entity.id)) this.writeEntity(remote, false)
       for (const remote of payload.entities) {
         const outcome = this.applyEntity(payload.project.id, remote, transfer)
         appliedEntities += outcome.applied ? 1 : 0; conflictsCreated += outcome.conflict ? 1 : 0
@@ -243,8 +248,10 @@ export class SyncService {
 
   private captureEntity(projectId: string, entity: Entity, vector: SyncVector): SyncEntityPayload {
     const states = this.database.listStates(entity.id)
-    const contentHash = sha256(JSON.stringify({ entity, states }))
-    return { entity, states, vector: this.versionForExport(projectId, 'entity', entity.id, vector, contentHash, Boolean(entity.deletedAt)), contentHash, deleted: Boolean(entity.deletedAt) }
+    const profileFields = this.database.listProfileFields(entity.id)
+    const relationships = this.database.listRelationships(projectId, entity.id, null, true).filter((item) => item.sourceEntityId === entity.id)
+    const contentHash = sha256(JSON.stringify({ entity, states, profileFields, relationships }))
+    return { entity, states, profileFields, relationships, vector: this.versionForExport(projectId, 'entity', entity.id, vector, contentHash, Boolean(entity.deletedAt)), contentHash, deleted: Boolean(entity.deletedAt) }
   }
 
   private captureAttachments(projectId: string): SyncAttachmentPayload[] {
@@ -310,7 +317,7 @@ export class SyncService {
   private applyEntity(projectId: string, remote: SyncEntityPayload, transfer: SyncTransferPackage): { applied: boolean; conflict: boolean } {
     const local = this.database.getEntity(remote.entity.id)
     if (!local) { this.writeEntity(remote); this.upsertObjectVersion(projectId, 'entity', remote.entity.id, remote.vector, remote.contentHash, remote.deleted); return { applied: true, conflict: false } }
-    const localVersion = this.objectVersion(projectId, 'entity', remote.entity.id) ?? { vector: {}, contentHash: sha256(JSON.stringify({ entity: local, states: this.database.listStates(local.id) })), deleted: Boolean(local.deletedAt) }
+    const localVersion = this.objectVersion(projectId, 'entity', remote.entity.id) ?? { vector: {}, contentHash: this.captureEntityContent(projectId, local), deleted: Boolean(local.deletedAt) }
     const relation = compareVectors(localVersion.vector, remote.vector)
     if (relation === 'equal' || relation === 'local_dominates' || localVersion.contentHash === remote.contentHash) return { applied: false, conflict: false }
     if (relation === 'concurrent') {
@@ -330,7 +337,11 @@ export class SyncService {
     this.database.db.prepare(`INSERT INTO sync_scene_states(node_id,project_id,state_base64,state_vector_base64,plain_hash,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(node_id) DO UPDATE SET state_base64=excluded.state_base64,state_vector_base64=excluded.state_vector_base64,plain_hash=excluded.plain_hash,updated_at=excluded.updated_at`).run(remote.node.id, projectId, stateBase64, stateVectorBase64, sha256(text), updatedAt)
   }
 
-  private writeEntity(remote: SyncEntityPayload) {
+  private captureEntityContent(projectId: string, entity: Entity) {
+    return sha256(JSON.stringify({ entity, states: this.database.listStates(entity.id), profileFields: this.database.listProfileFields(entity.id), relationships: this.database.listRelationships(projectId, entity.id, null, true).filter((item) => item.sourceEntityId === entity.id) }))
+  }
+
+  private writeEntity(remote: SyncEntityPayload, includeExtensions = true) {
     const entity = remote.entity
     this.database.db.prepare(`INSERT INTO entities(id,project_id,type,canonical_name,normalized_name,aliases_json,summary,privacy_level,created_at,updated_at,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET type=excluded.type,canonical_name=excluded.canonical_name,normalized_name=excluded.normalized_name,aliases_json=excluded.aliases_json,summary=excluded.summary,privacy_level=excluded.privacy_level,updated_at=excluded.updated_at,deleted_at=excluded.deleted_at`).run(
       entity.id, entity.projectId, entity.type, entity.canonicalName, normalizeName(entity.canonicalName), JSON.stringify(entity.aliases), entity.summary, entity.privacyLevel, entity.createdAt, entity.updatedAt, entity.deletedAt,
@@ -339,6 +350,16 @@ export class SyncService {
     for (const state of remote.states) this.database.db.prepare(`INSERT INTO entity_states(id,entity_id,attribute_key,value_json,valid_from_node_id,valid_to_node_id,world_time_from,world_time_to,source_mention_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
       state.id, state.entityId, state.attributeKey, JSON.stringify(state.value), state.validFromNodeId, state.validToNodeId, state.worldTimeFrom, state.worldTimeTo, state.sourceMentionId, state.createdAt,
     )
+    if (!includeExtensions) return
+    this.database.db.prepare('DELETE FROM entity_profile_fields WHERE entity_id=?').run(entity.id)
+    for (const field of remote.profileFields ?? []) this.database.db.prepare('INSERT INTO entity_profile_fields(id,entity_id,category,label,value,sort_key,privacy_level,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').run(field.id, entity.id, field.category, field.label, field.value, field.sortKey, field.privacyLevel, field.createdAt, field.updatedAt)
+    const relationshipIds = (this.database.db.prepare('SELECT id FROM entity_relationships WHERE source_entity_id=?').all(entity.id) as Row[]).map((row) => String(row.id))
+    for (const relationshipId of relationshipIds) this.database.db.prepare('DELETE FROM relationship_states WHERE relationship_id=?').run(relationshipId)
+    this.database.db.prepare('DELETE FROM entity_relationships WHERE source_entity_id=?').run(entity.id)
+    for (const relationship of remote.relationships ?? []) {
+      this.database.db.prepare('INSERT INTO entity_relationships(id,project_id,source_entity_id,target_entity_id,relation_type,direction,label,summary,privacy_level,created_at,updated_at,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(relationship.id, entity.projectId, relationship.sourceEntityId, relationship.targetEntityId, relationship.relationType, relationship.direction, relationship.label, relationship.summary, relationship.privacyLevel, relationship.createdAt, relationship.updatedAt, relationship.deletedAt)
+      for (const state of relationship.states) this.database.db.prepare('INSERT INTO relationship_states(id,relationship_id,status_label,note,valid_from_node_id,valid_to_node_id,world_time_from,world_time_to,source_node_id,evidence,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(state.id, relationship.id, state.statusLabel, state.note, state.validFromNodeId, state.validToNodeId, state.worldTimeFrom, state.worldTimeTo, state.sourceNodeId, state.evidence, state.createdAt)
+    }
   }
 
   private bootstrap(payload: SyncPayload, transfer: SyncTransferPackage, recoveryPhrase: string, deviceName: string): SyncApplyResult {
@@ -349,6 +370,7 @@ export class SyncService {
       this.database.db.prepare('INSERT INTO projects(id,title,description,created_at,updated_at,deleted_at) VALUES(?,?,?,?,?,?)').run(project.id, project.title, project.description, project.createdAt, project.updatedAt, project.deletedAt)
       this.ensureMissingNodes(payload)
       for (const scene of payload.scenes) this.insertScene(scene)
+      for (const entity of payload.entities) this.writeEntity(entity, false)
       for (const entity of payload.entities) { this.writeEntity(entity); this.upsertObjectVersion(project.id, 'entity', entity.entity.id, entity.vector, entity.contentHash, entity.deleted) }
       this.writeAttachments(project.id, payload.attachments)
       this.writeMobileInbox(project.id, payload.mobileInbox ?? [])
