@@ -54,6 +54,7 @@ npm run release:macos:preflight
 - [2.3.0 正典关系层 v1 计划](docs/implementation/CANON_RELATION_V1_PLAN.md)
 - [2.3.0 正典关系层 v1 验收报告](归档/2026-08-29/笔不怠正典关系层v1验收报告_v2.3.0.md)
 - [2.3.1 伏笔操作栏 UI 修复验收报告](归档/2026-08-31/笔不怠伏笔操作栏UI修复验收报告_v2.3.1.md)
+- [2.3.2 字体语义与页面层级优化验收报告](归档/2026-08-31/笔不怠字体语义与页面层级优化验收报告_v2.3.2.md)
 - [UI 贡献与新增页面准入规范](docs/implementation/UI_CONTRIBUTION_GUIDE.md)
 - [G4-C UI 内测发行候选计划](docs/implementation/G4C_PLAN.md)
 - [需求追踪矩阵](docs/implementation/TRACEABILITY.md)
