@@ -51,7 +51,7 @@
 .ui-metric-strip { margin-bottom: var(--space-6); display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--space-3); }
 .ui-metric-strip > article { min-width: 0; min-height: 5rem; padding: var(--space-3) var(--space-4); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); display: flex; align-items: center; gap: var(--space-3); background: var(--surface-raised); box-shadow: var(--shadow-raised); }
 .ui-metric-strip > article > div { min-width: 0; display: grid; gap: var(--space-1); }
-.ui-metric-strip strong { overflow: hidden; color: var(--text-primary); font: 650 var(--type-heading-size)/var(--type-heading-line) var(--font-editorial); text-overflow: ellipsis; white-space: nowrap; }
+.ui-metric-strip strong { overflow: hidden; color: var(--text-primary); font: 650 var(--type-heading-size)/var(--type-heading-line) var(--font-ui); font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
 .ui-metric-strip small { color: var(--text-secondary); font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
 .ui-metric-icon { width: 2.25rem; height: 2.25rem; flex: 0 0 auto; border-radius: var(--radius-control); display: grid; place-items: center; color: var(--action-primary); background: var(--action-subtle); }
 
@@ -90,7 +90,7 @@
 .ui-canon-pane { min-height: 0; border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; background: var(--surface-sunken); }
 .ui-canon-pane .ui-pane-body { padding: 0; }
 .ui-canon-pane-header { padding: var(--space-6) var(--space-4) var(--space-3); display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
-.ui-canon-pane-header h1 { margin: var(--space-1) 0 0; font: 650 var(--type-heading-size)/var(--type-heading-line) var(--font-editorial); }
+.ui-canon-pane-header h1 { margin: var(--space-1) 0 0; font: 650 var(--type-heading-size)/var(--type-heading-line) var(--font-ui); }
 .ui-canon-pane .canon-create-action { box-shadow: none; }
 .ui-canon-pane .canon-create-action:hover:not(:disabled) { transform: none; box-shadow: none; }
 .ui-canon-pane .canon-create-action:active:not(:disabled) { transform: scale(.98); box-shadow: inset 0 1px 2px color-mix(in srgb, var(--rice-900) 18%, transparent); }

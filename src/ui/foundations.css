@@ -39,9 +39,11 @@
 .ui-type-display,
 .ui-type-title,
 .ui-type-heading {
-  font-family: var(--font-editorial);
+  font-family: var(--font-ui);
   color: var(--text-primary);
 }
+
+.ui-type-editorial { font-family: var(--font-editorial); }
 
 .ui-type-display { font-size: var(--type-display-size); line-height: var(--type-display-line); }
 .ui-type-title { font-size: var(--type-title-size); line-height: var(--type-title-line); }

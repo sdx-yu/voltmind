@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 
-export function PageHeader({ eyebrow, title, description, actions, backAction }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode; backAction?: ReactNode }) {
-  return <header className="ui-page-header">
+export type PageHeaderTone = 'utility' | 'editorial'
+
+export function PageHeader({ eyebrow, title, description, actions, backAction, tone = 'utility' }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode; backAction?: ReactNode; tone?: PageHeaderTone }) {
+  return <header className={`ui-page-header ui-page-header-${tone}`}>
     <div className="ui-page-header-copy">
       {backAction}
       {eyebrow && <span className="ui-eyebrow">{eyebrow}</span>}

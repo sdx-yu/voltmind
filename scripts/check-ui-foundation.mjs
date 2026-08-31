@@ -22,6 +22,8 @@ const workflowPages = [
 ].map((name) => [name, readFileSync(join(root, 'src/components', name), 'utf8')])
 const templates = readFileSync(join(uiDir, 'Templates.tsx'), 'utf8')
 const templateStyles = readFileSync(join(uiDir, 'templates.css'), 'utf8')
+const componentStyles = readFileSync(join(uiDir, 'components.css'), 'utf8')
+const pageHeader = readFileSync(join(uiDir, 'PageHeader.tsx'), 'utf8')
 const chrome = readFileSync(join(root, 'src/lib/chrome.ts'), 'utf8')
 const errors = []
 
@@ -80,6 +82,12 @@ if (!plot.includes('<BoardTemplate')) errors.push('规划台尚未迁移 Board �
 if (!canon.includes('<LibraryTemplate')) errors.push('正典台尚未迁移 Library 模板')
 if (!editor.includes('<SceneHeader') || !editor.includes('<Toolbar')) errors.push('正文编辑器缺少统一场景头或工具栏')
 if (!templates.includes('function WorkflowSteps') || !templates.includes('function MetricStrip')) errors.push('Workflow 模板缺少步骤或指标语义组件')
+if (!pageHeader.includes("tone = 'utility'") || !pageHeader.includes('ui-page-header-${tone}')) errors.push('PageHeader 必须默认使用工具型字体并支持显式作品语义')
+for (const marker of ['.ui-page-header h1', '.ui-card h3', '.ui-dialog-header h2', '.ui-state h3']) {
+  const rule = componentStyles.slice(componentStyles.indexOf(marker), componentStyles.indexOf('}', componentStyles.indexOf(marker)) + 1)
+  if (!rule.includes('var(--font-ui)')) errors.push(`${marker} 未保持默认无衬线 UI 字体`)
+}
+if (!componentStyles.includes('.ui-page-header-editorial h1')) errors.push('PageHeader 缺少显式作品型标题样式')
 for (const [name, content] of workflowPages) if (!content.includes('<WorkflowTemplate')) errors.push(`${name} 尚未迁移 Workflow 模板`)
 if (!delivery.includes('<WorkflowSteps') || !delivery.includes('<MetricStrip')) errors.push('交付台缺少统一步骤或指标摘要')
 for (const marker of ['.ui-workflow-steps', '.ui-metric-strip', 'prefers-reduced-motion', 'data-density="touch"']) if (!templateStyles.includes(marker)) errors.push(`Workflow 模板样式缺少 ${marker}`)

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Button, ModalDialog, SearchField, SegmentedControl, SelectField, TextField } from './index'
+import { Button, ModalDialog, PageHeader, SearchField, SegmentedControl, SelectField, TextField } from './index'
 
 describe('UI foundation components', () => {
   afterEach(cleanup)
@@ -67,5 +67,12 @@ describe('UI foundation components', () => {
     expect(screen.getByRole('dialog', { name: '项目设置' })).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
     expect(trigger).toHaveFocus()
+  })
+
+  it('uses utility headings by default and makes editorial headings explicit', () => {
+    const { rerender } = render(<PageHeader title="设备接力" />)
+    expect(screen.getByRole('banner')).toHaveClass('ui-page-header-utility')
+    rerender(<PageHeader tone="editorial" title="故事中的事实" />)
+    expect(screen.getByRole('banner')).toHaveClass('ui-page-header-editorial')
   })
 })

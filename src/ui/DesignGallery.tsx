@@ -85,7 +85,7 @@ export function DesignGallery() {
       <GallerySection title="设计变量" description="三层表面、固定字体阶梯和语义状态不依赖具体页面。">
         <div className="ui-gallery-grid">
           <Sample title="表面层级"><div className="ui-gallery-swatches"><span className="ui-gallery-swatch ui-gallery-swatch-canvas">Canvas</span><span className="ui-gallery-swatch ui-gallery-swatch-paper">Paper</span><span className="ui-gallery-swatch ui-gallery-swatch-sunken">Tool</span><span className="ui-gallery-swatch ui-gallery-swatch-selected">Selected</span></div></Sample>
-          <Sample title="字体阶梯"><div className="ui-gallery-type-scale"><p className="ui-type-display">写尽所思</p><p className="ui-type-title">章节与工作台标题</p><p className="ui-type-heading">内容分区标题</p><p className="ui-type-body">常规界面正文保持清楚、安静、可长时间阅读。</p><p className="ui-type-label">字段与操作标签</p><p className="ui-type-caption">辅助信息最小使用 12px</p></div></Sample>
+          <Sample title="字体阶梯"><div className="ui-gallery-type-scale"><p className="ui-type-display ui-type-editorial">写尽所思</p><p className="ui-type-title">工作台与操作标题</p><p className="ui-type-heading">工具内容分区标题</p><p className="ui-type-body">常规界面正文保持清楚、安静、可长时间阅读。</p><p className="ui-type-body ui-type-editorial">作品正文、名称与引用显式使用衬线体。</p><p className="ui-type-label">字段与操作标签</p><p className="ui-type-caption">辅助信息最小使用 12px</p></div></Sample>
         </div>
       </GallerySection>
 
