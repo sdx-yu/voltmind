@@ -562,11 +562,29 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     res.json(ai.saveSettings(input))
   }))
   app.post('/api/ai/test', route(async (req, res) => res.json(await ai.testConnection(req.body?.baseUrl ? z.object({ baseUrl: z.string(), model: z.string(), apiKey: z.string() }).parse(req.body) : undefined))))
+  app.post('/api/ai/warm', route(async (_req, res) => res.json(await ai.warmModel())))
   app.get('/api/projects/:projectId/scenes/:nodeId/context', route(async (req, res) => res.json(ai.buildContext(param(req, 'projectId'), param(req, 'nodeId')))))
   app.post('/api/ai/tasks', route(async (req, res) => {
     const input = z.object({ projectId: z.string(), nodeId: z.string(), taskType: z.enum(['brainstorm', 'continue', 'rewrite', 'cold_read', 'continuity', 'extract_facts']), instruction: z.string().default(''), selectedContextIds: z.array(z.string()) }).parse(req.body)
     res.json(await ai.runTask(input))
   }))
+  app.post('/api/ai/tasks/stream', async (req, res) => {
+    const parsed = z.object({ projectId: z.string(), nodeId: z.string(), taskType: z.enum(['brainstorm', 'continue', 'rewrite', 'cold_read', 'continuity', 'extract_facts']), instruction: z.string().default(''), selectedContextIds: z.array(z.string()) }).safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'AI 任务参数不完整' })
+    res.status(200); res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8'); res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Accel-Buffering', 'no'); res.flushHeaders()
+    const controller = new AbortController(); const abortIfOpen = () => { if (!res.writableEnded) controller.abort() }
+    req.on('aborted', abortIfOpen); res.on('close', abortIfOpen)
+    const send = (event: unknown) => { if (!res.destroyed && !res.writableEnded) res.write(`${JSON.stringify(event)}\n`) }
+    try {
+      const result = await ai.runTaskStreaming(parsed.data, send, controller.signal)
+      send({ type: 'complete', result })
+    } catch (error) {
+      const detail = error as { message?: string; code?: string; retryable?: boolean }
+      send({ type: 'error', error: detail.message ?? 'AI 任务失败', code: detail.code ?? 'provider_error', retryable: detail.retryable ?? true })
+    } finally {
+      req.off('aborted', abortIfOpen); res.off('close', abortIfOpen); if (!res.writableEnded) res.end()
+    }
+  })
 
   app.get('/api/projects/:id/export', route(async (req, res) => {
     const project = database.getProject(param(req, 'id'))

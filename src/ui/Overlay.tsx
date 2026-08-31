@@ -85,9 +85,9 @@ function DropdownItems({ items }: { items: MenuItem[] }) {
   </DropdownPrimitive.Item>)}</>
 }
 
-export function DropdownMenu({ trigger, items, label = '更多操作', align = 'end' }: { trigger: ReactElement; items: MenuItem[]; label?: string; align?: 'start' | 'center' | 'end' }) {
+export function DropdownMenu({ trigger, items, label = '更多操作', align = 'end', onCloseAutoFocus }: { trigger: ReactElement; items: MenuItem[]; label?: string; align?: 'start' | 'center' | 'end'; onCloseAutoFocus?: (event: Event) => void }) {
   return <DropdownPrimitive.Root>
     <DropdownPrimitive.Trigger asChild aria-label={label}>{trigger}</DropdownPrimitive.Trigger>
-    <DropdownPrimitive.Portal><DropdownPrimitive.Content className="ui-menu-content" align={align} sideOffset={6}><DropdownItems items={items} /></DropdownPrimitive.Content></DropdownPrimitive.Portal>
+    <DropdownPrimitive.Portal><DropdownPrimitive.Content className="ui-menu-content" align={align} sideOffset={6} onCloseAutoFocus={onCloseAutoFocus}><DropdownItems items={items} /></DropdownPrimitive.Content></DropdownPrimitive.Portal>
   </DropdownPrimitive.Root>
 }

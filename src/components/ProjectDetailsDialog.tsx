@@ -18,6 +18,7 @@ export function ProjectDetailsDialog({ project, onClose, onSaved, notify }: Prop
   const titleId = useId()
   const trimmedTitle = title.trim()
   const unchanged = trimmedTitle === project.title && description.trim() === project.description
+  const titleError = title.length > 0 && !trimmedTitle ? '书名不能只包含空格' : undefined
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -45,8 +46,8 @@ export function ProjectDetailsDialog({ project, onClose, onSaved, notify }: Prop
 
   return <Modal title="编辑作品信息" onClose={onClose}>
     <form className="form-stack" onSubmit={(event) => void submit(event)}>
-      <TextField id={titleId} label="书名" required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} description="会同步用于书架、工作区标题和导出文件名。" />
-      <TextareaField label="作品简介" rows={4} maxLength={1000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="一句话概括故事，也可以暂时留空" />
+      <TextField id={titleId} label="书名" required showCount maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} error={titleError} description="会同步用于书架、工作区标题和导出文件名。" />
+      <TextareaField label="作品简介" optional showCount rows={4} maxLength={1000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="一句话概括故事" />
       <div className="modal-actions">
         <Button variant="ghost" disabled={busy} onClick={onClose}>取消</Button>
         <Button type="submit" variant="primary" loading={busy} disabled={!trimmedTitle || unchanged}>保存修改</Button>

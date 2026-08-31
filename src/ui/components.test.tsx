@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Button, ModalDialog, PageHeader, SearchField, SegmentedControl, SelectField, TextField } from './index'
+import { Button, ModalDialog, PageHeader, SearchField, SegmentedControl, SelectField, TextareaField, TextField } from './index'
 
 describe('UI foundation components', () => {
   afterEach(cleanup)
@@ -18,6 +18,25 @@ describe('UI foundation components', () => {
     const input = screen.getByRole('textbox', { name: '章节编号' })
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input).toHaveAccessibleDescription('必须大于 0')
+  })
+
+  it('keeps required and optional metadata inline and semantic', () => {
+    const { rerender } = render(<TextField label="书名" required defaultValue="雾港来信" />)
+    const input = screen.getByRole('textbox', { name: '书名' })
+    expect(input).toBeRequired()
+    expect(document.querySelector('.ui-field-required')).toHaveTextContent('*')
+    rerender(<TextareaField label="作品简介" optional defaultValue="" />)
+    expect(screen.getByText('选填')).toBeInTheDocument()
+    expect(screen.queryByText('*')).not.toBeInTheDocument()
+  })
+
+  it('shows a stable character count without replacing help or errors', () => {
+    const { rerender } = render(<TextField label="书名" showCount maxLength={20} value="雾港" onChange={() => undefined} description="用于导出文件名" />)
+    expect(screen.getByText('2 / 20')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '书名' })).toHaveAccessibleDescription('用于导出文件名')
+    rerender(<TextField label="书名" showCount maxLength={20} value=" " onChange={() => undefined} error="书名不能只包含空格" />)
+    expect(screen.getByText('1 / 20')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '书名' })).toHaveAccessibleDescription('书名不能只包含空格')
   })
 
   it('supports arrow-key focus and explicit selection in segmented controls', async () => {

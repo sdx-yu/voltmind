@@ -52,6 +52,7 @@ export function SettingsModal({ projectId, initialTab = 'ai', onClose, onOpenToo
       setTestResult({ status: result.ok ? 'success' : 'error', message: result.message })
       if (!result.ok) return
       await api.saveAiSettings({ baseUrl: OLLAMA_BASE_URL, model, apiKey: '' })
+      window.dispatchEvent(new CustomEvent('bbd:ai-settings-changed', { detail: { provider: 'ollama', model } }))
       notify('success', `已启用本地免费模型 ${model}`)
       onClose()
     } catch (error) {
@@ -64,6 +65,7 @@ export function SettingsModal({ projectId, initialTab = 'ai', onClose, onOpenToo
   async function activateDemo() {
     try {
       await api.saveAiSettings({ baseUrl: 'mock://local', model: '笔不怠演示模型', apiKey: '' })
+      window.dispatchEvent(new CustomEvent('bbd:ai-settings-changed', { detail: { provider: 'demo', model: '笔不怠演示模型' } }))
       notify('success', '已切换到不联网的演示模式')
       onClose()
     } catch (error) {

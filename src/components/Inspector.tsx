@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { diffWords } from 'diff'
-import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LockKeyhole, MessageSquareText, Plus, RotateCcw, Sparkles, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
+import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LoaderCircle, LockKeyhole, MessageSquareText, Plus, RotateCcw, Sparkles, Square, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
 import type { AiContextItem, AiTaskResult, ContinuityIssue, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision } from '../../shared/types'
 import { api } from '../lib/api'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Modal } from './Modal'
-import { IconButton, SelectControl, SelectField, Tabs, TextField } from '../ui'
+import { IconButton, SelectControl, SelectField, Tabs, TextareaField, TextField } from '../ui'
 
 type Tab = 'scene' | 'canon' | 'check' | 'ai'
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -138,13 +138,13 @@ function KnowledgePanel({ projectId, node, entities, notify }: Pick<Props, 'proj
 function CreateKnowledgeModal({ projectId, nodes, onClose, onCreated, notify }: { projectId: string; nodes: ManuscriptNode[]; onClose: () => void; onCreated: () => void; notify: Props['notify'] }) {
   const [title, setTitle] = useState(''); const [detail, setDetail] = useState(''); const [keywords, setKeywords] = useState(''); const [reveal, setReveal] = useState('')
   async function submit() { try { await api.createKnowledge(projectId, { title, detail, keywords: keywords.split(/[、,，\n]/).map((item) => item.trim()).filter(Boolean), firstRevealedNodeId: reveal || null, privacyLevel: 'author_only' }); notify('success', '知识事实已建立，尚未自动授予任何角色'); onCreated() } catch (error) { notify('error', error instanceof Error ? error.message : '知识事实创建失败') } }
-  return <Modal title="建立知识事实" onClose={onClose}><div className="form-stack"><label>秘密或知识名称<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder="例如：凶手是沈砚"/></label><label>作者说明<textarea value={detail} onChange={(event) => setDetail(event.target.value)} placeholder="只对作者可见的事实说明"/></label><label>正文识别词<input value={keywords} onChange={(event) => setKeywords(event.target.value)} placeholder="用顿号分隔，如：沈砚是凶手、真凶沈砚"/></label><SelectField label="首次对读者揭示" value={reveal} onValueChange={setReveal}><option value="">未指定</option>{sceneNodes(nodes).map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectField><p className="form-hint">系统只按这些明确识别词检查，不会让 AI 猜测隐含含义。</p><div className="modal-actions"><button className="button ghost" onClick={onClose}>取消</button><button className="button primary" disabled={!title.trim() || keywords.split(/[、,，\n]/).every((item) => item.trim().length < 2)} onClick={() => void submit()}>建立</button></div></div></Modal>
+  return <Modal title="建立知识事实" onClose={onClose}><div className="form-stack"><TextField label="秘密或知识名称" required autoFocus value={title} onChange={(event) => setTitle(event.target.value)} placeholder="例如：凶手是沈砚"/><TextareaField label="作者说明" optional value={detail} onChange={(event) => setDetail(event.target.value)} placeholder="只对作者可见的事实说明"/><TextField label="正文识别词" required value={keywords} onChange={(event) => setKeywords(event.target.value)} placeholder="用顿号分隔，如：沈砚是凶手、真凶沈砚" description="至少填写一个不少于 2 个字的明确识别词。"/><SelectField label="首次对读者揭示" optional value={reveal} onValueChange={setReveal}><option value="">未指定</option>{sceneNodes(nodes).map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectField><p className="form-hint">系统只按这些明确识别词检查，不会让 AI 猜测隐含含义。</p><div className="modal-actions"><button className="button ghost" onClick={onClose}>取消</button><button className="button primary" disabled={!title.trim() || keywords.split(/[、,，\n]/).every((item) => item.trim().length < 2)} onClick={() => void submit()}>建立</button></div></div></Modal>
 }
 
 function GrantKnowledgeModal({ fact, entity, nodes, onClose, onSaved, notify }: { fact: KnowledgeFact; entity: Entity; nodes: ManuscriptNode[]; onClose: () => void; onSaved: () => void; notify: Props['notify'] }) {
   const current = fact.grants.find((item) => item.entityId === entity.id); const [from, setFrom] = useState(current?.knownFromNodeId ?? ''); const [evidence, setEvidence] = useState(current?.evidence ?? ''); const [note, setNote] = useState(current?.note ?? '')
   async function submit() { try { await api.grantKnowledge(fact.id, entity.id, { knownFromNodeId: from, sourceNodeId: from, evidence, note }); notify('success', `${entity.canonicalName}的知情起点已更新`); onSaved() } catch (error) { notify('error', error instanceof Error ? error.message : '知情范围保存失败') } }
-  return <Modal title={`${entity.canonicalName}何时知道“${fact.title}”`} onClose={onClose}><div className="form-stack"><SelectField label="从场景起知情" value={from} onValueChange={setFrom}><option value="">请选择</option>{sceneNodes(nodes).map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectField><label>知情证据<input value={evidence} onChange={(event) => setEvidence(event.target.value)} placeholder="例如：他亲眼看见密信落款"/></label><label>作者备注<textarea value={note} onChange={(event) => setNote(event.target.value)} /></label><div className="modal-actions"><button className="button ghost" onClick={onClose}>取消</button><button className="button primary" disabled={!from} onClick={() => void submit()}>保存知情起点</button></div></div></Modal>
+  return <Modal title={`${entity.canonicalName}何时知道“${fact.title}”`} onClose={onClose}><div className="form-stack"><SelectField label="从场景起知情" required value={from} onValueChange={setFrom}><option value="">请选择</option>{sceneNodes(nodes).map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectField><TextField label="知情证据" optional value={evidence} onChange={(event) => setEvidence(event.target.value)} placeholder="例如：他亲眼看见密信落款"/><TextareaField label="作者备注" optional value={note} onChange={(event) => setNote(event.target.value)} /><div className="modal-actions"><button className="button ghost" onClick={onClose}>取消</button><button className="button primary" disabled={!from} onClick={() => void submit()}>保存知情起点</button></div></div></Modal>
 }
 
 function knownAt(fact: KnowledgeFact, entityId: string, nodeId: string, nodes: ManuscriptNode[]) { const scenes = sceneNodes(nodes); const order = new Map(scenes.map((scene, index) => [scene.id, index])); const grant = fact.grants.find((item) => item.entityId === entityId); return Boolean(grant && (order.get(grant.knownFromNodeId) ?? Number.MAX_SAFE_INTEGER) <= (order.get(nodeId) ?? -1)) }
@@ -175,29 +175,53 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
   const [instruction, setInstruction] = useState('')
   const [result, setResult] = useState<AiTaskResult | null>(null)
   const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState('正在准备本地任务')
+  const [streamOutput, setStreamOutput] = useState('')
+  const [elapsed, setElapsed] = useState(0)
+  const [runNotice, setRunNotice] = useState('')
   const [accepted, setAccepted] = useState(false)
   const [selectedSegments, setSelectedSegments] = useState<Set<number>>(new Set())
+  const runController = useRef<AbortController | null>(null)
   useEffect(() => {
-    void Promise.all([api.getContext(projectId, node.id), api.getAiSettings()])
-      .then(([nextContext, settings]) => { setContext(nextContext); setProvider({ kind: settings.provider, model: settings.model }) })
+    const load = () => Promise.all([api.getContext(projectId, node.id), api.getAiSettings()])
+      .then(([nextContext, settings]) => { setContext(nextContext); setProvider({ kind: settings.provider, model: settings.model }); if (settings.provider === 'ollama') void api.warmAi().catch(() => {}) })
       .catch((error) => notify('error', error instanceof Error ? error.message : 'AI 配置与上下文加载失败'))
+    const reload = () => { void load() }
+    void load(); window.addEventListener('bbd:ai-settings-changed', reload)
     setResult(null); setAccepted(false)
+    return () => { window.removeEventListener('bbd:ai-settings-changed', reload); runController.current?.abort(); runController.current = null }
   }, [projectId, node.id])
+  useEffect(() => {
+    if (!running) return
+    const started = Date.now(); setElapsed(0)
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1_000)), 1_000)
+    return () => window.clearInterval(timer)
+  }, [running])
   const selected = context.filter((item) => item.selected)
   const tokens = selected.reduce((total, item) => total + item.estimatedTokens, 0)
   const demoMode = provider?.kind !== 'ollama'
   const providerLabel = !provider ? '正在确认模型状态…' : provider.kind === 'ollama' ? `本地免费 · ${provider.model} · API 费用 ¥0` : provider.kind === 'blocked' ? '外网模型已停用 · 零费用保护生效' : '演示模式 · 固定候选 · 不联网'
 
   async function run() {
-    setRunning(true); setResult(null); setAccepted(false)
+    const controller = new AbortController(); runController.current?.abort(); runController.current = controller
+    setRunning(true); setResult(null); setAccepted(false); setStreamOutput(''); setRunNotice(''); setProgress('正在整理本地上下文')
     try {
-      const next = await api.runAiTask({ projectId, nodeId: node.id, taskType: task, instruction, selectedContextIds: selected.map((item) => item.id) })
+      const next = await api.streamAiTask({ projectId, nodeId: node.id, taskType: task, instruction, selectedContextIds: selected.map((item) => item.id) }, (event) => {
+        if (event.type === 'status') { if (event.resetOutput) setStreamOutput(''); setProgress(event.message) }
+        if (event.type === 'delta') setStreamOutput((current) => current + event.delta)
+      }, controller.signal)
       setResult(next)
       setSelectedSegments(new Set(splitSegments(next.output).map((_, index) => index)))
+      setStreamOutput('')
     }
-    catch (error) { notify('error', error instanceof Error ? error.message : 'AI 任务失败') }
-    finally { setRunning(false) }
+    catch (error) {
+      const message = controller.signal.aborted ? '已停止生成，未写入正文' : error instanceof Error ? error.message : 'AI 任务失败'
+      setRunNotice(message); setStreamOutput(''); if (!controller.signal.aborted) notify('error', message)
+    }
+    finally { if (runController.current === controller) runController.current = null; setRunning(false) }
   }
+
+  function stop() { runController.current?.abort(); setProgress('正在停止本地生成') }
 
   function toggle(id: string) { setContext((items) => items.map((item) => item.id === id && item.privacyLevel !== 'local_private' ? { ...item, selected: !item.selected } : item)) }
   async function accept() {
@@ -226,8 +250,10 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
       <p className={`ai-provider-status ${provider?.kind === 'ollama' ? 'is-live' : 'is-demo'}`}>{providerLabel}</p>
       <div className="task-grid">{[['brainstorm','脑暴'],['continue','续写'],['rewrite','改写'],['cold_read','冷读']].map(([value,label]) => <button key={value} className={task === value ? 'active' : ''} onClick={() => setTask(value)}>{label}</button>)}</div>
       <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="补充你的要求（可选）" rows={3} />
-      <button className="button primary full" disabled={running || selected.length === 0 || provider?.kind === 'blocked'} onClick={() => void run()}><WandSparkles size={16} />{running ? '正在思考…' : provider?.kind === 'blocked' ? '请先启用本地模型' : demoMode ? '生成演示候选' : '生成候选'}</button>
+      <button className="button primary full" disabled={running || selected.length === 0 || provider?.kind === 'blocked'} onClick={() => void run()}><WandSparkles size={16} />{running ? '正在生成…' : provider?.kind === 'blocked' ? '请先启用本地模型' : demoMode ? '生成演示候选' : '生成候选'}</button>
     </section>
+    {running && <section className="ai-progress" role="status" aria-live="polite"><header><LoaderCircle className="ui-spin" size={16}/><div><strong>{progress}</strong><span>{elapsed} 秒 · 已生成 {streamOutput.length} 字</span></div><button type="button" onClick={stop}><Square size={12}/>停止</button></header>{streamOutput && <div className="ai-stream-output">{streamOutput}<span className="ai-stream-cursor" /></div>}</section>}
+    {runNotice && !running && <p className="ai-run-notice"><CircleAlert size={14}/>{runNotice}</p>}
     {result && <section className="ai-result"><header><span><Sparkles size={15} />{result.model}</span><small>{result.inputTokens} → {result.outputTokens} token</small></header><DiffText original={task === 'rewrite' ? context.find((item) => item.type === 'scene')?.content ?? '' : ''} value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} />
       <div className="candidate-actions">{accepted ? <><span className="accepted-label"><Check size={14} />所选句子已插入正文，并将记录为 AI 建议后接受</span><button className="reject" onClick={() => void undoAccept()}><RotateCcw size={14}/>撤销接受</button></> : <><button className="reject" onClick={() => void reject()}><X size={14} />丢弃</button><button className="accept" disabled={selectedSegments.size === 0} onClick={() => void accept()}><Check size={14} />接受所选 {selectedSegments.size} 句</button></>}</div>
     </section>}

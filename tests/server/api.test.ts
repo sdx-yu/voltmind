@@ -154,6 +154,33 @@ describe('local API', () => {
     expect(test.body).toMatchObject({ ok: true })
     expect(test.body.message).toContain('不会产生 API 费用')
   })
+
+  it('streams local AI progress and completes the existing provenance task contract', async () => {
+    await request(app).put('/api/ai/settings').set('Cookie', cookie).send({ baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3.5:4b', apiKey: '' }).expect(200)
+    const project = database.createProject('流式生成'); const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    database.saveScene(scene.id, doc('雨落在窗前。'), '雨落在窗前。')
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response([
+      JSON.stringify({ message: { content: '方向一：' }, done: false }),
+      JSON.stringify({ message: { content: '追查旧线索。' }, done: false }),
+      JSON.stringify({ message: { content: '' }, done: true }),
+    ].join('\n') + '\n', { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } }))
+    const context = database.listNodes(project.id).filter((node) => node.type === 'scene').map((node) => node.id)
+    const response = await request(app).post('/api/ai/tasks/stream').set('Cookie', cookie).send({ projectId: project.id, nodeId: scene.id, taskType: 'brainstorm', instruction: '', selectedContextIds: context }).expect(200)
+    const events = response.text.trim().split('\n').map((line) => JSON.parse(line))
+    expect(events).toContainEqual(expect.objectContaining({ type: 'status', stage: 'loading_model' }))
+    expect(events.filter((event) => event.type === 'delta').map((event) => event.delta).join('')).toBe('方向一：追查旧线索。')
+    expect(events.at(-1)).toMatchObject({ type: 'complete', result: { model: 'qwen3.5:4b', output: '方向一：追查旧线索。' } })
+    expect(database.db.prepare('SELECT status FROM ai_tasks ORDER BY created_at DESC LIMIT 1').get()).toMatchObject({ status: 'completed' })
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
+    expect(requestBody).toMatchObject({ stream: true, think: false, keep_alive: '10m', options: { num_ctx: 6144, num_predict: 320 } })
+  })
+
+  it('keeps an empty current scene selectable for local brainstorming', async () => {
+    await request(app).put('/api/ai/settings').set('Cookie', cookie).send({ baseUrl: 'http://127.0.0.1:11434/v1', model: 'qwen3.5:4b', apiKey: '' }).expect(200)
+    const project = database.createProject('空白开篇'); const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    const context = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/context`).set('Cookie', cookie).expect(200)
+    expect(context.body).toContainEqual(expect.objectContaining({ id: scene.id, type: 'scene', selected: true, content: '（当前场景暂无正文）' }))
+  })
 })
 
 function doc(text: string) { return { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] } }

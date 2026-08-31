@@ -23,6 +23,7 @@ const workflowPages = [
 const templates = readFileSync(join(uiDir, 'Templates.tsx'), 'utf8')
 const templateStyles = readFileSync(join(uiDir, 'templates.css'), 'utf8')
 const componentStyles = readFileSync(join(uiDir, 'components.css'), 'utf8')
+const field = readFileSync(join(uiDir, 'Field.tsx'), 'utf8')
 const pageHeader = readFileSync(join(uiDir, 'PageHeader.tsx'), 'utf8')
 const chrome = readFileSync(join(root, 'src/lib/chrome.ts'), 'utf8')
 const errors = []
@@ -88,6 +89,9 @@ for (const marker of ['.ui-page-header h1', '.ui-card h3', '.ui-dialog-header h2
   if (!rule.includes('var(--font-ui)')) errors.push(`${marker} 未保持默认无衬线 UI 字体`)
 }
 if (!componentStyles.includes('.ui-page-header-editorial h1')) errors.push('PageHeader 缺少显式作品型标题样式')
+if (/\.form-stack\s+label\s*,/.test(legacy)) errors.push('旧版 form-stack 标签选择器会污染统一字段布局；必须限制为直属标签')
+for (const marker of ['.ui-field-required', '.ui-field-optional', '.ui-field-meta', '.ui-field-count']) if (!componentStyles.includes(marker)) errors.push(`统一字段样式缺少 ${marker}`)
+for (const marker of ['optional?: boolean', 'showCount?: boolean', 'aria-required={required || undefined}']) if (!field.includes(marker)) errors.push(`统一字段语义缺少 ${marker}`)
 for (const [name, content] of workflowPages) if (!content.includes('<WorkflowTemplate')) errors.push(`${name} 尚未迁移 Workflow 模板`)
 if (!delivery.includes('<WorkflowSteps') || !delivery.includes('<MetricStrip')) errors.push('交付台缺少统一步骤或指标摘要')
 for (const marker of ['.ui-workflow-steps', '.ui-metric-strip', 'prefers-reduced-motion', 'data-density="touch"']) if (!templateStyles.includes(marker)) errors.push(`Workflow 模板样式缺少 ${marker}`)
@@ -98,6 +102,13 @@ if (researchPage.includes('<strong>R1') || cohortPage.includes('<strong>R1') || 
 
 const nativeSelectFiles = readdirSync(componentsDir).filter((file) => file.endsWith('.tsx') && readFileSync(join(componentsDir, file), 'utf8').includes('<select'))
 if (nativeSelectFiles.length) errors.push(`业务组件仍包含原生选择框：${nativeSelectFiles.join('、')}`)
+const rawRequiredFields = readdirSync(componentsDir).filter((file) => file.endsWith('.tsx')).flatMap((file) => {
+  const content = readFileSync(join(componentsDir, file), 'utf8')
+  return [...content.matchAll(/<(?:input|textarea|SelectControl)\b[^>]*\brequired\b[^>]*>/g)]
+    .filter((match) => !match[0].includes('aria-label="镜头目的"'))
+    .map(() => file)
+})
+if (rawRequiredFields.length) errors.push(`必填业务字段必须使用统一 Field 组件：${[...new Set(rawRequiredFields)].join('、')}`)
 if (!canon.includes('<SearchField') || canon.includes('className="canon-search"')) errors.push('正典搜索仍未收敛为单层 SearchField')
 
 const summary = {
@@ -114,6 +125,7 @@ const summary = {
   legacyUniqueColors: legacyColors.size,
   legacyImportant,
   nativeSelects: nativeSelectFiles.length,
+  rawRequiredFields: rawRequiredFields.length,
 }
 
 if (errors.length) {

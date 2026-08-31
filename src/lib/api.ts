@@ -1,5 +1,6 @@
 import type {
   AiContextItem,
+  AiStreamEvent,
   AiTaskResult,
   CandidateChange,
   ContinuityIssue,
@@ -90,6 +91,8 @@ import type {
 
 let sessionReady: Promise<void> | null = null
 
+type AiTaskInput = { projectId: string; nodeId: string; taskType: string; instruction: string; selectedContextIds: string[] }
+
 async function ensureSession() {
   if (!sessionReady) {
     sessionReady = fetch('/api/session', { method: 'POST', credentials: 'include' }).then((response) => {
@@ -121,6 +124,35 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   const contentType = response.headers.get('content-type') ?? ''
   return (contentType.includes('application/json') ? response.json() : response.text()) as Promise<T>
+}
+
+async function streamAiTask(input: AiTaskInput, onEvent: (event: AiStreamEvent) => void, signal?: AbortSignal): Promise<AiTaskResult> {
+  await ensureSession()
+  const start = () => fetch('/api/ai/tasks/stream', {
+    method: 'POST', credentials: 'include', signal,
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  let response = await start()
+  if (response.status === 401) { sessionReady = null; await ensureSession(); response = await start() }
+  if (!response.ok || !response.body) {
+    const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` })) as { error?: string }
+    throw new Error(error.error || `请求失败：HTTP ${response.status}`)
+  }
+  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''; let result: AiTaskResult | null = null
+  while (true) {
+    const chunk = await reader.read(); buffer += decoder.decode(chunk.value, { stream: !chunk.done })
+    const lines = buffer.split('\n'); buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line.trim()) continue
+      const event = JSON.parse(line) as AiStreamEvent
+      onEvent(event)
+      if (event.type === 'error') throw new Error(event.error)
+      if (event.type === 'complete') result = event.result
+    }
+    if (chunk.done) break
+  }
+  if (!result) throw new Error('本地模型连接提前结束，请重试')
+  return result
 }
 
 export const api = {
@@ -217,7 +249,9 @@ export const api = {
   saveAiSettings: (settings: { baseUrl: string; model: string; apiKey: string }) => request<{ baseUrl: string; model: string; hasApiKey: boolean; credentialStore: 'system_keychain' | 'protected_file'; provider: 'demo' | 'ollama' | 'blocked'; costPolicy: 'local_only' }>('/api/ai/settings', { method: 'PUT', body: JSON.stringify(settings) }),
   testAi: (settings?: { baseUrl: string; model: string; apiKey: string }) => request<{ ok: boolean; message: string }>('/api/ai/test', { method: 'POST', body: JSON.stringify(settings ?? {}) }),
   getContext: (projectId: string, sceneId: string) => request<AiContextItem[]>(`/api/projects/${projectId}/scenes/${sceneId}/context`),
-  runAiTask: (input: { projectId: string; nodeId: string; taskType: string; instruction: string; selectedContextIds: string[] }) => request<AiTaskResult>('/api/ai/tasks', { method: 'POST', body: JSON.stringify(input) }),
+  runAiTask: (input: AiTaskInput) => request<AiTaskResult>('/api/ai/tasks', { method: 'POST', body: JSON.stringify(input) }),
+  streamAiTask,
+  warmAi: () => request<{ ok: boolean; message: string }>('/api/ai/warm', { method: 'POST', body: '{}' }),
   listProvenance: (projectId: string, nodeId?: string) => request<ProvenanceEvent[]>(`/api/projects/${projectId}/provenance${nodeId ? `?nodeId=${encodeURIComponent(nodeId)}` : ''}`),
   listProvenanceExports: (projectId: string) => request<ProvenanceExportRecord[]>(`/api/projects/${projectId}/provenance/exports`),
   recordAiDecision: (projectId: string, nodeId: string, taskId: string, decision: 'accepted' | 'rejected' | 'undone') => request<ProvenanceEvent>(`/api/projects/${projectId}/provenance/ai-decisions`, { method: 'POST', body: JSON.stringify({ nodeId, taskId, decision }) }),

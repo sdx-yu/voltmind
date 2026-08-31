@@ -1256,3 +1256,11 @@ export interface AiTaskResult {
   estimatedCost: number | null
   candidateChanges?: CandidateChange[]
 }
+
+export type AiStreamStage = 'preparing' | 'loading_model' | 'generating' | 'retrying'
+
+export type AiStreamEvent =
+  | { type: 'status'; stage: AiStreamStage; message: string; resetOutput?: boolean }
+  | { type: 'delta'; delta: string }
+  | { type: 'complete'; result: AiTaskResult }
+  | { type: 'error'; error: string; code: 'cancelled' | 'first_token_timeout' | 'idle_timeout' | 'total_timeout' | 'provider_error'; retryable: boolean }

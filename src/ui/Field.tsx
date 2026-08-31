@@ -7,15 +7,24 @@ interface FieldFrameProps {
   description?: string
   error?: string
   required?: boolean
+  optional?: boolean
+  disabled?: boolean
+  count?: string
   inputId: string
   children: ReactNode
 }
 
-function FieldFrame({ label, description, error, required, inputId, children }: FieldFrameProps) {
-  return <div className={`ui-field${error ? ' has-error' : ''}`}>
-    <label className="ui-field-label" htmlFor={inputId}>{label}{required && <span aria-hidden="true"> *</span>}</label>
+function FieldFrame({ label, description, error, required, optional, disabled, count, inputId, children }: FieldFrameProps) {
+  return <div className={`ui-field${error ? ' has-error' : ''}${disabled ? ' is-disabled' : ''}`}>
+    <label className="ui-field-label" htmlFor={inputId}>
+      <span className="ui-field-label-text">{label}{required && <span className="ui-field-required" aria-hidden="true">*</span>}</span>
+      {optional && !required && <span className="ui-field-optional">选填</span>}
+    </label>
     {children}
-    {(error || description) && <p id={`${inputId}-message`} className="ui-field-message">{error ?? description}</p>}
+    {(error || description || count) && <div className="ui-field-meta">
+      {(error || description) ? <p id={`${inputId}-message`} className="ui-field-message" aria-live={error ? 'polite' : undefined}>{error ?? description}</p> : <span />}
+      {count && <span className="ui-field-count" aria-hidden="true">{count}</span>}
+    </div>}
   </div>
 }
 
@@ -23,14 +32,17 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   label: string
   description?: string
   error?: string
+  optional?: boolean
+  showCount?: boolean
 }
 
-export function TextField({ label, description, error, id, required, className = '', ...props }: TextFieldProps) {
+export function TextField({ label, description, error, optional, showCount, id, required, disabled, maxLength, className = '', ...props }: TextFieldProps) {
   const generatedId = useId()
   const inputId = id ?? generatedId
   const messageId = error || description ? `${inputId}-message` : undefined
-  return <FieldFrame label={label} description={description} error={error} required={required} inputId={inputId}>
-    <input id={inputId} className={`ui-input ${className}`.trim()} required={required} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props} />
+  const count = showCount && maxLength ? `${fieldValueLength(props.value, props.defaultValue)} / ${maxLength}` : undefined
+  return <FieldFrame label={label} description={description} error={error} required={required} optional={optional} disabled={disabled} count={count} inputId={inputId}>
+    <input id={inputId} className={`ui-input ${className}`.trim()} required={required} disabled={disabled} maxLength={maxLength} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props} />
   </FieldFrame>
 }
 
@@ -38,14 +50,17 @@ export interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaE
   label: string
   description?: string
   error?: string
+  optional?: boolean
+  showCount?: boolean
 }
 
-export function TextareaField({ label, description, error, id, required, className = '', ...props }: TextareaFieldProps) {
+export function TextareaField({ label, description, error, optional, showCount, id, required, disabled, maxLength, className = '', ...props }: TextareaFieldProps) {
   const generatedId = useId()
   const inputId = id ?? generatedId
   const messageId = error || description ? `${inputId}-message` : undefined
-  return <FieldFrame label={label} description={description} error={error} required={required} inputId={inputId}>
-    <textarea id={inputId} className={`ui-textarea ${className}`.trim()} required={required} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props} />
+  const count = showCount && maxLength ? `${fieldValueLength(props.value, props.defaultValue)} / ${maxLength}` : undefined
+  return <FieldFrame label={label} description={description} error={error} required={required} optional={optional} disabled={disabled} count={count} inputId={inputId}>
+    <textarea id={inputId} className={`ui-textarea ${className}`.trim()} required={required} disabled={disabled} maxLength={maxLength} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props} />
   </FieldFrame>
 }
 
@@ -71,6 +86,7 @@ interface SelectControlProps {
   id?: string
   className?: string
   'aria-label'?: string
+  'aria-required'?: boolean
   'aria-invalid'?: boolean
   'aria-describedby'?: string
   children: ReactNode
@@ -109,14 +125,15 @@ export interface SelectFieldProps extends SelectControlProps {
   label: string
   description?: string
   error?: string
+  optional?: boolean
 }
 
-export function SelectField({ label, description, error, id, required, className = '', children, ...props }: SelectFieldProps) {
+export function SelectField({ label, description, error, optional, id, required, disabled, className = '', children, ...props }: SelectFieldProps) {
   const generatedId = useId()
   const inputId = id ?? generatedId
   const messageId = error || description ? `${inputId}-message` : undefined
-  return <FieldFrame label={label} description={description} error={error} required={required} inputId={inputId}>
-    <SelectControl id={inputId} className={className} required={required} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props}>{children}</SelectControl>
+  return <FieldFrame label={label} description={description} error={error} required={required} optional={optional} disabled={disabled} inputId={inputId}>
+    <SelectControl id={inputId} className={className} required={required} disabled={disabled} aria-required={required || undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props}>{children}</SelectControl>
   </FieldFrame>
 }
 
@@ -126,18 +143,19 @@ export interface SearchFieldProps extends Omit<InputHTMLAttributes<HTMLInputElem
   onValueChange: (value: string) => void
   description?: string
   error?: string
+  optional?: boolean
 }
 
-export function SearchField({ label, value, onValueChange, description, error, id, required, className = '', ...props }: SearchFieldProps) {
+export function SearchField({ label, value, onValueChange, description, error, optional, id, required, disabled, className = '', ...props }: SearchFieldProps) {
   const generatedId = useId()
   const inputId = id ?? generatedId
   const messageId = error || description ? `${inputId}-message` : undefined
   const onChange: ChangeEventHandler<HTMLInputElement> = (event) => onValueChange(event.target.value)
-  return <FieldFrame label={label} description={description} error={error} required={required} inputId={inputId}>
+  return <FieldFrame label={label} description={description} error={error} required={required} optional={optional} disabled={disabled} inputId={inputId}>
     <div className={`ui-search-control${error ? ' has-error' : ''}`}>
       <Search className="ui-search-icon" size={16} aria-hidden="true" />
-      <input id={inputId} className={`ui-search-input ${className}`.trim()} type="search" value={value} onChange={onChange} required={required} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props} />
-      {value && <button className="ui-search-clear" type="button" aria-label="清空搜索" onClick={() => onValueChange('')}><X size={15} /></button>}
+      <input id={inputId} className={`ui-search-input ${className}`.trim()} type="search" value={value} onChange={onChange} required={required} disabled={disabled} aria-invalid={Boolean(error) || undefined} aria-describedby={messageId} {...props} />
+      {value && <button className="ui-search-clear" type="button" aria-label="清空搜索" disabled={disabled} onClick={() => onValueChange('')}><X size={15} /></button>}
     </div>
   </FieldFrame>
 }
@@ -182,3 +200,7 @@ function collectOptions(children: ReactNode): SelectOption[] {
 
 function encodeValue(value: string) { return value === '' ? EMPTY_VALUE : value }
 function decodeValue(value: string) { return value === EMPTY_VALUE ? '' : value }
+
+function fieldValueLength(value: unknown, defaultValue: unknown) {
+  return String(value ?? defaultValue ?? '').length
+}
