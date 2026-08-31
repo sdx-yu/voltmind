@@ -1,16 +1,17 @@
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Project } from '../../shared/types'
 import { Bookshelf } from './Bookshelf'
 
-vi.mock('../lib/api', () => ({ api: {} }))
+const mocks = vi.hoisted(() => ({ updateProject: vi.fn() }))
+vi.mock('../lib/api', () => ({ api: mocks }))
 
 const project: Project = { id: 'p', title: '雾港', description: '海雾里的旧案', createdAt: '', updatedAt: '2026-08-28T00:00:00.000Z', deletedAt: null }
 
 describe('Bookshelf shell', () => {
-  afterEach(cleanup)
+  afterEach(() => { cleanup(); vi.clearAllMocks() })
 
   it('keeps only the three core actions and a more menu visible', () => {
     renderBookshelf()
@@ -48,8 +49,27 @@ describe('Bookshelf shell', () => {
     act(() => window.dispatchEvent(new CustomEvent('bbd:command', { detail: 'view-write' })))
     expect(notify).toHaveBeenCalledWith('error', '这个命令需要先打开一个项目')
   })
+
+  it('edits the novel title and description from the project card menu', async () => {
+    const updated = { ...project, title: '雾港来信', description: '一封迟到十年的信' }
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+    mocks.updateProject.mockResolvedValue(updated)
+    renderBookshelf(vi.fn(), vi.fn(), onRefresh)
+
+    await userEvent.click(screen.getByRole('button', { name: '雾港更多操作' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '编辑作品信息' }))
+    const title = screen.getByRole('textbox', { name: /书名/ })
+    const description = screen.getByRole('textbox', { name: /作品简介/ })
+    await waitFor(() => expect(title).toHaveFocus())
+    await userEvent.clear(title); await userEvent.type(title, '雾港来信')
+    await userEvent.clear(description); await userEvent.type(description, '一封迟到十年的信')
+    await userEvent.click(screen.getByRole('button', { name: '保存修改' }))
+
+    await waitFor(() => expect(mocks.updateProject).toHaveBeenCalledWith('p', { title: '雾港来信', description: '一封迟到十年的信' }))
+    expect(onRefresh).toHaveBeenCalled()
+  })
 })
 
-function renderBookshelf(onOpen = vi.fn(), notify = vi.fn()) {
-  return render(<Bookshelf projects={[project]} loading={false} onOpen={onOpen} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenReview={vi.fn()} onOpenResearch={vi.fn()} notify={notify} />)
+function renderBookshelf(onOpen = vi.fn(), notify = vi.fn(), onRefresh = vi.fn().mockResolvedValue(undefined)) {
+  return render(<Bookshelf projects={[project]} loading={false} onOpen={onOpen} onRefresh={onRefresh} onOpenReview={vi.fn()} onOpenResearch={vi.fn()} notify={notify} />)
 }

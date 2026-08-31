@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   listEntities: vi.fn(),
   getScene: vi.fn(),
   trashNode: vi.fn(),
+  updateProject: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -107,6 +108,22 @@ describe('Workspace chrome', () => {
 
     await userEvent.click(screen.getByRole('button', { name: '打开检查器' }))
     expect(screen.getByRole('dialog', { name: '场景检查器' })).toBeInTheDocument()
+  })
+
+  it('edits project details from the workspace title and reports the updated project', async () => {
+    const updated = { ...project, title: '雾港来信', description: '一封迟到十年的信' }
+    const onProjectUpdated = vi.fn()
+    mocks.updateProject.mockResolvedValue(updated)
+    render(<Workspace project={project} onProjectUpdated={onProjectUpdated} onBack={vi.fn()} notify={vi.fn()} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: '编辑作品信息' }))
+    const title = screen.getByRole('textbox', { name: /书名/ })
+    const description = screen.getByRole('textbox', { name: /作品简介/ })
+    await userEvent.clear(title); await userEvent.type(title, '雾港来信')
+    await userEvent.clear(description); await userEvent.type(description, '一封迟到十年的信')
+    await userEvent.click(screen.getByRole('button', { name: '保存修改' }))
+
+    await waitFor(() => expect(onProjectUpdated).toHaveBeenCalledWith(updated))
   })
 })
 

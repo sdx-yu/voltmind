@@ -28,6 +28,13 @@ describe('local API', () => {
     await request(app).post('/api/session').set('Origin', 'https://malicious.example').expect(403)
   })
 
+  it('renames a novel and its manuscript root through the project API', async () => {
+    const project = (await request(app).post('/api/projects').set('Cookie', cookie).send({ title: '旧书名' }).expect(201)).body
+    const updated = await request(app).patch(`/api/projects/${project.id}`).set('Cookie', cookie).send({ title: '新书名', description: '新的简介' }).expect(200)
+    expect(updated.body).toMatchObject({ title: '新书名', description: '新的简介' })
+    expect(database.listNodes(project.id).find((node) => node.type === 'book')?.title).toBe('新书名')
+  })
+
   it('runs project, scene, search and mock AI flow', async () => {
     const project = (await request(app).post('/api/projects').set('Cookie', cookie).send({ title: '验收项目' }).expect(201)).body
     const nodes = (await request(app).get(`/api/projects/${project.id}/tree`).set('Cookie', cookie).expect(200)).body

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { ArrowLeft, BookOpenText, Boxes, CloudCog, Ellipsis, Feather, FilePenLine, Fingerprint, GalleryHorizontalEnd, MessageSquareText, PackageOpen, PanelLeft, PanelRight, RotateCcw, Search, Settings, Share2, TimerReset, Trash2, Volume2, Waypoints } from 'lucide-react'
+import { ArrowLeft, BookOpenText, Boxes, CloudCog, Ellipsis, Feather, FilePenLine, Fingerprint, GalleryHorizontalEnd, MessageSquareText, PackageOpen, PanelLeft, PanelRight, PencilLine, RotateCcw, Search, Settings, Share2, TimerReset, Trash2, Volume2, Waypoints } from 'lucide-react'
 import type { Entity, ManuscriptNode, Project, SceneDocument } from '../../shared/types'
 import { readChrome, writeChrome, type ChromeView } from '../lib/chrome'
 import { isComposingKey, isEditableTarget, matchMod, onCommand, type AppCommand } from '../lib/commands'
@@ -11,6 +11,7 @@ import { Inspector } from './Inspector'
 import { ManuscriptTree } from './ManuscriptTree'
 import { Modal } from './Modal'
 import { PlotWorkspace } from './PlotWorkspace'
+import { ProjectDetailsDialog } from './ProjectDetailsDialog'
 import { ProvenanceWorkspace } from './ProvenanceWorkspace'
 import { RevisionWorkspace } from './RevisionWorkspace'
 import { ReadAloudPanel } from './ReadAloudPanel'
@@ -27,7 +28,7 @@ import { CommandPalette, Drawer, DropdownMenu, EditorTemplate, IconButton, Selec
 
 type PrimaryMode = 'write' | 'plan' | 'canon' | 'revision' | 'deliver'
 
-export function Workspace({ project, initialView, onBack, notify }: { project: Project; initialView?: 'write' | 'template'; onBack: () => void; notify: (type: 'success' | 'error', message: string) => void }) {
+export function Workspace({ project, initialView, onProjectUpdated, onBack, notify }: { project: Project; initialView?: 'write' | 'template'; onProjectUpdated?: (project: Project) => void; onBack: () => void; notify: (type: 'success' | 'error', message: string) => void }) {
   const storedChrome = useMemo(() => readChrome(), [])
   const [view, setView] = useState<ChromeView>(initialView ?? storedChrome.view)
   const [returnView, setReturnView] = useState<ChromeView>(storedChrome.view === 'sync' ? 'write' : storedChrome.view)
@@ -47,6 +48,7 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
   const [searching, setSearching] = useState(false)
   const [replaceMode, setReplaceMode] = useState(false)
   const [settings, setSettings] = useState(false)
+  const [editingProject, setEditingProject] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'ai' | 'goals' | 'display' | 'help'>('ai')
   const [loading, setLoading] = useState(true)
@@ -245,7 +247,7 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
       <div className="workspace-title">
         <IconButton label="返回书架" onClick={onBack}><ArrowLeft size={18} /></IconButton>
         <span className="mini-brand">笔</span>
-        <div><strong>{project.title}</strong><small>已保存在本机</small></div>
+        <button className="workspace-project-edit" onClick={() => setEditingProject(true)} aria-label="编辑作品信息" title="编辑书名和简介"><span><strong>{project.title}</strong><small>已保存在本机</small></span><PencilLine size={13} aria-hidden="true" /></button>
       </div>
       <nav className="main-nav" aria-label="主要工作台">
         <button aria-label="写作" className={activeMode === 'write' ? 'active' : ''} onClick={() => navigate('write')}><Feather size={16} /><span className="nav-label">写作</span></button>
@@ -304,6 +306,7 @@ export function Workspace({ project, initialView, onBack, notify }: { project: P
     {view === 'write' && <SprintWorkspace project={project} nodes={nodes} activeSceneId={selectedId} compact onOpenScene={selectScene} onOpenDetails={() => { setFocusMode(false); navigate('sprint') }} notify={notify} />}
     {searching && <SearchModal projectId={project.id} initialMode={replaceMode ? 'replace' : 'search'} onClose={() => setSearching(false)} onSelect={selectScene} onChanged={async () => { await Promise.all([refreshTree(), refreshEntities()]); setEditorEpoch((value) => value + 1) }} notify={notify} />}
     {settings && <SettingsModal projectId={project.id} initialTab={settingsTab} onClose={() => setSettings(false)} onOpenTool={(tool) => { setSettings(false); navigate(tool) }} notify={notify} />}
+    {editingProject && <ProjectDetailsDialog project={project} onClose={() => setEditingProject(false)} onSaved={(updated) => onProjectUpdated?.(updated)} notify={notify} />}
     <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={paletteItems} title="项目命令" placeholder="搜索模式、工具或动作…" />
     {trashOpen && <Modal title="项目回收站" onClose={() => setTrashOpen(false)} wide><div className="trash-groups"><section><h3>书稿结构</h3>{deletedNodes.length ? <div className="trash-list">{deletedNodes.filter((node) => !node.parentId || !deletedNodes.some((parent) => parent.id === node.parentId)).map((node) => <div key={node.id}><span><strong>{node.title}</strong><small>{node.type}</small></span><SelectControl aria-label={`${node.title} 恢复位置`} value={restoreParents[node.id] ?? node.parentId ?? ''} onChange={(event) => setRestoreParents((current) => ({ ...current, [node.id]: event.target.value }))}>{restoreTargets(node, nodes).map((target) => <option key={target.id} value={target.id}>{target.title}</option>)}</SelectControl><button className="button secondary compact" onClick={() => void restoreNode(node)}><RotateCcw size={14} />恢复</button></div>)}</div> : <p className="muted">没有已删除的章节或场景。</p>}</section><section><h3>正典项</h3>{deletedEntities.length ? <div className="trash-list">{deletedEntities.map((entity) => <div key={entity.id}><span><strong>{entity.canonicalName}</strong><small>{entity.type}</small></span><button className="button secondary compact" onClick={() => void restoreEntity(entity.id)}><RotateCcw size={14} />恢复</button></div>)}</div> : <p className="muted">没有已删除的正典项。</p>}</section></div></Modal>}
     {pendingTrash && <ConfirmDialog title="移到回收站" message={`把“${pendingTrash.title}”移入回收站？之后仍可恢复。`} confirmLabel="移到回收站" danger busy={sheetBusy} onConfirm={() => void confirmTrash()} onClose={() => setPendingTrash(null)} />}

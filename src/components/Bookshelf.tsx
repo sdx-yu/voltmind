@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, FileArchive, FileKey2, FileText, FileUp, FlaskConical, LayoutTemplate, MessageSquareText, MoreHorizontal, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { BookOpen, FileArchive, FileKey2, FileText, FileUp, FlaskConical, LayoutTemplate, MessageSquareText, MoreHorizontal, PencilLine, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 import type { Project } from '../../shared/types'
 import { api } from '../lib/api'
 import { onCommand } from '../lib/commands'
@@ -7,6 +7,7 @@ import { formatRelativeTime, readWritingFile, splitChapters, textToTiptap } from
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { Modal } from './Modal'
+import { ProjectDetailsDialog } from './ProjectDetailsDialog'
 import { Button, CommandPalette, DropdownMenu, IconButton, type CommandItem } from '../ui'
 
 interface Props {
@@ -32,6 +33,7 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
   const [syncPhrase, setSyncPhrase] = useState('')
   const [syncDeviceName, setSyncDeviceName] = useState('我的电脑')
   const [pendingTrash, setPendingTrash] = useState<Project | null>(null)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [pendingSyncApply, setPendingSyncApply] = useState<{ projectTitle: string; senderDeviceName: string } | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
   const backupRef = useRef<HTMLInputElement>(null)
@@ -183,7 +185,10 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
         : <div className="project-grid">{projects.map((project, index) => <article key={project.id} className="project-card"><button className="project-open" onClick={() => onOpen(project)}>
             <div className={`cover cover-${index % 5}`}><BookOpen size={29} /><span>{project.title.slice(0, 1)}</span></div>
             <div className="project-card-body"><h3>{project.title}</h3><p>{project.description || '一切还在发生。'}</p><footer><span>{formatRelativeTime(project.updatedAt)}</span><span className="local-badge"><FileArchive size={13} />本机</span></footer></div>
-          </button><button className="project-trash" onClick={() => setPendingTrash(project)} aria-label={`删除 ${project.title}`}><Trash2 size={15} /></button></article>)}</div>}
+          </button><span className="project-actions"><DropdownMenu label={`${project.title}更多操作`} trigger={<IconButton size="small" label={`${project.title}更多操作`}><MoreHorizontal size={16} /></IconButton>} items={[
+            { id: 'edit', label: '编辑作品信息', icon: <PencilLine size={15} />, onSelect: () => setEditingProject(project) },
+            { id: 'trash', label: '移到回收站', icon: <Trash2 size={15} />, danger: true, onSelect: () => setPendingTrash(project) },
+          ]} /></span></article>)}</div>}
     </section>
     <footer className="bookshelf-footer"><strong>笔耕不怠，写尽所思。</strong><span>本地优先 · 自动留痕 · AI 不越权</span></footer>
 
@@ -200,6 +205,7 @@ export function Bookshelf({ projects, loading, onOpen, onRefresh, onOpenReview, 
     {syncRestore && <Modal title="从加密接力包恢复" onClose={() => setSyncRestore(null)}><div className="form-stack"><p className="form-hint">{syncRestore.fileName} 将先在本机完成分块哈希、密钥验证和解密预检；验证通过后才创建项目。</p><label>这台设备的名称<input value={syncDeviceName} maxLength={80} onChange={(event) => setSyncDeviceName(event.target.value)}/></label><label>恢复短语<input type="password" autoComplete="off" value={syncPhrase} onChange={(event) => setSyncPhrase(event.target.value)} placeholder="不会保存到数据库"/></label><div className="modal-actions"><button className="button ghost" onClick={() => setSyncRestore(null)}>取消</button><button className="button primary" disabled={busy || syncPhrase.length < 20 || !syncDeviceName.trim()} onClick={() => void inspectSyncPackage()}>{busy ? '正在校验…' : '校验并恢复'}</button></div></div></Modal>}
     {pendingSyncApply && <ConfirmDialog title="恢复为本地副本" message={`接力包校验通过：${pendingSyncApply.projectTitle}，来自 ${pendingSyncApply.senderDeviceName}。恢复为这台设备的本地副本？`} confirmLabel="恢复为本地副本" busy={busy} onConfirm={() => void applySyncPackage()} onClose={() => setPendingSyncApply(null)} />}
     {pendingTrash && <ConfirmDialog title="移到回收站" message={`把“${pendingTrash.title}”移入回收站？`} confirmLabel="移到回收站" danger onConfirm={() => void trashProject()} onClose={() => setPendingTrash(null)} />}
+    {editingProject && <ProjectDetailsDialog project={editingProject} onClose={() => setEditingProject(null)} onSaved={async () => onRefresh()} notify={notify} />}
     {trashOpen && <Modal title="项目回收站" onClose={() => setTrashOpen(false)}>{trashed.length ? <div className="trash-list">{trashed.map((project) => <div key={project.id}><span><strong>{project.title}</strong><small>可恢复到书架</small></span><button className="button secondary compact" onClick={() => void restoreProject(project)}>恢复</button></div>)}</div> : <p className="muted">回收站是空的。</p>}</Modal>}
     <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={commandItems} title="书架命令" placeholder="搜索项目或功能…" />
   </main>

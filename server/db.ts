@@ -1174,13 +1174,16 @@ export class AppDatabase {
     const current = this.getProject(id)
     if (!current) return null
     const updatedAt = nowIso()
-    this.db.prepare('UPDATE projects SET title=?,description=?,deleted_at=?,updated_at=? WHERE id=?').run(
-      patch.title ?? current.title,
-      patch.description ?? current.description,
-      patch.deletedAt === undefined ? current.deletedAt : patch.deletedAt,
-      updatedAt,
-      id,
-    )
+    this.transaction(() => {
+      this.db.prepare('UPDATE projects SET title=?,description=?,deleted_at=?,updated_at=? WHERE id=?').run(
+        patch.title ?? current.title,
+        patch.description ?? current.description,
+        patch.deletedAt === undefined ? current.deletedAt : patch.deletedAt,
+        updatedAt,
+        id,
+      )
+      if (patch.title !== undefined) this.db.prepare("UPDATE manuscript_nodes SET title=? WHERE project_id=? AND type='book'").run(patch.title, id)
+    })
     return this.getProject(id)
   }
 
