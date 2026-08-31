@@ -29,7 +29,10 @@ describe('PlotWorkspace', () => {
   it('creates a foreshadow with scene evidence through the visible workflow', async () => {
     render(<PlotWorkspace projectId="project" nodes={nodes} entities={[]} onSelectScene={vi.fn()} notify={vi.fn()} />)
     await userEvent.click(screen.getByRole('tab', { name: '伏笔看板' }))
-    await userEvent.click(screen.getByRole('button', { name: '建立伏笔' }))
+    const createButton = screen.getByRole('button', { name: '建立伏笔' })
+    expect(createButton).toHaveClass('ui-button-primary', 'ui-button-small', 'foreshadow-create-action')
+    await userEvent.click(createButton)
+    expect(screen.getByRole('button', { name: '建立并留痕' })).toHaveClass('ui-button-primary')
     await userEvent.type(screen.getByLabelText('伏笔名称'), '停摆的怀表')
     await userEvent.click(screen.getByRole('combobox', { name: '建立场景' }))
     await userEvent.click(screen.getByRole('option', { name: '现在' }))
