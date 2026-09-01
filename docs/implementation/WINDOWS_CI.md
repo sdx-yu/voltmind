@@ -1,12 +1,12 @@
 # Windows x64 自动构建与内测交付
 
-状态：工程流程已落地，正在进行 GitHub Windows 云端真实运行验收
+状态：工程流程已落地；GitHub Windows 云端第 5 次运行已于 2026-09-01 全量通过
 
 ## 给产品经理的结论
 
 代码进入 GitHub 后，不需要准备 Windows 电脑也能生成 Windows 安装包。在仓库的 Actions 页面手动运行 `Windows x64 desktop package`，云端 Windows x64 机器会完成测试、打包、安装、卸载和校验，然后提供一个可下载的压缩产物。
 
-当前仓库远端是 Gitee。`.github/workflows/windows-desktop.yml` 只有在代码同步到 GitHub 后才会运行；本次不会擅自创建公开仓库或上传源码。
+当前代码已同步到公开 GitHub 仓库 [sdx-yu/voltmind](https://github.com/sdx-yu/voltmind)。`.github/workflows/windows-desktop.yml` 已在 Windows 云主机真实生成并验收安装包；Gitee 远端仍保留，不影响 GitHub Actions。
 
 ## 自动化流程
 
@@ -19,13 +19,21 @@
 
 ## 第一次使用
 
-1. 将当前仓库私有镜像到 GitHub，并确认 Actions 已启用。
-2. 打开 GitHub 仓库的 `Actions` 页面。
-3. 选择 `Windows x64 desktop package`，点击 `Run workflow`。
+1. 打开 GitHub 仓库的 `Actions` 页面。
+2. 选择 `Windows x64 desktop package`。
+3. 点击 `Run workflow`，选择 `main` 后确认运行。
 4. 等待全部步骤变绿，在本次运行页面底部下载名称类似 `bibudai-2.6.0-windows-x64-数字` 的 Artifact。
 5. 解压后优先把 `*-setup.exe` 发给普通测试用户；`.msi` 可用于企业部署或安装回归。
 
 GitHub Actions 是否产生费用取决于仓库可见性、账户套餐和当月用量；本流程通过“手动/版本标签触发”和 60 分钟超时控制用量，但不承诺云端额度永远免费。
+
+## 已通过的真实运行
+
+- 运行：[Windows x64 desktop package #5](https://github.com/sdx-yu/voltmind/actions/runs/33495684584)
+- 源提交：`a426f1f2d47bfda6ec1d6498fd649c0e39acf9ba`
+- 结果：质量门禁、NSIS、简体中文 MSI、哈希/签名检查、MSI 静默安装和卸载、Artifact 上传全部通过
+- Artifact：`bibudai-2.6.0-windows-x64-5`，保留至 2026-09-15
+- 当前产物未签名，只达到已知测试者内测交付标准，不是公开发行标准
 
 ## 未签名内测包
 
