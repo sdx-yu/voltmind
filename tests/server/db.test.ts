@@ -68,6 +68,19 @@ describe('AppDatabase', () => {
     expect(database.search(project.id, '佩剑')[0]).toMatchObject({ nodeId: scene.id, title: '场景 1' })
   })
 
+  it('detects preset canon names and aliases in saved scene text', () => {
+    const project = database.createProject('长夜')
+    const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    database.createEntity({ projectId: project.id, type: 'character', canonicalName: '林照', aliases: ['阿照'] })
+    database.createEntity({ projectId: project.id, type: 'item', canonicalName: '照影剑' })
+    database.saveScene(scene.id, doc('阿照握紧照影剑。林照没有回头。'), '阿照握紧照影剑。林照没有回头。')
+
+    expect(database.detectSceneCanon(scene.id)).toEqual([
+      { entityId: expect.any(String), canonicalName: '林照', entityType: 'character', matchedNames: ['林照', '阿照'], occurrenceCount: 2 },
+      { entityId: expect.any(String), canonicalName: '照影剑', entityType: 'item', matchedNames: ['照影剑'], occurrenceCount: 1 },
+    ])
+  })
+
   it('rejects overlapping temporal state intervals', () => {
     const project = database.createProject('长夜')
     const entity = database.createEntity({ projectId: project.id, type: 'item', canonicalName: '照影剑' })

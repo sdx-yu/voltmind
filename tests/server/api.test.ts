@@ -39,7 +39,10 @@ describe('local API', () => {
     const project = (await request(app).post('/api/projects').set('Cookie', cookie).send({ title: '验收项目' }).expect(201)).body
     const nodes = (await request(app).get(`/api/projects/${project.id}/tree`).set('Cookie', cookie).expect(200)).body
     const scene = nodes.find((node: { type: string }) => node.type === 'scene')
+    database.createEntity({ projectId: project.id, type: 'character', canonicalName: '林照' })
     await request(app).put(`/api/scenes/${scene.id}`).set('Cookie', cookie).send({ contentJson: doc('林照走进雨里'), plainText: '林照走进雨里' }).expect(200)
+    const detections = await request(app).get(`/api/scenes/${scene.id}/canon-detections`).set('Cookie', cookie).expect(200)
+    expect(detections.body).toContainEqual(expect.objectContaining({ canonicalName: '林照', entityType: 'character', occurrenceCount: 1 }))
     const search = await request(app).get(`/api/projects/${project.id}/search?q=${encodeURIComponent('雨里')}`).set('Cookie', cookie).expect(200)
     expect(search.body[0].nodeId).toBe(scene.id)
     const context = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/context`).set('Cookie', cookie).expect(200)

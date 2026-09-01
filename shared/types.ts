@@ -1120,6 +1120,14 @@ export interface Mention {
   createdAt: string
 }
 
+export interface CanonDetection {
+  entityId: string
+  canonicalName: string
+  entityType: EntityType
+  matchedNames: string[]
+  occurrenceCount: number
+}
+
 export interface ForeshadowEvent {
   id: string
   foreshadowId: string

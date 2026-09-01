@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { diffWords } from 'diff'
-import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LoaderCircle, LockKeyhole, MessageSquareText, Plus, RotateCcw, Sparkles, Square, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
-import type { AiContextItem, AiTaskResult, ContinuityIssue, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision } from '../../shared/types'
+import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LoaderCircle, LockKeyhole, MessageSquareText, Plus, RotateCcw, ScanSearch, Sparkles, Square, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
+import type { AiContextItem, AiTaskResult, CanonDetection, ContinuityIssue, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision } from '../../shared/types'
 import { api } from '../lib/api'
 import { candidateUnits, splitBrainstormDirections, splitSentenceCandidates } from '../lib/aiCandidates'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -20,6 +20,7 @@ interface Props {
   projectId: string
   node: ManuscriptNode
   entities: Entity[]
+  contentVersion?: number
   refreshEntities: () => Promise<void>
   onUpdateNode: (patch: Partial<ManuscriptNode>) => Promise<void>
   onRefreshTree: () => Promise<void>
@@ -28,14 +29,14 @@ interface Props {
   onClose?: () => void
 }
 
-export function Inspector({ projectId, node, entities, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose }: Props) {
+export function Inspector({ projectId, node, entities, contentVersion = 0, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('scene')
   return <aside className="inspector" aria-label="场景检查器">
     <div className="ui-inspector-tabbar"><Tabs items={TABS} value={tab} onChange={(value) => setTab(value as Tab)} label="检查器分页" />{onClose && <IconButton size="small" className="inspector-close" onClick={onClose} label="关闭检查器"><X size={16} /></IconButton>}</div>
     <div className="inspector-scroll">
       {tab === 'scene' && <ScenePanel node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} notify={notify} />}
-      {tab === 'canon' && <CanonPanel projectId={projectId} node={node} entities={entities} refreshEntities={refreshEntities} notify={notify} />}
-      {tab === 'check' && <CheckPanel node={node} notify={notify} />}
+      {tab === 'canon' && <CanonPanel projectId={projectId} node={node} entities={entities} contentVersion={contentVersion} refreshEntities={refreshEntities} notify={notify} />}
+      {tab === 'check' && <CheckPanel node={node} contentVersion={contentVersion} notify={notify} />}
       {tab === 'ai' && <AiPanel projectId={projectId} node={node} notify={notify} />}
     </div>
   </aside>
@@ -75,7 +76,7 @@ function ScenePanel({ node, entities, onUpdateNode, onRefreshTree, onReloadScene
   </div>
 }
 
-function CanonPanel({ projectId, node, entities, refreshEntities, notify }: Pick<Props, 'projectId' | 'node' | 'entities' | 'refreshEntities' | 'notify'>) {
+function CanonPanel({ projectId, node, entities, contentVersion, refreshEntities, notify }: Pick<Props, 'projectId' | 'node' | 'entities' | 'contentVersion' | 'refreshEntities' | 'notify'>) {
   const [suggestions, setSuggestions] = useState<Array<Omit<Mention, 'id' | 'createdAt'>>>([])
   const [mentions, setMentions] = useState<Mention[]>([])
   const [currentStates, setCurrentStates] = useState<EntityState[]>([])
@@ -87,7 +88,7 @@ function CanonPanel({ projectId, node, entities, refreshEntities, notify }: Pick
     const [nextMentions, nextSuggestions, nextStates] = await Promise.all([api.listMentions(node.id), api.suggestMentions(node.id), api.currentStates(node.id)])
     setMentions(nextMentions); setSuggestions(nextSuggestions); setCurrentStates(nextStates)
   }
-  useEffect(() => { void refresh() }, [node.id, entities.length])
+  useEffect(() => { void refresh() }, [node.id, entities, contentVersion])
 
   async function addEntity() {
     if (!name.trim()) return
@@ -152,20 +153,27 @@ function knownAt(fact: KnowledgeFact, entityId: string, nodeId: string, nodes: M
 function sceneNodes(nodes: ManuscriptNode[]) { const chapters = nodes.filter((node) => node.type === 'chapter' && !node.deletedAt).sort((a, b) => a.sortKey - b.sortKey); return chapters.flatMap((chapter) => nodes.filter((node) => node.type === 'scene' && node.parentId === chapter.id && !node.deletedAt).sort((a, b) => a.sortKey - b.sortKey)) }
 function nodeName(nodes: ManuscriptNode[], id: string) { return nodes.find((node) => node.id === id)?.title ?? '未找到场景' }
 
-function CheckPanel({ node, notify }: Pick<Props, 'node' | 'notify'>) {
+function CheckPanel({ node, contentVersion, notify }: Pick<Props, 'node' | 'contentVersion' | 'notify'>) {
   const [issues, setIssues] = useState<ContinuityIssue[]>([])
+  const [detections, setDetections] = useState<CanonDetection[]>([])
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const detectionGroups = useMemo(() => groupCanonDetections(detections), [detections])
   async function runCheck() {
     setLoading(true)
-    try { setIssues(await api.checkScene(node.id)) } catch (error) { notify('error', error instanceof Error ? error.message : '检查失败') }
+    try {
+      const [nextIssues, nextDetections] = await Promise.all([api.checkScene(node.id), api.detectSceneCanon(node.id)])
+      setIssues(nextIssues); setDetections(nextDetections)
+    } catch (error) { notify('error', error instanceof Error ? error.message : '检查失败') }
     finally { setLoading(false) }
   }
-  useEffect(() => { void runCheck() }, [node.id])
+  useEffect(() => { void runCheck() }, [node.id, contentVersion])
   async function ignore(issue: ContinuityIssue) { try { await api.ignoreIssue(node.id, issue, '作者选择忽略本场景提示'); setIssues((current) => current.filter((item) => item.id !== issue.id)); notify('success', '已记录为本场景例外，后续检查不会重复提示') } catch (error) { notify('error', error instanceof Error ? error.message : '忽略失败') } }
-  return <div className="panel-stack"><section className="inspector-section"><header><span className="section-icon"><Eye size={15} /></span><h3>连续性检查</h3></header>
-    <p className="muted">只报告有证据的问题；系统不会替你修改正文。</p><button className="button secondary full" disabled={loading} onClick={() => void runCheck()}>{loading ? '正在检查…' : '重新检查'}</button>
-  </section>{issues.length === 0 && !loading ? <div className="all-clear"><Check size={20} /><strong>暂未发现高置信度问题</strong><span>这不代表作品没有任何问题。</span></div> : issues.map((issue) => <article key={issue.id} className={`issue-card issue-${issue.severity}`}><header><CircleAlert size={16} /><span>{issue.severity === 'risk' ? '错误风险' : '建议复核'}</span><small>{Math.round(issue.confidence * 100)}%</small></header><p>{issue.message}</p><blockquote>{issue.currentEvidence.quote}</blockquote>{expanded.has(issue.id) && issue.conflictingEvidence && <blockquote className="conflicting-evidence">冲突证据：{issue.conflictingEvidence.quote}</blockquote>}<div className="issue-actions"><button onClick={() => setExpanded((current) => { const next = new Set(current); next.has(issue.id) ? next.delete(issue.id) : next.add(issue.id); return next })}>查看证据</button><button onClick={() => void ignore(issue)}>忽略一次</button></div></article>)}</div>
+  return <div className="panel-stack"><section className="inspector-section canon-detection-section"><header><span className="section-icon"><ScanSearch size={15} /></span><h3>正文正典识别</h3></header>
+    {detectionGroups.length ? <><p className="canon-detection-summary"><strong>已识别 {detectionGroups.length} 个正典名称</strong><span>共 {detectionGroups.reduce((total, item) => total + item.occurrenceCount, 0)} 处正文提及</span></p><div className="canon-detection-list">{detectionGroups.map((item) => <div key={`${item.entityType}-${item.canonicalName}`} className={item.recordCount > 1 ? 'is-ambiguous' : ''}><span><strong>{item.canonicalName}</strong><small>{canonTypeLabel(item.entityType)} · 匹配 {item.matchedNames.join('、')} · {item.occurrenceCount} 处</small></span>{item.recordCount > 1 && <em>{item.recordCount} 份同名档案</em>}</div>)}</div>{detectionGroups.some((item) => item.recordCount > 1) && <p className="canon-detection-warning"><CircleAlert size={13}/>同名档案会同时命中。请在正典库保留正确档案，避免状态检查产生歧义。</p>}</> : !loading && <div className="canon-detection-empty"><strong>正文暂未匹配到已设正典</strong><span>系统按至少 2 个字的正典名称或别名精确识别；正文保存后会自动刷新。</span></div>}
+  </section><section className="inspector-section"><header><span className="section-icon"><Eye size={15} /></span><h3>连续性冲突</h3></header>
+    <p className="muted">识别成功不等于存在冲突；这里只报告有证据的问题。</p><button className="button secondary full" disabled={loading} onClick={() => void runCheck()}>{loading ? '正在检查…' : '重新检查'}</button>
+  </section>{issues.length === 0 && !loading ? <div className="all-clear"><Check size={20} /><strong>已完成冲突检查</strong><span>{detectionGroups.length ? '已识别正典，但暂未发现高置信度冲突。' : '正文尚未命中正典，也没有可报告的冲突。'}</span></div> : issues.map((issue) => <article key={issue.id} className={`issue-card issue-${issue.severity}`}><header><CircleAlert size={16} /><span>{issue.severity === 'risk' ? '错误风险' : '建议复核'}</span><small>{Math.round(issue.confidence * 100)}%</small></header><p>{issue.message}</p><blockquote>{issue.currentEvidence.quote}</blockquote>{expanded.has(issue.id) && issue.conflictingEvidence && <blockquote className="conflicting-evidence">冲突证据：{issue.conflictingEvidence.quote}</blockquote>}<div className="issue-actions"><button onClick={() => setExpanded((current) => { const next = new Set(current); next.has(issue.id) ? next.delete(issue.id) : next.add(issue.id); return next })}>查看证据</button><button onClick={() => void ignore(issue)}>忽略一次</button></div></article>)}</div>
 }
 
 function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' | 'notify'>) {
@@ -280,5 +288,22 @@ function DiffText({ original, value, accepted, selected, onToggle }: { original:
   return <div className={`diff-output ${accepted ? 'accepted' : ''}`}>{original && <div className="diff-comparison"><small>原文 ↔ 候选</small><p>{diffWords(original, value).map((part, index) => <span key={index} className={part.added ? 'diff-added' : part.removed ? 'diff-removed' : ''}>{part.value}</span>)}</p></div>}{segments.map((segment, index) => <label className="diff-segment" key={index}><input type="checkbox" checked={selected.has(index)} disabled={accepted} onChange={() => onToggle(index)} /><span>{diffWords('', segment).map((part, partIndex) => <span key={partIndex} className={part.added ? 'diff-added' : ''}>{part.value}</span>)}</span></label>)}</div>
 }
 
+function groupCanonDetections(detections: CanonDetection[]) {
+  const groups = new Map<string, { canonicalName: string; entityType: Entity['type']; matchedNames: string[]; occurrenceCount: number; recordCount: number }>()
+  for (const detection of detections) {
+    const key = `${detection.entityType}:${detection.canonicalName.trim().toLocaleLowerCase('zh-CN')}`
+    const current = groups.get(key)
+    if (!current) {
+      groups.set(key, { canonicalName: detection.canonicalName, entityType: detection.entityType, matchedNames: [...detection.matchedNames], occurrenceCount: detection.occurrenceCount, recordCount: 1 })
+      continue
+    }
+    current.recordCount += 1
+    current.occurrenceCount = Math.max(current.occurrenceCount, detection.occurrenceCount)
+    current.matchedNames = [...new Set([...current.matchedNames, ...detection.matchedNames])]
+  }
+  return [...groups.values()]
+}
+
+function canonTypeLabel(type: Entity['type']) { return ({ character: '人物', location: '地点', item: '物品', event: '事件' } as const)[type] }
 function sourceLabel(source: Revision['provenanceLabel']) { return ({ human: '人工编辑', human_after_ai: 'AI 后人工修订', import: '导入', ai_accepted: 'AI 建议后接受', restore: '恢复', merge: '合并' } as const)[source] }
 function revisionGroup(revision: Revision): 'human' | 'ai' | 'system' { return revision.provenanceLabel === 'ai_accepted' ? 'ai' : ['human','human_after_ai'].includes(revision.provenanceLabel) ? 'human' : 'system' }

@@ -58,10 +58,11 @@ export function checkContinuity(input: CheckInput): ContinuityIssue[] {
     }
   }
 
+  const knownNames = new Set(input.entities.flatMap((entity) => [entity.canonicalName, ...entity.aliases]))
   for (const entity of input.entities) {
     if (entity.canonicalName.length < 2 || entity.canonicalName.length > 6) continue
     const candidates = extractCjkTokens(input.plainText, entity.canonicalName.length)
-    const typo = candidates.find((token) => token !== entity.canonicalName && !entity.aliases.includes(token) && levenshtein(token, entity.canonicalName) === 1)
+    const typo = candidates.find((token) => !knownNames.has(token) && levenshtein(token, entity.canonicalName) === 1)
     if (typo) {
       issues.push({
         id: newId(), rule: 'proper_name_variant', severity: 'review', confidence: 0.72,

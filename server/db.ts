@@ -3,6 +3,7 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import type {
   CandidateChange,
+  CanonDetection,
   DeliveryCheckResult,
   DeliveryCheckRun,
   DeliveryRule,
@@ -2069,6 +2070,25 @@ export class AppDatabase {
     return suggestions.sort((a, b) => a.startOffset - b.startOffset)
   }
 
+  detectSceneCanon(nodeId: string): CanonDetection[] {
+    const node = this.getNode(nodeId)
+    const doc = this.getScene(nodeId)
+    if (!node || !doc) return []
+    return this.listEntities(node.projectId).flatMap((entity) => {
+      const names = [...new Set([entity.canonicalName, ...entity.aliases].map((name) => name.trim()).filter((name) => name.length >= 2))]
+      const matches = names.map((name) => ({ name, offsets: findTextOffsets(doc.plainText, name) })).filter((match) => match.offsets.length)
+      if (!matches.length) return []
+      return [{
+        entityId: entity.id,
+        canonicalName: entity.canonicalName,
+        entityType: entity.type,
+        matchedNames: matches.map((match) => match.name),
+        occurrenceCount: matches.reduce((total, match) => total + match.offsets.length, 0),
+        firstOffset: Math.min(...matches.flatMap((match) => match.offsets)),
+      }]
+    }).sort((a, b) => a.firstOffset - b.firstOffset || a.canonicalName.localeCompare(b.canonicalName, 'zh-CN')).map(({ firstOffset: _firstOffset, ...detection }) => detection)
+  }
+
   createCandidate(input: Omit<CandidateChange, 'id' | 'status' | 'createdAt' | 'resolvedAt'>): CandidateChange {
     const id = newId()
     const createdAt = nowIso()
@@ -2714,6 +2734,16 @@ function narrativeSceneOrder(nodes: ManuscriptNode[]): Map<string, number> {
   const result = new Map<string, number>(); let index = 0
   for (const chapter of chapters) for (const scene of nodes.filter((node) => node.type === 'scene' && node.parentId === chapter.id).sort((a, b) => a.sortKey - b.sortKey)) result.set(scene.id, index++)
   return result
+}
+
+function findTextOffsets(text: string, query: string): number[] {
+  const offsets: number[] = []
+  let index = text.indexOf(query)
+  while (index >= 0) {
+    offsets.push(index)
+    index = text.indexOf(query, index + Math.max(1, query.length))
+  }
+  return offsets
 }
 
 function mapMention(row: Row): Mention {

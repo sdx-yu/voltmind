@@ -7,7 +7,7 @@ import { Inspector } from './Inspector'
 
 const mocks = vi.hoisted(() => ({
   listKnowledge: vi.fn(), listNodes: vi.fn(), createKnowledge: vi.fn(), trashKnowledge: vi.fn(), grantKnowledge: vi.fn(),
-  listMentions: vi.fn(), suggestMentions: vi.fn(), currentStates: vi.fn(),
+  listMentions: vi.fn(), suggestMentions: vi.fn(), currentStates: vi.fn(), detectSceneCanon: vi.fn(), checkScene: vi.fn(), ignoreIssue: vi.fn(),
   getContext: vi.fn(), getAiSettings: vi.fn(), streamAiTask: vi.fn(), warmAi: vi.fn(), recordAiDecision: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
@@ -24,6 +24,9 @@ describe('Inspector knowledge panel', () => {
     mocks.listMentions.mockResolvedValue([])
     mocks.suggestMentions.mockResolvedValue([])
     mocks.currentStates.mockResolvedValue([])
+    mocks.detectSceneCanon.mockResolvedValue([])
+    mocks.checkScene.mockResolvedValue([])
+    mocks.ignoreIssue.mockResolvedValue({ ok: true })
     mocks.getContext.mockResolvedValue([{ id: 's1', type: 'scene', title: '当前场景', content: '雨落在窗前。', selected: true, privacyLevel: 'normal', estimatedTokens: 8, reason: '当前正文' }])
     mocks.getAiSettings.mockResolvedValue({ baseUrl: 'mock://local', model: '笔不怠演示模型', hasApiKey: false, credentialStore: 'protected_file', provider: 'demo', costPolicy: 'local_only' })
     mocks.warmAi.mockResolvedValue({ ok: true, message: '已预热' })
@@ -50,6 +53,25 @@ describe('Inspector knowledge panel', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
     expect(await screen.findByText('演示模式 · 固定候选 · 不联网')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '生成演示候选' })).toBeInTheDocument()
+  })
+
+  it('shows recognized preset canon separately from continuity conflicts and refreshes after save', async () => {
+    mocks.detectSceneCanon.mockResolvedValue([
+      { entityId: 'lin', canonicalName: '林照', entityType: 'character', matchedNames: ['林照'], occurrenceCount: 2 },
+      { entityId: 'lin-copy', canonicalName: '林照', entityType: 'character', matchedNames: ['林照'], occurrenceCount: 2 },
+    ])
+    const props = { projectId: 'p', node: nodes[2], entities: [character], refreshEntities: vi.fn(), onUpdateNode: vi.fn(), onRefreshTree: vi.fn(), onReloadScene: vi.fn(), notify: vi.fn() }
+    const view = render(<Inspector {...props} contentVersion={0} />)
+    await userEvent.click(screen.getByRole('tab', { name: '检查' }))
+    expect(await screen.findByText('已识别 1 个正典名称')).toBeInTheDocument()
+    expect(screen.getByText('2 份同名档案')).toBeInTheDocument()
+    expect(screen.getByText('已完成冲突检查')).toBeInTheDocument()
+    expect(screen.getByText('已识别正典，但暂未发现高置信度冲突。')).toBeInTheDocument()
+
+    mocks.detectSceneCanon.mockResolvedValue([])
+    view.rerender(<Inspector {...props} contentVersion={1} />)
+    expect(await screen.findByText('正文暂未匹配到已设正典')).toBeInTheDocument()
+    expect(mocks.detectSceneCanon).toHaveBeenCalledTimes(2)
   })
 
   it('shows streamed local output and lets the author stop without accepting partial text', async () => {

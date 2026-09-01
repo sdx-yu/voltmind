@@ -270,6 +270,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.get('/api/scenes/:id/mentions', route(async (req, res) => res.json(database.listMentions(param(req, 'id')))))
   app.get('/api/scenes/:id/current-states', route(async (req, res) => res.json(currentStatesAtScene(database, param(req, 'id')))))
   app.get('/api/scenes/:id/mention-suggestions', route(async (req, res) => res.json(database.suggestMentions(param(req, 'id')))))
+  app.get('/api/scenes/:id/canon-detections', route(async (req, res) => res.json(database.detectSceneCanon(param(req, 'id')))))
   app.post('/api/scenes/:id/mentions', route(async (req, res) => {
     const input = z.object({ entityId: z.string(), quote: z.string(), startOffset: z.number().int().nonnegative(), endOffset: z.number().int().positive(), confirmed: z.boolean().default(true) }).parse(req.body)
     res.status(201).json(database.createMention({ nodeId: param(req, 'id'), ...input }))

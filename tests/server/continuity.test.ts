@@ -21,6 +21,14 @@ describe('continuity checks', () => {
     const issues = checkContinuity({ node: scene('s2', 2000), plainText: '林照握紧照影剑，望向门外。', entities: [item, a, b], states: [state], nodes: [scene('s1', 1000), scene('s2', 2000)] })
     expect(issues.find((issue) => issue.rule === 'holder_conflict')).toMatchObject({ severity: 'risk', currentEvidence: { quote: '林照握紧照影剑' }, conflictingEvidence: { quote: '照影剑持有者：沈砚' } })
   })
+
+  it('does not report a configured alias as a proper-name typo when same-name records exist', () => {
+    const primary: Entity = { id: 'lin', projectId: 'p1', type: 'character', canonicalName: '林照', aliases: ['阿照'], summary: '', privacyLevel: 'normal', createdAt: '', updatedAt: '', deletedAt: null }
+    const duplicate: Entity = { ...primary, id: 'lin-copy', aliases: [] }
+    const current = scene('s1', 1000)
+    const issues = checkContinuity({ node: current, plainText: '阿照没有回头。', entities: [primary, duplicate], states: [], nodes: [current] })
+    expect(issues.find((issue) => issue.rule === 'proper_name_variant')).toBeUndefined()
+  })
 })
 
 function scene(id: string, sortKey: number): ManuscriptNode { return { id, projectId: 'p1', parentId: 'c1', type: 'scene', title: id, sortKey, status: 'draft', povEntityId: null, storyTime: null, deletedAt: null, wordCount: 0 } }
