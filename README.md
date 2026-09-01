@@ -58,6 +58,7 @@ npm run release:macos:preflight
 - [2.3.3 作品信息编辑闭环验收报告](归档/2026-08-31/笔不怠作品信息编辑闭环验收报告_v2.3.3.md)
 - [2.3.4 交互真值与本地 AI 体验优化验收报告](归档/2026-08-31/笔不怠交互真值与本地AI体验优化验收报告_v2.3.4.md)
 - [2.3.5 AI 脑暴方向分组验收报告](归档/2026-09-01/笔不怠AI脑暴方向分组验收报告_v2.3.5.md)
+- [2.3.6 正文正典识别真值修复验收报告](归档/2026-09-01/笔不怠正文正典识别真值修复验收报告_v2.3.6.md)
 - [UI 贡献与新增页面准入规范](docs/implementation/UI_CONTRIBUTION_GUIDE.md)
 - [G4-C UI 内测发行候选计划](docs/implementation/G4C_PLAN.md)
 - [需求追踪矩阵](docs/implementation/TRACEABILITY.md)
