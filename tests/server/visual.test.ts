@@ -22,12 +22,12 @@ describe('V2-V canon-bound visual anchors and storyboards', () => {
 
   it('backs up v12 before migration v13 and creates the visual data model', () => {
     let db = database('migration'); const databasePath = db.databasePath
-    db.db.exec('DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DELETE FROM schema_migrations WHERE version IN (13,14,15, 16,17);')
+    db.db.exec('DROP TABLE voice_preference_stats; DROP TABLE character_voice_profiles; DROP TABLE style_analysis_runs; DROP TABLE scene_voice_profiles; DROP TABLE project_voice_defaults; DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DELETE FROM schema_migrations WHERE version IN (13,14,15, 16,17,18,19,20);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 17 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 20 })
     expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND (name LIKE 'visual_%' OR name LIKE 'storyboard%')").get()).toMatchObject({ count: 6 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v12-to-v17-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v12-to-v20-'))).toBe(true)
   })
 
   it('reads only explicitly selected non-private canon fields and marks accepted bindings stale after canon changes', () => {

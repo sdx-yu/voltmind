@@ -59,6 +59,14 @@ import type {
   ReplaceMatch,
   ReplaceScope,
   SceneDocument,
+  SceneVoiceProfile,
+  StyleAnalysisRun,
+  TextSelectionAnchor,
+  VoiceConsistencyReport,
+  VoicePreferenceSummary,
+  CharacterVoiceKnobs,
+  CharacterVoiceProfile,
+  VoiceKnobs,
   SearchResult,
   Series,
   SeriesCanonEntry,
@@ -92,7 +100,7 @@ import type {
 
 let sessionReady: Promise<void> | null = null
 
-type AiTaskInput = { projectId: string; nodeId: string; taskType: string; instruction: string; selectedContextIds: string[] }
+type AiTaskInput = { projectId: string; nodeId: string; taskType: string; instruction: string; selectedContextIds: string[]; selectionAnchor?: TextSelectionAnchor }
 
 async function ensureSession() {
   if (!sessionReady) {
@@ -215,6 +223,17 @@ export const api = {
   updateStyleSample: (id: string, projectId: string, patch: Partial<StyleSample>) => request<StyleSample>(`/api/style-samples/${id}`, { method: 'PATCH', body: JSON.stringify({ projectId, patch }) }),
   trashStyleSample: (id: string, projectId: string) => request<StyleSample>(`/api/style-samples/${id}?projectId=${encodeURIComponent(projectId)}`, { method: 'DELETE' }),
   setStyleSamplePreference: (id: string, projectId: string, enabled: boolean) => request<StyleSample>(`/api/style-samples/${id}/preferences/${projectId}`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
+  getVoiceProfile: (projectId: string, nodeId: string) => request<SceneVoiceProfile>(`/api/projects/${projectId}/scenes/${nodeId}/voice`),
+  saveVoiceProfile: (projectId: string, nodeId: string, knobs: Partial<VoiceKnobs>) => request<SceneVoiceProfile>(`/api/projects/${projectId}/scenes/${nodeId}/voice`, { method: 'PUT', body: JSON.stringify(knobs) }),
+  saveProjectVoiceDefault: (projectId: string, knobs: Partial<VoiceKnobs>) => request<SceneVoiceProfile>(`/api/projects/${projectId}/voice-default`, { method: 'PUT', body: JSON.stringify(knobs) }),
+  analyzeStyleSamples: (projectId: string, sampleIds: string[]) => request<StyleAnalysisRun>(`/api/projects/${projectId}/voice-analyses`, { method: 'POST', body: JSON.stringify({ sampleIds }) }),
+  listStyleAnalyses: (projectId: string) => request<StyleAnalysisRun[]>(`/api/projects/${projectId}/voice-analyses`),
+  confirmStyleAnalysis: (projectId: string, runId: string, patch: Partial<VoiceKnobs> = {}) => request<StyleAnalysisRun>(`/api/projects/${projectId}/voice-analyses/${runId}/confirm`, { method: 'POST', body: JSON.stringify(patch) }),
+  getVoiceConsistency: (projectId: string, nodeId: string) => request<VoiceConsistencyReport>(`/api/projects/${projectId}/scenes/${nodeId}/voice-consistency`),
+  getCharacterVoice: (projectId: string, entityId: string) => request<CharacterVoiceProfile>(`/api/projects/${projectId}/characters/${entityId}/voice`),
+  saveCharacterVoice: (projectId: string, entityId: string, patch: Partial<CharacterVoiceKnobs>) => request<CharacterVoiceProfile>(`/api/projects/${projectId}/characters/${entityId}/voice`, { method: 'PUT', body: JSON.stringify(patch) }),
+  listVoicePreferences: (projectId: string) => request<VoicePreferenceSummary[]>(`/api/projects/${projectId}/voice-preferences`),
+  clearVoicePreferences: (projectId: string) => request<{ ok: boolean }>(`/api/projects/${projectId}/voice-preferences`, { method: 'DELETE' }),
   listEntityMentions: (id: string) => request<Mention[]>(`/api/entities/${id}/mentions`),
   listStates: (id: string) => request<EntityState[]>(`/api/entities/${id}/states`),
   createState: (id: string, input: Partial<EntityState> & Pick<EntityState, 'attributeKey' | 'value'>) => request<EntityState>(`/api/entities/${id}/states`, { method: 'POST', body: JSON.stringify(input) }),

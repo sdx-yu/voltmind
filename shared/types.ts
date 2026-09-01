@@ -57,6 +57,14 @@ export interface SeriesCanonEntry {
   override: SeriesCanonOverride | null
 }
 
+export type {
+  CharacterVoiceKnobs, CharacterVoiceProfile, EditorAiRequest, SceneIntent, SceneVoiceProfile,
+  StyleAnalysisRun, StyleFamily, StyleIntensity, StyleMetrics, TextSelectionAnchor,
+  VoiceAllusion, VoiceConsistencyReport, VoiceDialogue, VoiceDistance, VoiceImagery,
+  VoiceInteriority, VoiceKnobs, VoicePace, VoicePreferenceSummary, VoiceRegister,
+  VoiceSentence, VoiceSlang, VoiceSource,
+} from './voice.js'
+
 export interface StyleSample {
   id: string
   scope: 'project' | 'series'
@@ -1245,7 +1253,7 @@ export interface WritingStats {
 
 export interface AiContextItem {
   id: string
-  type: 'scene' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'foreshadow' | 'knowledge'
+  type: 'scene' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'voice' | 'foreshadow' | 'knowledge'
   title: string
   content: string
   reason: string

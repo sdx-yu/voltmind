@@ -226,7 +226,7 @@ export function buildReleaseReadiness(database: AppDatabase, config: AppConfig):
     publicRelease: 'NO-GO',
     engineering: [
       { gate: '数据库完整性', status: database.integrityCheck() === 'ok' ? 'pass' : 'not_run', evidence: database.integrityCheck() },
-      { gate: 'R1 数据迁移', status: schemaVersion === 17 ? 'pass' : 'not_run', evidence: `schema v${schemaVersion}` },
+      { gate: 'R1 数据迁移', status: schemaVersion === 20 ? 'pass' : 'not_run', evidence: `schema v${schemaVersion}` },
       { gate: '回环地址隔离', status: ['127.0.0.1', 'localhost', '::1'].includes(config.host) ? 'pass' : 'not_run', evidence: config.host },
       { gate: '生产静态资源', status: config.production && fs.existsSync(config.staticDir) ? 'pass' : 'not_run', evidence: config.production ? '已检查生产资源目录' : '开发模式不计入发布证据' },
     ],

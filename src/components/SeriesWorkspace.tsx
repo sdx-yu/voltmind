@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BookCopy, Check, Layers3, Plus, Trash2, UsersRound } from 'lucide-react'
-import type { EntityType, PrivacyLevel, Project, Series, SeriesCanonEntry, StyleSample } from '../../shared/types'
+import type { EntityType, PrivacyLevel, Project, Series, SeriesCanonEntry, StyleAnalysisRun, StyleSample } from '../../shared/types'
+import { voiceSummary } from '../../shared/voice'
 import { api } from '../lib/api'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
@@ -21,6 +22,9 @@ export function SeriesWorkspace({ projectId, notify }: { projectId: string; noti
   const [creatingSample, setCreatingSample] = useState(false)
   const [memberProjectId, setMemberProjectId] = useState('')
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [selectedSampleIds, setSelectedSampleIds] = useState<Set<string>>(new Set())
+  const [analysis, setAnalysis] = useState<StyleAnalysisRun | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
 
   async function load() {
     const [current, seriesList, projectList] = await Promise.all([api.getProjectSeries(projectId), api.listSeries(), api.listProjects()])
@@ -46,6 +50,18 @@ export function SeriesWorkspace({ projectId, notify }: { projectId: string; noti
     try { await api.removeProjectFromSeries(series.id, projectId, projectId); setConfirmLeave(false); await load(); notify('success', '本书已移出系列，书稿未受影响') }
     catch (error) { notify('error', error instanceof Error ? error.message : '移出失败') }
   }
+  async function analyzeSelected() {
+    if (!selectedSampleIds.size) return
+    setAnalyzing(true)
+    try { setAnalysis(await api.analyzeStyleSamples(projectId, [...selectedSampleIds])) }
+    catch (error) { notify('error', error instanceof Error ? error.message : '样本文风分析失败') }
+    finally { setAnalyzing(false) }
+  }
+  async function confirmAnalysis() {
+    if (!analysis) return
+    try { await api.confirmStyleAnalysis(projectId, analysis.id); setAnalysis(null); notify('success', '已把分析结果设为本书默认文风档') }
+    catch (error) { notify('error', error instanceof Error ? error.message : '确认文风档失败') }
+  }
 
   if (!series) return <div className="series-page">
     <header className="series-hero"><div><span className="eyebrow">系列共享</span><h2>让多部作品共用同一套世界事实</h2><p>共享内容有清晰来源；本书覆盖不会改写系列基线。</p></div><button className="button primary" onClick={() => setCreatingSeries(true)}><Plus size={15}/>创建系列</button></header>
@@ -59,9 +75,10 @@ export function SeriesWorkspace({ projectId, notify }: { projectId: string; noti
     <header className="series-hero"><div><span className="eyebrow">系列共享 · {series.members.length} 部作品</span><h2>{series.name}</h2><p>{series.description || '系列简介尚未填写'}</p></div><button className="button ghost compact" onClick={() => setConfirmLeave(true)}>移出本书</button></header>
     <section className="series-member-bar"><UsersRound size={17}/><div>{series.members.map((member) => <span key={member.projectId} className={member.projectId === projectId ? 'current' : ''}>{member.title}{member.projectId === projectId ? '（本书）' : ''}</span>)}</div>{addableProjects.length > 0 && <><SelectControl aria-label="选择要加入系列的作品" value={memberProjectId} onChange={(event) => setMemberProjectId(event.target.value)}><option value="">添加另一部作品…</option>{addableProjects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</SelectControl><button className="button secondary compact" disabled={!memberProjectId} onClick={() => void addMember()}>加入</button></>}</section>
     <nav className="series-tabs"><button className={tab === 'canon' ? 'active' : ''} onClick={() => setTab('canon')}><BookCopy size={15}/>共享正典</button><button className={tab === 'style' ? 'active' : ''} onClick={() => setTab('style')}><Layers3 size={15}/>风格样本</button></nav>
-    {tab === 'canon' ? <section className="series-section"><header><div><h3>共享事实基线</h3><p>每本书都能读取；需要差异时建立本书覆盖。</p></div><button className="button primary compact" onClick={() => setCreatingCanon(true)}><Plus size={14}/>新增共享项</button></header>{entries.length ? <div className="series-card-grid">{entries.map((entry) => <SeriesCanonCard key={entry.id} entry={entry} projectId={projectId} onChanged={load} notify={notify}/>)}</div> : <EmptyState title="暂无共享正典" description="可以先建立一个跨作品稳定存在的人物、地点、物品或事件。"/>}</section> : <section className="series-section"><header><div><h3>作者授权的风格样本</h3><p>逐项显示来源、用途与开关，AI 不会在后台偷偷学习。</p></div><button className="button primary compact" onClick={() => setCreatingSample(true)}><Plus size={14}/>新增样本</button></header>{samples.length ? <div className="style-sample-list">{samples.map((sample) => <StyleSampleCard key={sample.id} sample={sample} projectId={projectId} onChanged={load} notify={notify}/>)}</div> : <EmptyState title="暂无风格样本" description="粘贴你有权使用的短样本，并写明希望 AI 参考什么。"/>}</section>}
+    {tab === 'canon' ? <section className="series-section"><header><div><h3>共享事实基线</h3><p>每本书都能读取；需要差异时建立本书覆盖。</p></div><button className="button primary compact" onClick={() => setCreatingCanon(true)}><Plus size={14}/>新增共享项</button></header>{entries.length ? <div className="series-card-grid">{entries.map((entry) => <SeriesCanonCard key={entry.id} entry={entry} projectId={projectId} onChanged={load} notify={notify}/>)}</div> : <EmptyState title="暂无共享正典" description="可以先建立一个跨作品稳定存在的人物、地点、物品或事件。"/>}</section> : <section className="series-section"><header><div><h3>作者授权的风格样本</h3><p>选中一篇或多篇，由本机指标归纳成分类文风档；确认前不会影响 AI。</p></div><div className="style-sample-actions"><button className="button secondary compact" disabled={!selectedSampleIds.size || analyzing} onClick={() => void analyzeSelected()}>{analyzing ? '正在分析…' : `分析所选 ${selectedSampleIds.size || ''}`}</button><button className="button primary compact" onClick={() => setCreatingSample(true)}><Plus size={14}/>新增样本</button></div></header>{samples.length ? <div className="style-sample-list">{samples.map((sample) => <StyleSampleCard key={sample.id} sample={sample} projectId={projectId} selected={selectedSampleIds.has(sample.id)} onSelect={(checked) => setSelectedSampleIds((current) => { const next = new Set(current); checked ? next.add(sample.id) : next.delete(sample.id); return next })} onChanged={load} notify={notify}/>)}</div> : <EmptyState title="暂无风格样本" description="粘贴你有权使用的短样本，并写明希望 AI 参考什么。"/>}</section>}
     {creatingCanon && <CreateCanonModal seriesId={series.id} projectId={projectId} onClose={() => setCreatingCanon(false)} onCreated={async () => { setCreatingCanon(false); await load() }} notify={notify}/>} 
     {creatingSample && <CreateStyleSampleModal seriesId={series.id} projectId={projectId} onClose={() => setCreatingSample(false)} onCreated={async () => { setCreatingSample(false); await load() }} notify={notify}/>} 
+    {analysis && <Modal title="确认样本文风档" onClose={() => setAnalysis(null)} wide><div className="style-analysis-preview"><div className="style-analysis-summary"><span>建议分类</span><strong>{voiceSummary(analysis.suggested)}</strong><small>{analysis.sampleIds.length} 篇样本 · {analysis.metrics.characters} 字符 · 平均句长 {analysis.metrics.averageSentenceLength}</small></div><section><h4>为什么这样判断</h4>{analysis.evidence.map((item) => <p key={item}><Check size={13}/>{item}</p>)}</section>{analysis.warnings.length > 0 && <section className="warnings"><h4>先注意</h4>{analysis.warnings.map((item) => <p key={item}>{item}</p>)}</section>}<p className="muted">确认后写入本书默认文风档；你仍可在场景检查器逐项微调或覆盖。</p><div className="modal-actions"><button className="button ghost" onClick={() => setAnalysis(null)}>暂不采用</button><button className="button primary" onClick={() => void confirmAnalysis()}>确认并设为本书默认</button></div></div></Modal>}
     {confirmLeave && <ConfirmDialog title="移出本书" message="将本书移出系列？书稿与系列正典都不会删除，本书覆盖将保留以便重新加入。" confirmLabel="移出本书" danger onConfirm={() => void leave()} onClose={() => setConfirmLeave(false)} />}
   </div>
 }
@@ -96,11 +113,11 @@ function CreateStyleSampleModal({ seriesId, projectId, onClose, onCreated, notif
   return <Modal title="新增风格样本" onClose={onClose} wide><div className="form-stack"><SelectField label="作用范围" value={scope} onValueChange={(value) => setScope(value as 'series' | 'project')}><option value="series">系列共享</option><option value="project">仅本书</option></SelectField><TextField label="样本标题" required autoFocus value={title} onChange={(event) => setTitle(event.target.value)}/><TextareaField label="原文" required rows={8} value={content} onChange={(event) => setContent(event.target.value)} placeholder="只粘贴你有权使用的文本"/><TextareaField label="使用指导" optional value={guidance} onChange={(event) => setGuidance(event.target.value)} placeholder="例如：参考短句节奏，不复用专有名词"/><SelectField label="隐私" value={privacyLevel} onValueChange={(value) => setPrivacy(value as PrivacyLevel)}><option value="normal">允许发送给已配置的 AI</option><option value="author_only">仅作者授权后发送</option><option value="local_private">仅本地，禁止发送</option></SelectField><div className="modal-actions"><button className="button ghost" onClick={onClose}>取消</button><button className="button primary" disabled={!title.trim() || !content.trim()} onClick={() => void submit()}>保存并启用</button></div></div></Modal>
 }
 
-function StyleSampleCard({ sample, projectId, onChanged, notify }: { sample: StyleSample; projectId: string; onChanged: () => Promise<void>; notify: Notice }) {
+function StyleSampleCard({ sample, projectId, selected, onSelect, onChanged, notify }: { sample: StyleSample; projectId: string; selected: boolean; onSelect: (checked: boolean) => void; onChanged: () => Promise<void>; notify: Notice }) {
   const [confirmTrash, setConfirmTrash] = useState(false)
   async function toggle() { try { if (sample.scope === 'series') await api.setStyleSamplePreference(sample.id, projectId, !sample.effectiveEnabled); else await api.updateStyleSample(sample.id, projectId, { enabled: !sample.enabled }); await onChanged(); notify('success', !sample.effectiveEnabled ? '本书已启用该样本' : '本书已停用该样本') } catch (error) { notify('error', error instanceof Error ? error.message : '更新失败') } }
   async function trash() { await api.trashStyleSample(sample.id, projectId); await onChanged(); notify('success', '风格样本已移除') }
-  return <article className={`style-sample-card ${sample.effectiveEnabled ? '' : 'disabled'}`}><header><div><span className="source-pill">{sample.scope === 'series' ? '系列共享' : '仅本书'}</span><h4>{sample.title}</h4></div><div><label className="sample-toggle"><input aria-label={`${sample.title}在本书中启用`} type="checkbox" checked={sample.effectiveEnabled} onChange={() => void toggle()}/><span>{sample.effectiveEnabled ? '已启用' : '已停用'}</span></label><button className="icon-button" aria-label={`移除样本 ${sample.title}`} onClick={() => setConfirmTrash(true)}><Trash2 size={14}/></button></div></header><p>{sample.content.length > 180 ? `${sample.content.slice(0, 180)}…` : sample.content}</p><small>{sample.guidance ? `使用指导：${sample.guidance}` : '未填写使用指导'} · {privacyLabel(sample.privacyLevel)}</small>
+  return <article className={`style-sample-card ${sample.effectiveEnabled ? '' : 'disabled'} ${selected ? 'selected' : ''}`}><header><div><label className="sample-analysis-check"><input aria-label={`选择样本 ${sample.title}`} type="checkbox" checked={selected} disabled={!sample.effectiveEnabled} onChange={(event) => onSelect(event.target.checked)}/><span className="source-pill">{sample.scope === 'series' ? '系列共享' : '仅本书'}</span></label><h4>{sample.title}</h4></div><div><label className="sample-toggle"><input aria-label={`${sample.title}在本书中启用`} type="checkbox" checked={sample.effectiveEnabled} onChange={() => void toggle()}/><span>{sample.effectiveEnabled ? '已启用' : '已停用'}</span></label><button className="icon-button" aria-label={`移除样本 ${sample.title}`} onClick={() => setConfirmTrash(true)}><Trash2 size={14}/></button></div></header><p>{sample.content.length > 180 ? `${sample.content.slice(0, 180)}…` : sample.content}</p><small>{sample.guidance ? `使用指导：${sample.guidance}` : '未填写使用指导'} · {privacyLabel(sample.privacyLevel)}</small>
     {confirmTrash && <ConfirmDialog title="移除风格样本" message={`移除风格样本“${sample.title}”？`} confirmLabel="移除样本" danger onConfirm={() => void trash()} onClose={() => setConfirmTrash(false)} />}
   </article>
 }

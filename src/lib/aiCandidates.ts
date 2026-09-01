@@ -11,7 +11,20 @@ export function candidateUnits(taskType: string, value: string): string[] {
     const directions = splitBrainstormDirections(value)
     return directions.length ? directions.map((direction) => direction.text) : splitSentenceCandidates(value)
   }
+  if (taskType === 'style_rewrite') return splitStyleRewriteCandidates(value)
+  if (taskType === 'word_inspiration') return splitWordInspirationCandidates(value)
   return splitSentenceCandidates(value)
+}
+
+export function splitStyleRewriteCandidates(value: string): string[] {
+  const normalized = value.replace(/\r/g, '').replace(/(?:^|\n)\s*(?:候选|版本|方案)\s*([一二三四五六七八九十\d]+)\s*[：:]\s*/g, '\n§$1§').trim()
+  const matches = [...normalized.matchAll(/(?:^|\n)§[^§]+§([\s\S]*?)(?=\n§|$)/g)].map((match) => match[1].trim()).filter(Boolean)
+  return matches.length ? matches : splitSentenceCandidates(value)
+}
+
+export function splitWordInspirationCandidates(value: string): string[] {
+  const lines = value.replace(/\r/g, '').split('\n').map((line) => line.trim().replace(/^[-*\d.、)\s]+/, '')).filter(Boolean)
+  return lines.map((line) => line.split(/[｜|]/).slice(1).join('｜').trim() || line.replace(/^(?:动作|感官|搭配|比喻)\s*[：:]\s*/, '')).filter(Boolean)
 }
 
 export function splitBrainstormDirections(value: string): BrainstormDirection[] {

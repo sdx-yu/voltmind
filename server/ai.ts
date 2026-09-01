@@ -1,4 +1,5 @@
-import type { AiContextItem, AiStreamEvent, AiTaskResult, EntityState } from '../shared/types.js'
+import type { AiContextItem, AiStreamEvent, AiTaskResult, EntityState, TextSelectionAnchor } from '../shared/types.js'
+import { compileVoiceContract } from '../shared/voice.js'
 import type { AppDatabase } from './db.js'
 import { estimateTokens, newId, nowIso, sha256 } from './utils.js'
 import type { LocalVault } from './vault.js'
@@ -16,6 +17,7 @@ export interface AiTaskInput {
   taskType: string
   instruction: string
   selectedContextIds: string[]
+  selectionAnchor?: TextSelectionAnchor
 }
 
 export type AiProviderKind = 'demo' | 'ollama' | 'blocked'
@@ -66,9 +68,16 @@ export class AiService {
     const node = this.database.getNode(nodeId)
     const scene = this.database.getScene(nodeId)
     if (!node || !scene) throw new Error('Scene not found')
+    const voice = this.database.getVoiceProfile(projectId, nodeId)
+    const voiceExcerpts = this.voiceExcerpts(projectId, nodeId)
+    const voiceContract = compileVoiceContract(voice, voiceExcerpts)
     const items: AiContextItem[] = [{
       id: nodeId, type: 'scene', title: `当前场景：${node.title}`, content: scene.plainText,
       reason: '当前文本与任务', privacyLevel: 'normal', selected: true, estimatedTokens: estimateTokens(scene.plainText),
+    }, {
+      id: `voice:${nodeId}`, type: 'voice', title: `本场景文风档 · ${voice.sourceLabel}`, content: voiceContract,
+      reason: voice.authorNote ? '作者原话与旋钮共同约束这一场的文笔' : '本场文笔契约；在场景页可以改档',
+      privacyLevel: 'normal', selected: true, estimatedTokens: estimateTokens(voiceContract),
     }]
     const entities = this.database.listEntities(projectId)
     const mentionedNames = entities.filter((entity) => [entity.canonicalName, ...entity.aliases].some((name) => name.length >= 2 && scene.plainText.includes(name)))
@@ -81,6 +90,10 @@ export class AiService {
       for (const field of this.database.listProfileFields(entity.id).filter((item) => item.privacyLevel !== 'local_private')) {
         const content = `${field.label}：${field.value}`
         items.push({ id: `profile:${field.id}`, type: 'entity', title: `${entity.canonicalName}档案 · ${field.category}`, content, reason: '当前场景实体的作者档案', privacyLevel: field.privacyLevel, selected: true, estimatedTokens: estimateTokens(content) })
+      }
+      if (entity.type === 'character' && this.database.getCharacterVoice(projectId, entity.id).updatedAt) {
+        const content = this.database.characterVoiceContract(projectId, entity.id)
+        items.push({ id: `character_voice:${entity.id}`, type: 'voice', title: `人物口吻：${entity.canonicalName}`, content, reason: '当前场景人物已设置对白口吻', privacyLevel: entity.privacyLevel, selected: entity.privacyLevel !== 'local_private', estimatedTokens: estimateTokens(content) })
       }
       for (const state of this.database.listStates(entity.id)) items.push(stateContext(state, entity.canonicalName, entity.privacyLevel))
     }
@@ -130,6 +143,25 @@ export class AiService {
     return providerKind(settings.baseUrl) === 'ollama' ? fitLocalContext(items, settings.model) : items
   }
 
+  private voiceExcerpts(projectId: string, nodeId: string): string[] {
+    const samples = this.database.listStyleSamples(projectId).filter((item) => item.effectiveEnabled && item.privacyLevel !== 'local_private')
+    const fromSamples = samples.slice(0, 2).map((sample) => {
+      const body = sample.content.trim().slice(0, 400)
+      return sample.guidance ? `${sample.guidance}\n${body}` : body
+    }).filter(Boolean)
+    if (fromSamples.length) return fromSamples
+    const node = this.database.getNode(nodeId)
+    if (!node) return []
+    const previous = this.database.listNodes(projectId)
+      .filter((item) => item.type === 'scene' && item.id !== nodeId && !item.deletedAt && (item.status === 'complete' || item.status === 'published') && item.sortKey < node.sortKey)
+      .sort((a, b) => b.sortKey - a.sortKey)
+    for (const item of previous) {
+      const text = this.database.getScene(item.id)?.plainText.trim() ?? ''
+      if (text.length >= 40) return [text.slice(-400)]
+    }
+    return []
+  }
+
   async runTask(input: AiTaskInput): Promise<AiTaskResult> {
     return this.executeTask(input, () => {})
   }
@@ -163,14 +195,20 @@ export class AiService {
   private async executeTask(input: AiTaskInput, emit: (event: AiStreamEvent) => void, signal?: AbortSignal): Promise<AiTaskResult> {
     const settings = this.loadFullSettings()
     if (providerKind(settings.baseUrl) === 'blocked') throw new Error('零费用保护已停用外网 AI。请在设置中启用本地免费模型。')
-    const context = this.buildContext(input.projectId, input.nodeId).filter((item) => input.selectedContextIds.includes(item.id) && item.privacyLevel !== 'local_private')
-    const contextText = context.map((item) => `## ${item.title}\n${item.content}`).join('\n\n')
+    const selection = input.selectionAnchor ? validateSelection(this.database, input.projectId, input.nodeId, input.selectionAnchor) : null
+    if (['word_inspiration', 'style_rewrite'].includes(input.taskType) && !selection) throw new Error('该任务需要有效的正文选区')
+    const built = this.buildContext(input.projectId, input.nodeId)
+    const selected = new Set(input.selectedContextIds)
+    const context = built.filter((item) => item.privacyLevel !== 'local_private' && (selected.has(item.id) || item.type === 'voice'))
+    const selectionText = selection ? `## 精确选区\n选中文本：${selection.originalText}\n前文：${selection.contextBefore || '无'}\n后文：${selection.contextAfter || '无'}` : ''
+    const contextText = [selectionText, ...context.map((item) => `## ${item.title}\n${item.content}`)].filter(Boolean).join('\n\n')
     const taskId = newId()
     const prompt = buildPrompt(input.taskType, input.instruction, contextText)
     const inputTokens = estimateTokens(prompt)
     const taskCreatedAt = nowIso()
-    this.database.db.prepare(`INSERT INTO ai_tasks(id,project_id,node_id,task_type,prompt_version,model,context_hash,input_tokens,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
-      taskId, input.projectId, input.nodeId, input.taskType, 'mvp-1', settings.model, sha256(JSON.stringify(context.map((item) => item.id))), inputTokens, 'running', taskCreatedAt,
+    const voiceHash = sha256(compileVoiceContract(this.database.getVoiceProfile(input.projectId, input.nodeId)))
+    this.database.db.prepare(`INSERT INTO ai_tasks(id,project_id,node_id,task_type,prompt_version,model,context_hash,input_tokens,status,created_at,effective_style_hash,selection_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      taskId, input.projectId, input.nodeId, input.taskType, 'style-v1', settings.model, sha256(JSON.stringify(context.map((item) => item.id))), inputTokens, 'running', taskCreatedAt, voiceHash, selection ? sha256(selection.originalText) : null,
     )
     try {
       emit({ type: 'status', stage: 'preparing', message: `正在整理 ${context.length} 项本地上下文` })
@@ -185,11 +223,11 @@ export class AiService {
       const outputTokens = estimateTokens(output)
       const outputHash = sha256(output)
       this.database.db.prepare('UPDATE ai_tasks SET output_hash=?,output_tokens=?,status=? WHERE id=?').run(outputHash, outputTokens, 'completed', taskId)
-      this.database.recordProvenanceEvent({ projectId: input.projectId, nodeId: input.nodeId, eventType: 'ai_generated', actorType: 'ai', sourceTaskId: taskId, contentHash: outputHash, metadata: { taskType: input.taskType, promptVersion: 'mvp-1', model: settings.model, status: 'completed', contextHash: sha256(JSON.stringify(context.map((item) => item.id))), inputTokens, outputTokens }, createdAt: taskCreatedAt })
+      this.database.recordProvenanceEvent({ projectId: input.projectId, nodeId: input.nodeId, eventType: 'ai_generated', actorType: 'ai', sourceTaskId: taskId, contentHash: outputHash, metadata: { taskType: input.taskType, promptVersion: 'style-v1', model: settings.model, status: 'completed', contextHash: sha256(JSON.stringify(context.map((item) => item.id))), effectiveStyleHash: voiceHash, selectionHash: selection ? sha256(selection.originalText) : null, inputTokens, outputTokens }, createdAt: taskCreatedAt })
       return { taskId, taskType: input.taskType, output, model: settings.model, inputTokens, outputTokens, estimatedCost: null }
     } catch (error) {
       this.database.db.prepare('UPDATE ai_tasks SET status=? WHERE id=?').run('failed', taskId)
-      this.database.recordProvenanceEvent({ projectId: input.projectId, nodeId: input.nodeId, eventType: 'ai_failed', actorType: 'ai', sourceTaskId: taskId, metadata: { taskType: input.taskType, promptVersion: 'mvp-1', model: settings.model, status: 'failed', inputTokens }, createdAt: taskCreatedAt })
+      this.database.recordProvenanceEvent({ projectId: input.projectId, nodeId: input.nodeId, eventType: 'ai_failed', actorType: 'ai', sourceTaskId: taskId, metadata: { taskType: input.taskType, promptVersion: 'style-v1', model: settings.model, status: 'failed', inputTokens }, createdAt: taskCreatedAt })
       throw error
     }
   }
@@ -223,7 +261,7 @@ function fitLocalContext(items: AiContextItem[], model: string): AiContextItem[]
   let remaining = /(?:^|:)4b$/i.test(model) ? 4_500 : 6_500
   const fitted: AiContextItem[] = []
   for (const item of items) {
-    const itemLimit = item.type === 'scene' ? Math.min(2_800, remaining) : Math.min(700, remaining)
+    const itemLimit = item.type === 'scene' || item.type === 'voice' ? Math.min(2_800, remaining) : Math.min(700, remaining)
     if (itemLimit <= 0) break
     const sourceContent = item.type === 'scene' && !item.content.trim() ? '（当前场景暂无正文）' : item.content
     const content = truncateToTokenBudget(sourceContent, itemLimit)
@@ -262,30 +300,44 @@ function foreshadowLabel(status: string) {
 
 function buildPrompt(taskType: string, instruction: string, context: string): string {
   const taskRules: Record<string, string> = {
+    word_inspiration: '围绕「精确选区」提供 8 个短小、可直接替换的中文表达灵感。兼顾当前文风档和前后句，不改变事实。严格每行输出“类别｜建议”，类别只能是动作、感官、搭配、比喻之一；不要编号、解释或写成段落。',
+    style_rewrite: '按「本场景文风档」改写精确选区，保留原意、事实、视角和时态。给出 3 个互斥候选，严格按“候选一：…\n候选二：…\n候选三：…”输出，不解释。',
+    idea_to_prose: '把用户写下的思路或骨架写成一小段中文正文，遵守「本场景文风档」和正典，只推进一个自然段落，不擅自增加重大设定。',
     brainstorm: '给出 3 个彼此明显不同的剧情方向。每个方向必须同时包含机会、风险，不替作者做最终决定。严格按“方向一：…\\n机会：…\\n风险：…”的三行结构依次输出；不要添加开场、总结、提醒或其他段落。',
-    continue: '续写一小段中文正文，保持人物状态与现有文风，不引入未经支持的重大设定。',
-    rewrite: '改写用户指定内容，保留事实、视角和时态，仅改善表达。',
+    continue: '续写一小段中文正文。必须遵守「本场景文风档」。不引入未经支持的重大设定。',
+    rewrite: '改写用户指定内容，保留事实、视角和时态，仅改善表达，并遵守「本场景文风档」。',
+    polish: '按「本场景文风档」润色当前场景。若用户写了思路或骨架，把思路化进词面，不要另起情节、不要扩写成新事件。只输出润色后的正文，不要解释。',
+    beat: '按「本场景文风档」只续一个戏剧节拍。若用户写了思路，按思路走，但仍只走一拍。不引入新势力、新秘密或重大设定。只输出这一拍正文，在完整句子处结束，不要解释。',
     cold_read: '以第一次阅读的读者身份，列出期待、困惑和最想继续读的点，不直接重写。',
     continuity: '只报告有证据的连续性风险，逐项给出当前句与冲突事实。',
     extract_facts: '提取本场景明确发生的事实变化，不把猜测、比喻、梦境或角色谎言当成世界真相。',
   }
   const lengthRules: Record<string, string> = {
+    word_inspiration: '每条不超过 24 个中文字符，总长不超过 260 个字符。',
+    style_rewrite: '每个候选不超过原选区长度的 1.5 倍，总长不超过 600 个中文字符。',
+    idea_to_prose: '300–500 个中文字符，在完整句子处结束。',
     brainstorm: '总长不超过 500 个中文字符；三个方向都要简洁完整。',
     continue: '续写 300–500 个中文字符，在完整句子处结束。',
     rewrite: '只给改写后的完整候选，不解释过程，总长不超过 700 个中文字符。',
+    polish: '篇幅接近原文，最多比原文多两成，且不超过 800 个中文字符。',
+    beat: '150–250 个中文字符，只推进一个节拍。',
     cold_read: '总长不超过 500 个中文字符。',
     continuity: '最多列出 6 项，总长不超过 500 个中文字符。',
     extract_facts: '最多列出 8 项，总长不超过 400 个中文字符。',
   }
-  return `你是中文长篇创作助手。作者拥有最终决定权。不要展示思考过程。\n任务：${taskRules[taskType] ?? taskType}\n输出约束：${lengthRules[taskType] ?? '简洁作答。'}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
+  return `你是中文长篇创作助手。作者拥有最终决定权。不要展示思考过程。若上下文里有「本场景文风档」，它是这一场的文笔契约，必须先遵守作者原话，再遵守旋钮。\n任务：${taskRules[taskType] ?? taskType}\n输出约束：${lengthRules[taskType] ?? '简洁作答。'}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
 }
 
 function runMockTask(taskType: string, _instruction: string, text: string): string {
+  if (taskType === 'word_inspiration') return '动作｜指节在袖中慢慢收紧\n感官｜冷意沿掌纹渗进去\n搭配｜沉默地避开视线\n比喻｜像门后压着一阵风\n动作｜呼吸顿在喉间\n感官｜听见自己的心跳\n搭配｜克制地收回手\n比喻｜如薄冰轻轻一裂'
+  if (taskType === 'style_rewrite') return '候选一：他没有回答，只把手收回袖中。\n候选二：沉默压下来，他垂下眼，指节一点点松开。\n候选三：他避开那道目光，像什么都没有听见。'
+  if (taskType === 'idea_to_prose') return '他先看见岩壁里那道过分笔直的缝。火光移过去，灰尘下面露出一小片暗色金属，没有锈，也没有矿石应有的纹理。他没有伸手，只让身后的人停下。风从更深处吹来，带着一种不属于洞穴的、微弱而均匀的震动。'
   if (taskType === 'brainstorm') return `方向一：目标受阻\n机会：迫使人物作出代价明确的选择。\n风险：冲突升级过快会压缩人物反应空间。\n\n方向二：旧线索转义\n机会：让一个旧线索产生新的解释，但不直接揭晓答案。\n风险：新解释需要与既有正典保持一致。\n\n方向三：权力关系变化\n机会：用另一人物的反应改变当前场景的权力关系。\n风险：新增反应不能替代当前人物的主动行动。`
   if (taskType === 'cold_read') return `读者期待：当前冲突会在下一步产生不可逆后果。\n可能困惑：场景中人物的即时目标还可以更明确。\n继续阅读动力：想知道刚出现的线索是否与前文事件有关。`
   if (taskType === 'continuity') return '演示模型不替代规则检查。请查看“检查”页签中的带证据结果。'
   if (taskType === 'extract_facts') return '演示模式不会虚构事实候选。请在正典页手工建立候选，或配置支持结构化输出的模型。'
-  if (taskType === 'rewrite') return text ? `${text.slice(0, 500)}\n\n（演示改写：保留事实，仅调整节奏。配置真实模型后可获得完整候选。）` : '请先在正文中写下或选择需要改写的内容。'
+  if (taskType === 'rewrite' || taskType === 'polish') return text ? `${text.slice(0, 500)}\n\n（演示润色：事实不动，只按当前文风档收紧词面。配置本地模型后可获得完整候选。）` : '先写下思路或正文，再按本场文风档润色。'
+  if (taskType === 'beat') return text ? `${text.trim().slice(-80)}\n他停了一停，把没说完的那半句咽回去。` : '先写下这一拍的思路，再按本场文风档往前走一步。'
   return text ? `${text.slice(-300)}\n\n他没有立刻回答。短暂的沉默把真正的问题推到了两人之间。` : '先写下一句话，故事就会从那里开始。'
 }
 
@@ -372,6 +424,14 @@ function slimPrompt(prompt: string) {
 }
 
 function localOutputBudget(taskType: string, retry = false): number {
-  const budget = ({ brainstorm: 320, continue: 450, rewrite: 500, cold_read: 320, continuity: 320, extract_facts: 260 } as Record<string, number>)[taskType] ?? 320
+  const budget = ({ word_inspiration: 220, style_rewrite: 420, idea_to_prose: 480, brainstorm: 320, continue: 450, rewrite: 500, polish: 520, beat: 220, cold_read: 320, continuity: 320, extract_facts: 260 } as Record<string, number>)[taskType] ?? 320
   return retry ? Math.max(160, Math.floor(budget * 0.55)) : budget
+}
+
+function validateSelection(database: AppDatabase, projectId: string, nodeId: string, anchor: TextSelectionAnchor): TextSelectionAnchor {
+  const node = database.getNode(nodeId); const scene = database.getScene(nodeId)
+  if (!node || !scene || node.projectId !== projectId || anchor.nodeId !== nodeId) throw new Error('正文选区不属于当前场景')
+  if (scene.contentHash !== anchor.sourceContentHash) throw new Error('正文已变化，请重新选择后生成')
+  if (anchor.startOffset >= anchor.endOffset || scene.plainText.slice(anchor.startOffset, anchor.endOffset) !== anchor.originalText) throw new Error('正文选区已失效，请重新选择')
+  return anchor
 }

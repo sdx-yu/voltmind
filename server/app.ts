@@ -39,6 +39,24 @@ const seriesInput = z.object({ name: z.string().trim().min(1).max(120), descript
 const seriesCanonInput = z.object({ type: z.enum(['character', 'location', 'item', 'event']), canonicalName: z.string().trim().min(1).max(100), aliases: z.array(z.string()).default([]), summary: z.string().max(3000).default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('normal') })
 const seriesOverrideInput = z.object({ canonicalName: z.string().trim().min(1).max(100), aliases: z.array(z.string()).default([]), summary: z.string().max(3000).default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('normal') })
 const styleSampleInput = z.object({ title: z.string().trim().min(1).max(120), content: z.string().trim().min(1).max(20000), guidance: z.string().max(1000).default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('author_only'), enabled: z.boolean().default(true) })
+const voiceInput = z.object({
+  family: z.enum(['natural', 'restrained', 'bright', 'delicate', 'hard', 'classical', 'uncanny', 'poetic']).optional(),
+  intensity: z.enum(['light', 'standard', 'vivid']).optional(),
+  pace: z.enum(['slow', 'balanced', 'fast']).optional(),
+  imagery: z.enum(['low', 'medium', 'high']).optional(),
+  distance: z.enum(['close', 'medium', 'distant']).optional(),
+  interiority: z.enum(['light', 'medium', 'deep']).optional(),
+  intents: z.array(z.enum(['advance_conflict', 'build_pressure', 'ease_pace', 'deepen_emotion', 'build_suspense', 'strengthen_image', 'drive_dialogue', 'stay_objective'])).max(3).optional(),
+  register: z.enum(['literary', 'balanced', 'vernacular']).optional(),
+  sentence: z.enum(['short', 'mixed', 'long']).optional(),
+  dialogue: z.enum(['sparse', 'balanced', 'heavy']).optional(),
+  allusion: z.enum(['none', 'light', 'dense']).optional(),
+  slang: z.enum(['avoid', 'light', 'ok']).optional(),
+  authorNote: z.string().max(400).optional(),
+})
+const selectionAnchorInput = z.object({ nodeId: z.string(), sourceContentHash: z.string().length(64), startOffset: z.number().int().nonnegative(), endOffset: z.number().int().nonnegative(), originalText: z.string().min(1).max(5000), contextBefore: z.string().max(200), contextAfter: z.string().max(200) })
+const aiTaskInput = z.object({ projectId: z.string(), nodeId: z.string(), taskType: z.enum(['word_inspiration', 'style_rewrite', 'idea_to_prose', 'polish', 'beat', 'brainstorm', 'continue', 'rewrite', 'cold_read', 'continuity', 'extract_facts']), instruction: z.string().default(''), selectedContextIds: z.array(z.string()), selectionAnchor: selectionAnchorInput.optional() })
+const characterVoiceInput = z.object({ register: z.enum(['literary', 'balanced', 'vernacular']).optional(), sentence: z.enum(['short', 'mixed', 'long']).optional(), directness: z.enum(['indirect', 'balanced', 'direct']).optional(), emotion: z.enum(['restrained', 'balanced', 'expressive']).optional(), signature: z.string().max(200).optional(), avoid: z.string().max(200).optional() })
 const reviewPhraseInput = z.object({ recoveryPhrase: z.string().min(1).max(200) })
 const reviewPackageInput = reviewPhraseInput.extend({ package: z.unknown() })
 
@@ -229,6 +247,20 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   }))
   app.put('/api/series-canon/:id/overrides/:projectId', route(async (req, res) => res.json(database.upsertSeriesCanonOverride(param(req, 'id'), param(req, 'projectId'), seriesOverrideInput.parse(req.body)))))
   app.delete('/api/series-canon/:id/overrides/:projectId', route(async (req, res) => res.json({ ok: database.deleteSeriesCanonOverride(param(req, 'id'), param(req, 'projectId')) })))
+  app.get('/api/projects/:projectId/scenes/:nodeId/voice', route(async (req, res) => res.json(database.getVoiceProfile(param(req, 'projectId'), param(req, 'nodeId')))))
+  app.put('/api/projects/:projectId/scenes/:nodeId/voice', route(async (req, res) => res.json(database.saveVoiceProfile(param(req, 'projectId'), param(req, 'nodeId'), voiceInput.parse(req.body)))))
+  app.put('/api/projects/:id/voice-default', route(async (req, res) => res.json(database.saveProjectVoiceDefault(param(req, 'id'), voiceInput.parse(req.body)))))
+  app.post('/api/projects/:id/voice-analyses', route(async (req, res) => {
+    const input = z.object({ sampleIds: z.array(z.string()).min(1).max(20) }).parse(req.body)
+    res.status(201).json(database.analyzeStyleSamples(param(req, 'id'), input.sampleIds))
+  }))
+  app.get('/api/projects/:id/voice-analyses', route(async (req, res) => res.json(database.listStyleAnalyses(param(req, 'id')))))
+  app.post('/api/projects/:id/voice-analyses/:runId/confirm', route(async (req, res) => res.json(database.confirmStyleAnalysis(param(req, 'id'), param(req, 'runId'), voiceInput.parse(req.body ?? {})))))
+  app.get('/api/projects/:projectId/scenes/:nodeId/voice-consistency', route(async (req, res) => res.json(database.getVoiceConsistency(param(req, 'projectId'), param(req, 'nodeId')))))
+  app.get('/api/projects/:projectId/characters/:entityId/voice', route(async (req, res) => res.json(database.getCharacterVoice(param(req, 'projectId'), param(req, 'entityId')))))
+  app.put('/api/projects/:projectId/characters/:entityId/voice', route(async (req, res) => res.json(database.saveCharacterVoice(param(req, 'projectId'), param(req, 'entityId'), characterVoiceInput.parse(req.body)))))
+  app.get('/api/projects/:id/voice-preferences', route(async (req, res) => res.json(database.listVoicePreferences(param(req, 'id')))))
+  app.delete('/api/projects/:id/voice-preferences', route(async (req, res) => res.json({ ok: database.clearVoicePreferences(param(req, 'id')) })))
   app.get('/api/projects/:id/style-samples', route(async (req, res) => res.json(database.listStyleSamples(param(req, 'id'), req.query.trash === '1'))))
   app.post('/api/projects/:id/style-samples', route(async (req, res) => res.status(201).json(database.createStyleSample({ projectId: param(req, 'id'), actorProjectId: param(req, 'id'), ...styleSampleInput.parse(req.body) }))))
   app.post('/api/series/:id/style-samples', route(async (req, res) => {
@@ -334,6 +366,8 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     const task = database.db.prepare('SELECT * FROM ai_tasks WHERE id=? AND project_id=? AND node_id=?').get(input.taskId, projectId, input.nodeId) as Record<string, unknown> | undefined
     if (!task) return res.status(404).json({ error: 'AI task not found' })
     const eventType = input.decision === 'accepted' ? 'ai_accepted' : input.decision === 'rejected' ? 'ai_rejected' : 'ai_undone'
+    const family = database.getVoiceProfile(projectId, input.nodeId).family
+    database.recordVoicePreference(projectId, family, String(task.task_type), input.decision)
     res.status(201).json(database.recordProvenanceEvent({ projectId, nodeId: input.nodeId, eventType, actorType: 'human', sourceTaskId: input.taskId, contentHash: String(task.output_hash ?? ''), metadata: { decision: input.decision, taskType: String(task.task_type), model: String(task.model) } }))
   }))
   app.post('/api/projects/:id/provenance/exports', route(async (req, res) => {
@@ -566,11 +600,11 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.post('/api/ai/warm', route(async (_req, res) => res.json(await ai.warmModel())))
   app.get('/api/projects/:projectId/scenes/:nodeId/context', route(async (req, res) => res.json(ai.buildContext(param(req, 'projectId'), param(req, 'nodeId')))))
   app.post('/api/ai/tasks', route(async (req, res) => {
-    const input = z.object({ projectId: z.string(), nodeId: z.string(), taskType: z.enum(['brainstorm', 'continue', 'rewrite', 'cold_read', 'continuity', 'extract_facts']), instruction: z.string().default(''), selectedContextIds: z.array(z.string()) }).parse(req.body)
+    const input = aiTaskInput.parse(req.body)
     res.json(await ai.runTask(input))
   }))
   app.post('/api/ai/tasks/stream', async (req, res) => {
-    const parsed = z.object({ projectId: z.string(), nodeId: z.string(), taskType: z.enum(['brainstorm', 'continue', 'rewrite', 'cold_read', 'continuity', 'extract_facts']), instruction: z.string().default(''), selectedContextIds: z.array(z.string()) }).safeParse(req.body)
+    const parsed = aiTaskInput.safeParse(req.body)
     if (!parsed.success) return res.status(400).json({ error: 'AI 任务参数不完整' })
     res.status(200); res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8'); res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Accel-Buffering', 'no'); res.flushHeaders()
     const controller = new AbortController(); const abortIfOpen = () => { if (!res.writableEnded) controller.abort() }
@@ -631,7 +665,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message === 'Invalid input' ? '请求格式不正确' : error.issues[0]?.message, details: error.issues })
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写|strict continuation|consent receipt changed|was deleted|cannot change waves|target is already full|segment quota is already full|Invalid research wave transition|Closed research wave/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|semantic verification|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project|frozen wave window|accepts only|not accepting packages|仅允许|不能为空/i.test(message) ? 400 : 500
+    const status = /not found/i.test(message) ? 404 : /overlap|already resolved|already has an active|already active|already exists|ID collision|hash collision|outside this board period|title conflict|preview is stale|already reverted|Canon changed|必须明确选择|不能静默改写|strict continuation|consent receipt changed|was deleted|cannot change waves|target is already full|segment quota is already full|Invalid research wave transition|Closed research wave|正文已变化|正文选区/i.test(message) ? 409 : /恢复短语|接力包|内容寻址|来源链校验|integrity check|no longer matches|image type|image dimensions|real PNG|real JPEG|Sprint event|Sprint result|Template structure hash|Template package hash|Research package|semantic verification|tampered/i.test(message) ? 422 : /capability grant required|capability was not requested|package is not enabled|local_private|Research consent is required/i.test(message) ? 403 : /must be|required|invalid|too many|unsupported|another project|frozen wave window|accepts only|not accepting packages|仅允许|不能为空/i.test(message) ? 400 : 500
     return res.status(status).json({ error: message })
   })
   return { app, database, ai, sync, reviews, sprints, templates, visuals, research, researchCohort, researchWaves }
@@ -710,7 +744,7 @@ function requireFound<T>(value: T | null, label: string): T {
 }
 
 const backupPayloadSchema = z.object({
-  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), profileFields: z.array(z.any()).optional(), relationships: z.array(z.any()).optional(), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
+  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), profileFields: z.array(z.any()).optional(), relationships: z.array(z.any()).optional(), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), voice: z.object({ projectDefault: z.any().nullable(), profiles: z.array(z.any()), analyses: z.array(z.any()).optional(), characterProfiles: z.array(z.any()).optional(), preferences: z.array(z.any()).optional() }).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
 })
 const backupSchema = z.object({ format: z.literal('bbd-backup-v2'), checksum: z.string().length(64), payload: backupPayloadSchema }).superRefine((archive, context) => {
   if (sha256(JSON.stringify(archive.payload)) !== archive.checksum) context.addIssue({ code: 'custom', message: '备份校验失败，文件可能已损坏或被修改' })
@@ -738,8 +772,12 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const series = database.getSeriesForProject(projectId)
   const seriesBundle = series ? { series: { name: series.name, description: series.description }, canon: database.listSeriesCanon(series.id, projectId, true) } : null
   const styleSamples = database.listStyleSamples(projectId, true)
+  const voice = {
+    projectDefault: database.getProjectVoiceDefault(projectId), profiles: database.listVoiceProfiles(projectId),
+    analyses: database.listStyleAnalyses(projectId), characterProfiles: database.listCharacterVoices(projectId), preferences: database.listVoicePreferences(projectId),
+  }
   const delivery = { readAloudPreferences: database.getReadAloudPreferences(projectId), ruleOverrides: database.listDeliveryRuleOverrides(projectId), checkRuns: database.listDeliveryCheckRuns(projectId) }
-  const aiTasks = database.db.prepare(`SELECT id,project_id AS projectId,node_id AS nodeId,task_type AS taskType,prompt_version AS promptVersion,model,context_hash AS contextHash,output_hash AS outputHash,input_tokens AS inputTokens,output_tokens AS outputTokens,status,created_at AS createdAt FROM ai_tasks WHERE project_id=? ORDER BY created_at,rowid`).all(projectId)
+  const aiTasks = database.db.prepare(`SELECT id,project_id AS projectId,node_id AS nodeId,task_type AS taskType,prompt_version AS promptVersion,model,context_hash AS contextHash,output_hash AS outputHash,input_tokens AS inputTokens,output_tokens AS outputTokens,status,created_at AS createdAt,effective_style_hash AS effectiveStyleHash,selection_hash AS selectionHash FROM ai_tasks WHERE project_id=? ORDER BY created_at,rowid`).all(projectId)
   const provenance = { events: database.listProvenanceEvents(projectId), exports: database.listProvenanceExports(projectId) }
   const mobileInbox = database.listMobileInbox(projectId).filter((item) => item.projectId === projectId)
   const review = database.listReviewSessions(projectId).filter((session) => session.projectId === projectId).map((session) => ({ id: session.id, projectTitle: session.projectTitle, role: session.role, reviewerName: session.reviewerName, sceneIds: session.sceneIds, scenes: session.scenes, includeProvenance: session.includeProvenance, status: session.status, expiresAt: session.expiresAt, createdAt: session.createdAt, feedback: session.feedback }))
@@ -748,14 +786,14 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const sprint = { sessions: sprintSessions, boards: sprintBoards }
   const templateBundle = templates.exportProjectBundle(projectId)
   const visualBundle = visuals.exportProjectBundle(projectId)
-  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, profileFields, relationships, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
+  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, profileFields, relationships, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, voice, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
   return { format: 'bbd-backup-v2', checksum: sha256(JSON.stringify(payload)), payload }
 }
 
 function importProject(database: AppDatabase, templates: TemplateService, visuals: VisualService, archive: Backup) {
   const source = archive.payload
   const project = database.createProject(`${source.project.title}（恢复）`, source.project.description)
-  const idMap = new Map<string, string>(); const entityMap = new Map<string, string>(); const relationshipMap = new Map<string, string>(); const mentionMap = new Map<string, string>(); const candidateMap = new Map<string, string>(); const taskMap = new Map<string, string>(); const revisionMap = new Map<string, string>()
+  const idMap = new Map<string, string>(); const entityMap = new Map<string, string>(); const relationshipMap = new Map<string, string>(); const mentionMap = new Map<string, string>(); const candidateMap = new Map<string, string>(); const taskMap = new Map<string, string>(); const revisionMap = new Map<string, string>(); const styleSampleMap = new Map<string, string>()
   try {
     const defaults = database.listNodes(project.id); const book = defaults.find((item) => item.type === 'book')!
     for (const node of defaults.filter((item) => item.type === 'scene')) { database.db.prepare('DELETE FROM scene_search WHERE node_id=?').run(node.id); database.db.prepare('DELETE FROM scene_documents WHERE node_id=?').run(node.id) }
@@ -776,8 +814,8 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
     for (const node of source.nodes as any[]) if (node.povEntityId && idMap.has(node.id)) database.updateNode(idMap.get(node.id)!, { povEntityId: entityMap.get(node.povEntityId) ?? null })
     for (const task of (source.aiTasks ?? []) as any[]) {
       const taskId = randomBytes(16).toString('hex'); taskMap.set(String(task.id), taskId)
-      database.db.prepare(`INSERT INTO ai_tasks(id,project_id,node_id,task_type,prompt_version,model,context_hash,output_hash,input_tokens,output_tokens,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        taskId, project.id, task.nodeId ? idMap.get(String(task.nodeId)) ?? null : null, task.taskType, task.promptVersion, task.model, task.contextHash, task.outputHash ?? null, task.inputTokens ?? 0, task.outputTokens ?? 0, task.status, task.createdAt,
+      database.db.prepare(`INSERT INTO ai_tasks(id,project_id,node_id,task_type,prompt_version,model,context_hash,output_hash,input_tokens,output_tokens,status,created_at,effective_style_hash,selection_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        taskId, project.id, task.nodeId ? idMap.get(String(task.nodeId)) ?? null : null, task.taskType, task.promptVersion, task.model, task.contextHash, task.outputHash ?? null, task.inputTokens ?? 0, task.outputTokens ?? 0, task.status, task.createdAt, task.effectiveStyleHash ?? null, task.selectionHash ?? null,
       )
     }
     for (const oldNode of source.nodes.filter((item: any) => item.type === 'scene') as any[]) {
@@ -830,8 +868,29 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
     for (const sample of (source.styleSamples ?? []) as any[]) {
       if (sample.scope === 'series' && !restoredSeriesId) continue
       const created = database.createStyleSample({ projectId: sample.scope === 'project' ? project.id : null, seriesId: sample.scope === 'series' ? restoredSeriesId : null, actorProjectId: project.id, title: sample.title, content: sample.content, guidance: sample.guidance ?? '', privacyLevel: sample.privacyLevel ?? 'author_only', enabled: sample.enabled !== false })
+      styleSampleMap.set(String(sample.id), created.id)
       if (sample.scope === 'series' && sample.effectiveEnabled !== sample.enabled) database.setStyleSamplePreference(created.id, project.id, Boolean(sample.effectiveEnabled))
       if (sample.deletedAt) database.updateStyleSample(created.id, project.id, { deletedAt: nowIso() })
+    }
+    for (const analysis of source.voice?.analyses ?? []) {
+      const sampleIds = (analysis.sampleIds ?? []).map((id: string) => styleSampleMap.get(String(id))).filter(Boolean) as string[]
+      if (!sampleIds.length) continue
+      const restored = database.analyzeStyleSamples(project.id, sampleIds)
+      if (analysis.confirmedAt) database.confirmStyleAnalysis(project.id, restored.id, analysis.suggested ?? {})
+    }
+    if (source.voice?.projectDefault) database.saveProjectVoiceDefault(project.id, source.voice.projectDefault)
+    for (const profile of source.voice?.profiles ?? []) {
+      const nodeId = idMap.get(String(profile.nodeId))
+      if (nodeId) database.saveVoiceProfile(project.id, nodeId, profile)
+    }
+    for (const profile of source.voice?.characterProfiles ?? []) {
+      const entityId = entityMap.get(String(profile.entityId))
+      if (entityId) database.saveCharacterVoice(project.id, entityId, profile)
+    }
+    for (const preference of source.voice?.preferences ?? []) {
+      for (let index = 0; index < Number(preference.accepted ?? 0); index += 1) database.recordVoicePreference(project.id, preference.family, preference.taskType, 'accepted')
+      for (let index = 0; index < Number(preference.rejected ?? 0); index += 1) database.recordVoicePreference(project.id, preference.family, preference.taskType, 'rejected')
+      for (let index = 0; index < Number(preference.undone ?? 0); index += 1) database.recordVoicePreference(project.id, preference.family, preference.taskType, 'undone')
     }
     if (source.delivery?.readAloudPreferences) database.saveReadAloudPreferences(project.id, { voiceUri: source.delivery.readAloudPreferences.voiceUri ?? '', rate: source.delivery.readAloudPreferences.rate ?? 1, pitch: source.delivery.readAloudPreferences.pitch ?? 1 })
     for (const override of source.delivery?.ruleOverrides ?? []) {
@@ -931,6 +990,11 @@ function cleanupProject(database: AppDatabase, projectId: string) {
     database.db.prepare('DELETE FROM sync_project_configs WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM provenance_exports WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM provenance_events WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM voice_preference_stats WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM style_analysis_runs WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM character_voice_profiles WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM scene_voice_profiles WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM project_voice_defaults WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM ai_tasks WHERE project_id=?').run(projectId)
     const seriesId = (database.db.prepare('SELECT series_id FROM series_projects WHERE project_id=?').get(projectId) as any)?.series_id as string | undefined
     database.db.prepare('DELETE FROM delivery_check_runs WHERE project_id=?').run(projectId)

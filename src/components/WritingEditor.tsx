@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import { Bold, Heading2, Italic, List, ListOrdered, Quote, Redo2, Undo2 } from 'lucide-react'
-import type { ManuscriptNode, SceneDocument } from '../../shared/types'
+import { Bold, Heading2, Italic, List, ListOrdered, Quote, Redo2, Sparkles, Undo2 } from 'lucide-react'
+import type { EditorAiRequest, ManuscriptNode, SceneDocument, TextSelectionAnchor } from '../../shared/types'
 import { api } from '../lib/api'
 import { sceneStatusLabel } from '../lib/status'
 import { countWords } from '../lib/text'
@@ -24,11 +25,13 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
   const [saveState, setSaveState] = useState<EditorSaveState>('loading')
   const [words, setWords] = useState(node.wordCount)
   const loadingRef = useRef(true)
+  const documentRef = useRef<SceneDocument | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveStateRef = useRef(saveState)
   const activeNodeRef = useRef(node.id)
   const nextSourceRef = useRef<'human' | 'ai_accepted'>('human')
   const nextTaskRef = useRef<string | null>(null)
+  const aiSelectionRef = useRef<{ anchor: TextSelectionAnchor; from: number; to: number } | null>(null)
   useEffect(() => { saveStateRef.current = saveState }, [saveState])
 
   const editor = useEditor({
@@ -39,21 +42,22 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
     onUpdate: ({ editor }) => {
       if (loadingRef.current) return
       setWords(countWords(editor.getText()))
-      setSaveState('dirty')
+      saveStateRef.current = 'dirty'; setSaveState('dirty')
       if (saveTimer.current) clearTimeout(saveTimer.current)
       const nodeId = activeNodeRef.current
       saveTimer.current = setTimeout(() => void persist(nodeId, editor.getJSON() as Record<string, unknown>, editor.getText(), nextSourceRef.current, nextTaskRef.current), 900)
     },
   })
 
-  async function persist(nodeId: string, json: Record<string, unknown>, text: string, sourceType: 'human' | 'ai_accepted' = 'human', sourceTaskId: string | null = null) {
-    setSaveState('saving')
+  async function persist(nodeId: string, json: Record<string, unknown>, text: string, sourceType: 'human' | 'ai_accepted' = 'human', sourceTaskId: string | null = null): Promise<SceneDocument | null> {
+    saveStateRef.current = 'saving'; setSaveState('saving')
     try {
       const saved = await api.saveScene(nodeId, json, text, sourceType, sourceTaskId)
       if (activeNodeRef.current === nodeId) {
-        setDocument(saved); setSaveState('saved'); onSaved(saved, countWords(text)); nextSourceRef.current = 'human'; nextTaskRef.current = null
+        documentRef.current = saved; saveStateRef.current = 'saved'; setDocument(saved); setSaveState('saved'); onSaved(saved, countWords(text)); nextSourceRef.current = 'human'; nextTaskRef.current = null
       }
-    } catch (error) { setSaveState('error'); notify('error', error instanceof Error ? error.message : '保存失败') }
+      return saved
+    } catch (error) { saveStateRef.current = 'error'; setSaveState('error'); notify('error', error instanceof Error ? error.message : '保存失败'); return null }
   }
 
   useEffect(() => {
@@ -64,10 +68,10 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
     if (saveTimer.current) clearTimeout(saveTimer.current)
     void api.getScene(node.id).then((next) => {
       if (cancelled || !editor) return
-      setDocument(next)
+      documentRef.current = next; setDocument(next)
       editor.commands.setContent(next.contentJson)
       setWords(countWords(next.plainText))
-      setSaveState('saved')
+      saveStateRef.current = 'saved'; setSaveState('saved')
       setTimeout(() => { loadingRef.current = false }, 0)
     }).catch((error) => notify('error', error instanceof Error ? error.message : '场景加载失败'))
     return () => { cancelled = true }
@@ -88,6 +92,54 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
     window.addEventListener('bbd:undo-ai', undoAi)
     return () => { window.removeEventListener('bbd:accept-ai', acceptAi); window.removeEventListener('bbd:undo-ai', undoAi) }
   }, [editor])
+
+  async function openSelectionAi(taskType: EditorAiRequest['taskType']) {
+    if (!editor || editor.state.selection.empty) return
+    const { from, to } = editor.state.selection
+    const selectedText = editor.state.doc.textBetween(from, to, '\n', '\n').trim()
+    if (!selectedText) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    const plainText = editor.getText()
+    const saved = saveStateRef.current === 'dirty'
+      ? await persist(activeNodeRef.current, editor.getJSON() as Record<string, unknown>, plainText, nextSourceRef.current, nextTaskRef.current)
+      : documentRef.current
+    if (!saved) return
+    const approximate = editor.state.doc.textBetween(0, from, '\n', '\n').length
+    const startOffset = nearestOccurrence(plainText, selectedText, approximate)
+    if (startOffset < 0) { notify('error', '无法定位当前选区，请重新选择后再试'); return }
+    const selection: TextSelectionAnchor = {
+      nodeId: activeNodeRef.current,
+      sourceContentHash: saved.contentHash,
+      startOffset,
+      endOffset: startOffset + selectedText.length,
+      originalText: selectedText,
+      contextBefore: plainText.slice(Math.max(0, startOffset - 80), startOffset),
+      contextAfter: plainText.slice(startOffset + selectedText.length, startOffset + selectedText.length + 80),
+    }
+    aiSelectionRef.current = { anchor: selection, from, to }
+    window.dispatchEvent(new CustomEvent<EditorAiRequest>('bbd:open-ai-selection', { detail: { taskType, selection } }))
+  }
+
+  useEffect(() => {
+    const replaceAi = (event: Event) => {
+      const detail = (event as CustomEvent<{ text: string; taskId: string; selection: TextSelectionAnchor; applied?: boolean }>).detail
+      if (!detail?.text || !detail.selection || !editor || detail.selection.nodeId !== activeNodeRef.current) return
+      const plainText = editor.getText()
+      const { startOffset, endOffset, originalText } = detail.selection
+      if (saveStateRef.current !== 'saved' || documentRef.current?.contentHash !== detail.selection.sourceContentHash || plainText.slice(startOffset, endOffset) !== originalText) {
+        notify('error', '原选区已发生变化，为避免误改，候选没有写入正文')
+        return
+      }
+      const retained = aiSelectionRef.current
+      const exactRange = retained && retained.anchor.sourceContentHash === detail.selection.sourceContentHash && retained.anchor.startOffset === startOffset && editor.state.doc.textBetween(retained.from, retained.to, '\n', '\n').trim() === originalText
+        ? { from: retained.from, to: retained.to }
+        : { from: documentPosition(editor.state.doc, startOffset), to: documentPosition(editor.state.doc, endOffset) }
+      nextSourceRef.current = 'ai_accepted'; nextTaskRef.current = detail.taskId
+      detail.applied = editor.chain().focus().setTextSelection(exactRange).insertContent(detail.text).run()
+    }
+    window.addEventListener('bbd:replace-ai', replaceAi)
+    return () => window.removeEventListener('bbd:replace-ai', replaceAi)
+  }, [editor, notify])
 
   useEffect(() => {
     const flush = (event: Event) => {
@@ -121,9 +173,26 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
       <ToolGroup label="段落"><IconButton size="small" selected={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} label="无序列表"><List size={16} /></IconButton><IconButton size="small" selected={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} label="有序列表"><ListOrdered size={16} /></IconButton><IconButton size="small" selected={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} label="引用"><Quote size={16} /></IconButton></ToolGroup>
       <ToolGroup label="历史"><IconButton size="small" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} label="撤销"><Undo2 size={16} /></IconButton><IconButton size="small" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} label="重做"><Redo2 size={16} /></IconButton></ToolGroup>
     </Toolbar>
-    <div className="paper-scroll"><EditorContent editor={editor} /></div>
+    <div className="paper-scroll">
+      <BubbleMenu editor={editor} shouldShow={({ editor: activeEditor }) => !activeEditor.state.selection.empty} options={{ placement: 'top' }}>
+        <div className="selection-ai-menu" role="toolbar" aria-label="选中文字的 AI 工具">
+          <button type="button" onClick={() => void openSelectionAi('word_inspiration')}><Sparkles size={14}/>词语灵感</button>
+          <button type="button" onClick={() => void openSelectionAi('style_rewrite')}><PenLineIcon/>按文风改写</button>
+        </div>
+      </BubbleMenu>
+      <EditorContent editor={editor} />
+    </div>
     <footer className="editor-footer"><span>{document ? `版本 ${document.contentHash.slice(0, 7)}` : '加载中'}</span><span>离线可写 · 自动留痕</span></footer>
   </section>
+}
+
+function PenLineIcon() { return <span aria-hidden="true">✎</span> }
+
+function nearestOccurrence(text: string, needle: string, approximate: number) {
+  const matches: number[] = []
+  let offset = text.indexOf(needle)
+  while (offset >= 0) { matches.push(offset); offset = text.indexOf(needle, offset + 1) }
+  return matches.sort((a, b) => Math.abs(a - approximate) - Math.abs(b - approximate))[0] ?? -1
 }
 
 function documentPosition(doc: { descendants: (callback: (node: { isText: boolean; text?: string | null }, pos: number) => boolean | void) => void; content: { size: number } }, offset: number) {

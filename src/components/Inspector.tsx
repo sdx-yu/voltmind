@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { diffWords } from 'diff'
-import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LoaderCircle, LockKeyhole, MessageSquareText, Plus, RotateCcw, ScanSearch, Sparkles, Square, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
-import type { AiContextItem, AiTaskResult, CanonDetection, ContinuityIssue, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision } from '../../shared/types'
+import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LoaderCircle, LockKeyhole, MessageSquareText, PenLine, Plus, RotateCcw, ScanSearch, Sparkles, Square, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
+import type { AiContextItem, AiTaskResult, CanonDetection, CharacterVoiceKnobs, CharacterVoiceProfile, ContinuityIssue, EditorAiRequest, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision, SceneVoiceProfile, TextSelectionAnchor, VoiceConsistencyReport, VoiceKnobs, VoicePreferenceSummary } from '../../shared/types'
+import { applyStyleFamily, compileVoiceContract, voiceKnobLabels, voiceSummary } from '../../shared/voice'
 import { api } from '../lib/api'
 import { candidateUnits, splitBrainstormDirections, splitSentenceCandidates } from '../lib/aiCandidates'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -31,18 +32,28 @@ interface Props {
 
 export function Inspector({ projectId, node, entities, contentVersion = 0, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('scene')
+  const [pendingAiRequest, setPendingAiRequest] = useState<EditorAiRequest | null>(null)
+  useEffect(() => {
+    const openSelection = (event: Event) => {
+      const request = (event as CustomEvent<EditorAiRequest>).detail
+      if (!request?.selection || request.selection.nodeId !== node.id) return
+      setPendingAiRequest(request); setTab('ai')
+    }
+    window.addEventListener('bbd:open-ai-selection', openSelection)
+    return () => window.removeEventListener('bbd:open-ai-selection', openSelection)
+  }, [node.id])
   return <aside className="inspector" aria-label="场景检查器">
     <div className="ui-inspector-tabbar"><Tabs items={TABS} value={tab} onChange={(value) => setTab(value as Tab)} label="检查器分页" />{onClose && <IconButton size="small" className="inspector-close" onClick={onClose} label="关闭检查器"><X size={16} /></IconButton>}</div>
     <div className="inspector-scroll">
-      {tab === 'scene' && <ScenePanel node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} notify={notify} />}
+      {tab === 'scene' && <ScenePanel projectId={projectId} node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} notify={notify} />}
       {tab === 'canon' && <CanonPanel projectId={projectId} node={node} entities={entities} contentVersion={contentVersion} refreshEntities={refreshEntities} notify={notify} />}
       {tab === 'check' && <CheckPanel node={node} contentVersion={contentVersion} notify={notify} />}
-      {tab === 'ai' && <AiPanel projectId={projectId} node={node} notify={notify} />}
+      {tab === 'ai' && <AiPanel projectId={projectId} node={node} notify={notify} pendingRequest={pendingAiRequest} onRequestConsumed={() => setPendingAiRequest(null)} />}
     </div>
   </aside>
 }
 
-function ScenePanel({ node, entities, onUpdateNode, onRefreshTree, onReloadScene, notify }: Pick<Props, 'node' | 'entities' | 'onUpdateNode' | 'onRefreshTree' | 'onReloadScene' | 'notify'>) {
+function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, onReloadScene, notify }: Pick<Props, 'projectId' | 'node' | 'entities' | 'onUpdateNode' | 'onRefreshTree' | 'onReloadScene' | 'notify'>) {
   const [revisions, setRevisions] = useState<Revision[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [previewRevision, setPreviewRevision] = useState<Revision | null>(null)
@@ -69,11 +80,80 @@ function ScenePanel({ node, entities, onUpdateNode, onRefreshTree, onReloadScene
       <SelectField label="视角人物" value={node.povEntityId ?? ''} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
       {node.status !== 'complete' && <button className="button primary full" onClick={() => void complete()}><Check size={16} />完成本场景并提取事实</button>}
     </section>
+    <VoicePanel projectId={projectId} nodeId={node.id} entities={entities} notify={notify} />
     <section className="inspector-section"><button className="section-toggle" onClick={() => setShowHistory(!showHistory)}><span><FileClock size={15} />版本历史</span><ChevronDown className={showHistory ? 'rotated' : ''} size={16} /></button>
       {showHistory && <><div className="revision-filters" aria-label="版本来源筛选">{([['all','全部'],['human','人工'],['ai','AI'],['system','导入/恢复']] as const).map(([value,label]) => <button key={value} className={historyFilter === value ? 'active' : ''} onClick={() => setHistoryFilter(value)}>{label}</button>)}</div><div className="revision-list">{visibleRevisions.length === 0 ? <p className="muted">当前筛选下没有版本。</p> : visibleRevisions.map((revision) => <div key={revision.id} className="revision-item"><div><strong>{new Date(revision.createdAt).toLocaleString('zh-CN')}</strong><span>{sourceLabel(revision.provenanceLabel)} · {revision.plainText.length} 字符</span></div><span className="revision-actions"><button className="icon-button" onClick={() => setPreviewRevision(revision)} aria-label="预览版本差异"><Eye size={14}/></button><button className="icon-button" onClick={() => void restore(revision)} aria-label="恢复此版本"><RotateCcw size={14} /></button></span></div>)}</div></>}
       {previewRevision && <div className="revision-preview"><header><strong>与父版本的差异</strong><button onClick={() => setPreviewRevision(null)}>关闭</button></header><small>{sourceLabel(previewRevision.provenanceLabel)} · 内容哈希 {previewRevision.contentHash.slice(0, 12)}</small><p>{diffWords(revisions.find((item) => item.id === previewRevision.parentRevisionId)?.plainText ?? '', previewRevision.plainText).map((part, index) => <span key={index} className={part.added ? 'preview-added' : part.removed ? 'preview-removed' : ''}>{part.value}</span>)}</p><button className="button secondary full" onClick={() => void restore(previewRevision)}><RotateCcw size={14}/>恢复为新版本</button></div>}
     </section>
   </div>
+}
+
+function VoicePanel({ projectId, nodeId, entities, notify }: { projectId: string; nodeId: string; entities: Entity[]; notify: Props['notify'] }) {
+  const [profile, setProfile] = useState<SceneVoiceProfile | null>(null)
+  const [preferences, setPreferences] = useState<VoicePreferenceSummary[]>([])
+  const [characterId, setCharacterId] = useState('')
+  const [characterVoice, setCharacterVoice] = useState<CharacterVoiceProfile | null>(null)
+  const labels = voiceKnobLabels()
+  useEffect(() => {
+    void Promise.all([api.getVoiceProfile(projectId, nodeId), api.listVoicePreferences(projectId)]).then(([next, nextPreferences]) => { setProfile(next); setPreferences(nextPreferences) }).catch((error) => notify('error', error instanceof Error ? error.message : '文风档加载失败'))
+  }, [projectId, nodeId, notify])
+  async function patch(knobs: Partial<VoiceKnobs>) {
+    try { setProfile(await api.saveVoiceProfile(projectId, nodeId, knobs)) }
+    catch (error) { notify('error', error instanceof Error ? error.message : '文风档保存失败') }
+  }
+  async function makeDefault() {
+    if (!profile) return
+    try { setProfile(await api.saveProjectVoiceDefault(projectId, profile)); notify('success', '已把当前旋钮和作者原话设为本书默认') }
+    catch (error) { notify('error', error instanceof Error ? error.message : '本书默认保存失败') }
+  }
+  async function chooseFamily(value: VoiceKnobs['family']) { if (profile) await patch(applyStyleFamily(value, profile)) }
+  async function toggleIntent(value: VoiceKnobs['intents'][number]) {
+    if (!profile) return
+    const intents = profile.intents.includes(value) ? profile.intents.filter((item) => item !== value) : [...profile.intents, value].slice(-3)
+    await patch({ intents })
+  }
+  async function loadCharacter(value: string) {
+    setCharacterId(value)
+    if (!value) { setCharacterVoice(null); return }
+    try { setCharacterVoice(await api.getCharacterVoice(projectId, value)) } catch (error) { notify('error', error instanceof Error ? error.message : '人物口吻加载失败') }
+  }
+  async function patchCharacter(value: Partial<CharacterVoiceKnobs>) {
+    if (!characterId) return
+    try { setCharacterVoice(await api.saveCharacterVoice(projectId, characterId, value)) } catch (error) { notify('error', error instanceof Error ? error.message : '人物口吻保存失败') }
+  }
+  async function clearPreferences() { await api.clearVoicePreferences(projectId); setPreferences([]); notify('success', '本机文风偏好统计已清空') }
+  if (!profile) return null
+  const preview = compileVoiceContract(profile).split('\n').filter((line) => line.startsWith('- ')).slice(0, 4)
+  const preferenceTaskLabels: Record<string, string> = {
+    brainstorm: '脑暴', continue: '续写', rewrite: '改写', cold_read: '冷读',
+    idea_to_prose: '思路成文', style_rewrite: '按文风改写', word_inspiration: '词语灵感',
+  }
+  return <section className="inspector-section voice-panel"><header><span className="section-icon"><PenLine size={15} /></span><h3>本场文风档</h3></header>
+    <p className="muted">{profile.sourceLabel} · {voiceSummary(profile)}。{profile.inherited && profile.source === 'previous' ? '修改后只变成这一场自己的档。' : ''}</p>
+    <SelectField label="主风格" value={profile.family} onValueChange={(value) => void chooseFamily(value as VoiceKnobs['family'])}>{Object.entries(labels.family).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
+    <div className="voice-primary-grid"><SelectField label="调整强度" value={profile.intensity} onValueChange={(value) => void patch({ intensity: value as VoiceKnobs['intensity'] })}>{Object.entries(labels.intensity).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="节奏" value={profile.pace} onValueChange={(value) => void patch({ pace: value as VoiceKnobs['pace'] })}>{Object.entries(labels.pace).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div>
+    <fieldset className="voice-intents"><legend>场景意图（最多 3 项）</legend>{Object.entries(labels.intents).map(([value, label]) => <button type="button" key={value} className={profile.intents.includes(value as VoiceKnobs['intents'][number]) ? 'active' : ''} onClick={() => void toggleIntent(value as VoiceKnobs['intents'][number])}>{label}</button>)}</fieldset>
+    <details className="voice-advanced"><summary>表达维度</summary><div className="form-stack"><SelectField label="句长" value={profile.sentence} onValueChange={(value) => void patch({ sentence: value as VoiceKnobs['sentence'] })}>{Object.entries(labels.sentence).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="叙事距离" value={profile.distance} onValueChange={(value) => void patch({ distance: value as VoiceKnobs['distance'] })}>{Object.entries(labels.distance).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="心理描写" value={profile.interiority} onValueChange={(value) => void patch({ interiority: value as VoiceKnobs['interiority'] })}>{Object.entries(labels.interiority).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="意象密度" value={profile.imagery} onValueChange={(value) => void patch({ imagery: value as VoiceKnobs['imagery'] })}>{Object.entries(labels.imagery).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="语域" value={profile.register} onValueChange={(value) => void patch({ register: value as VoiceKnobs['register'] })}>{Object.entries(labels.register).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="对白" value={profile.dialogue} onValueChange={(value) => void patch({ dialogue: value as VoiceKnobs['dialogue'] })}>{Object.entries(labels.dialogue).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="用典" value={profile.allusion} onValueChange={(value) => void patch({ allusion: value as VoiceKnobs['allusion'] })}>{Object.entries(labels.allusion).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="套话" value={profile.slang} onValueChange={(value) => void patch({ slang: value as VoiceKnobs['slang'] })}>{Object.entries(labels.slang).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div></details>
+    <TextareaField label="作者原话（最优先）" value={profile.authorNote} onChange={(event) => setProfile({ ...profile, authorNote: event.target.value })} onBlur={(event) => void patch({ authorNote: event.target.value })} rows={3} placeholder="例如：这场要冷、慢，不解释法术，沈砚少说话。" />
+    <button className="button secondary full" onClick={() => void makeDefault()}>用作本书默认</button>
+    <div className="voice-contract-preview" aria-label="模型将读到的文风约束">{preview.map((line) => <small key={line}>{line.slice(2)}</small>)}</div>
+    <details className="character-voice"><summary>人物对白口吻</summary>
+      <SelectField label="人物" value={characterId} onValueChange={(value) => void loadCharacter(value)}><option value="">选择人物…</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
+      {characterVoice && <div className="form-stack">
+        <SelectField label="口吻语域" value={characterVoice.register} onValueChange={(value) => void patchCharacter({ register: value as CharacterVoiceKnobs['register'] })}>{Object.entries(labels.register).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
+        <SelectField label="句式习惯" value={characterVoice.sentence} onValueChange={(value) => void patchCharacter({ sentence: value as CharacterVoiceKnobs['sentence'] })}>{Object.entries(labels.sentence).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
+        <SelectField label="表达直接度" value={characterVoice.directness} onValueChange={(value) => void patchCharacter({ directness: value as CharacterVoiceKnobs['directness'] })}><option value="indirect">含蓄回避</option><option value="balanced">适中</option><option value="direct">直接</option></SelectField>
+        <SelectField label="情绪外露" value={characterVoice.emotion} onValueChange={(value) => void patchCharacter({ emotion: value as CharacterVoiceKnobs['emotion'] })}><option value="restrained">克制</option><option value="balanced">适中</option><option value="expressive">外放</option></SelectField>
+        <TextField label="说话习惯" value={characterVoice.signature} onChange={(event) => setCharacterVoice({ ...characterVoice, signature: event.target.value })} onBlur={(event) => void patchCharacter({ signature: event.target.value })} placeholder="例如：回答前先反问，不说完整句"/>
+        <TextField label="避免" value={characterVoice.avoid} onChange={(event) => setCharacterVoice({ ...characterVoice, avoid: event.target.value })} onBlur={(event) => void patchCharacter({ avoid: event.target.value })} placeholder="例如：不说网络词，不解释动机"/>
+      </div>}
+    </details>
+    {preferences.length > 0 && <details className="voice-preferences"><summary>本机采用偏好 · {preferences.reduce((total, item) => total + item.accepted, 0)} 次接受</summary>
+      <p>只统计接受、丢弃和撤销次数，不保存候选正文，也不会自动改文风。</p>
+      <div className="voice-preference-list">{preferences.slice(0, 5).map((item) => <div key={`${item.family}-${item.taskType}`}><span>{labels.family[item.family]} · {preferenceTaskLabels[item.taskType] ?? item.taskType}</span><small>接受 {item.accepted} · 丢弃 {item.rejected} · 撤销 {item.undone}</small></div>)}</div>
+      <button className="button ghost compact" onClick={() => void clearPreferences()}>清空偏好统计</button>
+    </details>}
+  </section>
 }
 
 function CanonPanel({ projectId, node, entities, contentVersion, refreshEntities, notify }: Pick<Props, 'projectId' | 'node' | 'entities' | 'contentVersion' | 'refreshEntities' | 'notify'>) {
@@ -157,13 +237,14 @@ function CheckPanel({ node, contentVersion, notify }: Pick<Props, 'node' | 'cont
   const [issues, setIssues] = useState<ContinuityIssue[]>([])
   const [detections, setDetections] = useState<CanonDetection[]>([])
   const [loading, setLoading] = useState(false)
+  const [voiceReport, setVoiceReport] = useState<VoiceConsistencyReport | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const detectionGroups = useMemo(() => groupCanonDetections(detections), [detections])
   async function runCheck() {
     setLoading(true)
     try {
-      const [nextIssues, nextDetections] = await Promise.all([api.checkScene(node.id), api.detectSceneCanon(node.id)])
-      setIssues(nextIssues); setDetections(nextDetections)
+      const [nextIssues, nextDetections, nextVoice] = await Promise.all([api.checkScene(node.id), api.detectSceneCanon(node.id), api.getVoiceConsistency(node.projectId, node.id)])
+      setIssues(nextIssues); setDetections(nextDetections); setVoiceReport(nextVoice)
     } catch (error) { notify('error', error instanceof Error ? error.message : '检查失败') }
     finally { setLoading(false) }
   }
@@ -171,16 +252,17 @@ function CheckPanel({ node, contentVersion, notify }: Pick<Props, 'node' | 'cont
   async function ignore(issue: ContinuityIssue) { try { await api.ignoreIssue(node.id, issue, '作者选择忽略本场景提示'); setIssues((current) => current.filter((item) => item.id !== issue.id)); notify('success', '已记录为本场景例外，后续检查不会重复提示') } catch (error) { notify('error', error instanceof Error ? error.message : '忽略失败') } }
   return <div className="panel-stack"><section className="inspector-section canon-detection-section"><header><span className="section-icon"><ScanSearch size={15} /></span><h3>正文正典识别</h3></header>
     {detectionGroups.length ? <><p className="canon-detection-summary"><strong>已识别 {detectionGroups.length} 个正典名称</strong><span>共 {detectionGroups.reduce((total, item) => total + item.occurrenceCount, 0)} 处正文提及</span></p><div className="canon-detection-list">{detectionGroups.map((item) => <div key={`${item.entityType}-${item.canonicalName}`} className={item.recordCount > 1 ? 'is-ambiguous' : ''}><span><strong>{item.canonicalName}</strong><small>{canonTypeLabel(item.entityType)} · 匹配 {item.matchedNames.join('、')} · {item.occurrenceCount} 处</small></span>{item.recordCount > 1 && <em>{item.recordCount} 份同名档案</em>}</div>)}</div>{detectionGroups.some((item) => item.recordCount > 1) && <p className="canon-detection-warning"><CircleAlert size={13}/>同名档案会同时命中。请在正典库保留正确档案，避免状态检查产生歧义。</p>}</> : !loading && <div className="canon-detection-empty"><strong>正文暂未匹配到已设正典</strong><span>系统按至少 2 个字的正典名称或别名精确识别；正文保存后会自动刷新。</span></div>}
-  </section><section className="inspector-section"><header><span className="section-icon"><Eye size={15} /></span><h3>连续性冲突</h3></header>
+  </section>{voiceReport && <section className="inspector-section voice-consistency"><header><span className="section-icon"><PenLine size={15}/></span><h3>文风一致性</h3><strong>{voiceReport.score}</strong></header><p>{voiceReport.summary}</p>{voiceReport.issues.map((issue) => <div key={issue.code}><strong>{issue.label}</strong><span>{issue.detail}</span><small>{issue.evidence}</small></div>)}</section>}<section className="inspector-section"><header><span className="section-icon"><Eye size={15} /></span><h3>连续性冲突</h3></header>
     <p className="muted">识别成功不等于存在冲突；这里只报告有证据的问题。</p><button className="button secondary full" disabled={loading} onClick={() => void runCheck()}>{loading ? '正在检查…' : '重新检查'}</button>
   </section>{issues.length === 0 && !loading ? <div className="all-clear"><Check size={20} /><strong>已完成冲突检查</strong><span>{detectionGroups.length ? '已识别正典，但暂未发现高置信度冲突。' : '正文尚未命中正典，也没有可报告的冲突。'}</span></div> : issues.map((issue) => <article key={issue.id} className={`issue-card issue-${issue.severity}`}><header><CircleAlert size={16} /><span>{issue.severity === 'risk' ? '错误风险' : '建议复核'}</span><small>{Math.round(issue.confidence * 100)}%</small></header><p>{issue.message}</p><blockquote>{issue.currentEvidence.quote}</blockquote>{expanded.has(issue.id) && issue.conflictingEvidence && <blockquote className="conflicting-evidence">冲突证据：{issue.conflictingEvidence.quote}</blockquote>}<div className="issue-actions"><button onClick={() => setExpanded((current) => { const next = new Set(current); next.has(issue.id) ? next.delete(issue.id) : next.add(issue.id); return next })}>查看证据</button><button onClick={() => void ignore(issue)}>忽略一次</button></div></article>)}</div>
 }
 
-function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' | 'notify'>) {
+function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed }: Pick<Props, 'projectId' | 'node' | 'notify'> & { pendingRequest: EditorAiRequest | null; onRequestConsumed: () => void }) {
   const [context, setContext] = useState<AiContextItem[]>([])
   const [provider, setProvider] = useState<{ kind: 'demo' | 'ollama' | 'blocked'; model: string } | null>(null)
   const [contextOpen, setContextOpen] = useState(false)
-  const [task, setTask] = useState('brainstorm')
+  const [task, setTask] = useState('idea_to_prose')
+  const [selectionAnchor, setSelectionAnchor] = useState<TextSelectionAnchor | null>(null)
   const [instruction, setInstruction] = useState('')
   const [result, setResult] = useState<AiTaskResult | null>(null)
   const [running, setRunning] = useState(false)
@@ -191,6 +273,7 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
   const [accepted, setAccepted] = useState(false)
   const [selectedSegments, setSelectedSegments] = useState<Set<number>>(new Set())
   const runController = useRef<AbortController | null>(null)
+  const processedRequest = useRef('')
   useEffect(() => {
     const load = () => Promise.all([api.getContext(projectId, node.id), api.getAiSettings()])
       .then(([nextContext, settings]) => { setContext(nextContext); setProvider({ kind: settings.provider, model: settings.model }); if (settings.provider === 'ollama') void api.warmAi().catch(() => {}) })
@@ -210,17 +293,32 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
   const tokens = selected.reduce((total, item) => total + item.estimatedTokens, 0)
   const demoMode = provider?.kind !== 'ollama'
   const providerLabel = !provider ? '正在确认模型状态…' : provider.kind === 'ollama' ? `本地免费 · ${provider.model} · API 费用 ¥0` : provider.kind === 'blocked' ? '外网模型已停用 · 零费用保护生效' : '演示模式 · 固定候选 · 不联网'
+  const voiceItem = context.find((item) => item.type === 'voice')
+  const instructionHint = ({
+    word_inspiration: '还缺哪类词？例如：更具体的动作、潮湿环境的感官词。（可选）',
+    style_rewrite: '补充改写倾向，例如：更冷、更轻、更少解释。（可选）',
+    idea_to_prose: '写下情节思路或句子骨架，AI 会按本场文风写成一小段正文。',
+    polish: '把思路或骨架贴在这里。事实不动，只按本场文风改词面。',
+    beat: '写这一拍的思路，例如：他不解释，只把门关上。只往前走一步。',
+    brainstorm: '你想围绕什么卡住的点脑暴？（可选）',
+    rewrite: '改写方向，例如：更冷、少解释。',
+    continue: '续写方向（可选）。更长的续写仍受本场文风档约束。',
+    cold_read: '你想让冷读盯哪一段？（可选）',
+  } as Record<string, string>)[task] ?? '补充你的要求（可选）'
 
-  async function run() {
+  async function run(taskOverride?: string, selectionOverride?: TextSelectionAnchor | null) {
+    const activeTask = taskOverride ?? task
+    const activeSelection = selectionOverride === undefined ? selectionAnchor : selectionOverride
     const controller = new AbortController(); runController.current?.abort(); runController.current = controller
     setRunning(true); setResult(null); setAccepted(false); setStreamOutput(''); setRunNotice(''); setProgress('正在整理本地上下文')
     try {
-      const next = await api.streamAiTask({ projectId, nodeId: node.id, taskType: task, instruction, selectedContextIds: selected.map((item) => item.id) }, (event) => {
+      const next = await api.streamAiTask({ projectId, nodeId: node.id, taskType: activeTask, instruction, selectedContextIds: selected.map((item) => item.id), selectionAnchor: activeSelection ?? undefined }, (event) => {
         if (event.type === 'status') { if (event.resetOutput) setStreamOutput(''); setProgress(event.message) }
         if (event.type === 'delta') setStreamOutput((current) => current + event.delta)
       }, controller.signal)
       setResult(next)
-      setSelectedSegments(new Set(candidateUnits(next.taskType, next.output).map((_, index) => index)))
+      const units = candidateUnits(next.taskType, next.output)
+      setSelectedSegments(isSingleChoiceTask(next.taskType) ? new Set(units.length ? [0] : []) : new Set(units.map((_, index) => index)))
       setStreamOutput('')
     }
     catch (error) {
@@ -230,16 +328,32 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
     finally { if (runController.current === controller) runController.current = null; setRunning(false) }
   }
 
+  useEffect(() => {
+    if (!pendingRequest || !provider || context.length === 0 || running) return
+    const key = `${pendingRequest.taskType}:${pendingRequest.selection.sourceContentHash}:${pendingRequest.selection.startOffset}:${pendingRequest.selection.endOffset}`
+    if (processedRequest.current === key) return
+    processedRequest.current = key
+    setTask(pendingRequest.taskType); setSelectionAnchor(pendingRequest.selection); onRequestConsumed()
+    void run(pendingRequest.taskType, pendingRequest.selection)
+  }, [pendingRequest, provider, context.length])
+
   function stop() { runController.current?.abort(); setProgress('正在停止本地生成') }
 
-  function toggle(id: string) { setContext((items) => items.map((item) => item.id === id && item.privacyLevel !== 'local_private' ? { ...item, selected: !item.selected } : item)) }
+  function toggle(id: string) { setContext((items) => items.map((item) => item.id === id && item.type !== 'voice' && item.privacyLevel !== 'local_private' ? { ...item, selected: !item.selected } : item)) }
   async function accept() {
     if (!result || selectedSegments.size === 0) return
+    let inserted = false
     try {
-      await api.recordAiDecision(projectId, node.id, result.taskId, 'accepted')
       const text = candidateUnits(result.taskType, result.output).filter((_, index) => selectedSegments.has(index)).join(result.taskType === 'brainstorm' ? '\n\n' : '')
-      window.dispatchEvent(new CustomEvent('bbd:accept-ai', { detail: { text, taskId: result.taskId } })); setAccepted(true)
-    } catch (error) { notify('error', error instanceof Error ? error.message : 'AI 接受记录失败') }
+      if (selectionAnchor && isSingleChoiceTask(result.taskType)) {
+        const detail = { text, taskId: result.taskId, selection: selectionAnchor, applied: false }
+        window.dispatchEvent(new CustomEvent('bbd:replace-ai', { detail })); inserted = detail.applied
+        if (!inserted) return
+      }
+      await api.recordAiDecision(projectId, node.id, result.taskId, 'accepted')
+      if (!selectionAnchor || !isSingleChoiceTask(result.taskType)) window.dispatchEvent(new CustomEvent('bbd:accept-ai', { detail: { text, taskId: result.taskId } }))
+      setAccepted(true)
+    } catch (error) { if (inserted) window.dispatchEvent(new Event('bbd:undo-ai')); notify('error', error instanceof Error ? error.message : 'AI 接受记录失败') }
   }
   async function reject() {
     if (!result) return
@@ -253,18 +367,20 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
   }
   return <div className="panel-stack">
     <section className="context-capsule"><button onClick={() => setContextOpen(!contextOpen)}><span><LockKeyhole size={14} />本次上下文</span><strong>{selected.length} 项 · 约 {tokens} token</strong><ChevronDown className={contextOpen ? 'rotated' : ''} size={15} /></button>
-      {contextOpen && <div className="context-items">{context.map((item) => <label key={`${item.type}-${item.id}`} className={item.privacyLevel === 'local_private' ? 'private' : ''}><input type="checkbox" checked={item.selected} disabled={item.privacyLevel === 'local_private'} onChange={() => toggle(item.id)} /><span><strong>{item.title}</strong><small>{item.privacyLevel === 'local_private' ? '仅本地，不会发送' : `${item.reason} · ${item.estimatedTokens} token`}</small></span></label>)}</div>}
+      {contextOpen && <div className="context-items">{context.map((item) => <label key={`${item.type}-${item.id}`} className={item.privacyLevel === 'local_private' ? 'private' : ''}><input type="checkbox" checked={item.selected} disabled={item.type === 'voice' || item.privacyLevel === 'local_private'} onChange={() => toggle(item.id)} /><span><strong>{item.title}</strong><small>{item.privacyLevel === 'local_private' ? '仅本地，不会发送' : item.type === 'voice' ? `${item.reason} · 始终带上` : `${item.reason} · ${item.estimatedTokens} token`}</small></span></label>)}</div>}
     </section>
     <section className="inspector-section"><header><span className="section-icon"><Bot size={15} /></span><h3>创作助手</h3></header>
       <p className={`ai-provider-status ${provider?.kind === 'ollama' ? 'is-live' : 'is-demo'}`}>{providerLabel}</p>
-      <div className="task-grid">{[['brainstorm','脑暴'],['continue','续写'],['rewrite','改写'],['cold_read','冷读']].map(([value,label]) => <button key={value} className={task === value ? 'active' : ''} onClick={() => setTask(value)}>{label}</button>)}</div>
-      <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="补充你的要求（可选）" rows={3} />
+      {voiceItem && <p className="voice-ai-summary">{voiceItem.title}。所有成文任务都会先读分类文风档，不模仿固定名家。</p>}
+      {selectionAnchor && <div className="ai-selection-chip"><strong>{task === 'word_inspiration' ? '词语灵感' : '按文风改写'}</strong><span>“{selectionAnchor.originalText.slice(0, 42)}{selectionAnchor.originalText.length > 42 ? '…' : ''}”</span><button type="button" onClick={() => { setSelectionAnchor(null); setTask('idea_to_prose'); setResult(null) }} aria-label="取消选区任务"><X size={13}/></button></div>}
+      <div className="task-grid">{(selectionAnchor ? [['word_inspiration','词语灵感'],['style_rewrite','文风改写'],['idea_to_prose','思路成文'],['brainstorm','剧情脑暴']] : [['idea_to_prose','思路成文'],['brainstorm','剧情脑暴'],['continue','续写'],['cold_read','冷读']]).map(([value,label]) => <button key={value} className={task === value ? 'active' : ''} onClick={() => setTask(value)}>{label}</button>)}</div>
+      <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder={instructionHint} rows={3} />
       <button className="button primary full" disabled={running || selected.length === 0 || provider?.kind === 'blocked'} onClick={() => void run()}><WandSparkles size={16} />{running ? '正在生成…' : provider?.kind === 'blocked' ? '请先启用本地模型' : demoMode ? '生成演示候选' : '生成候选'}</button>
     </section>
     {running && <section className="ai-progress" role="status" aria-live="polite"><header><LoaderCircle className="ui-spin" size={16}/><div><strong>{progress}</strong><span>{elapsed} 秒 · 已生成 {streamOutput.length} 字</span></div><button type="button" onClick={stop}><Square size={12}/>停止</button></header>{streamOutput && <div className="ai-stream-output">{streamOutput}<span className="ai-stream-cursor" /></div>}</section>}
     {runNotice && !running && <p className="ai-run-notice"><CircleAlert size={14}/>{runNotice}</p>}
-    {result && <section className="ai-result"><header><span><Sparkles size={15} />{result.model}</span><small>{result.inputTokens} → {result.outputTokens} token</small></header>{result.taskType === 'brainstorm' ? <BrainstormChoices value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} /> : <DiffText original={result.taskType === 'rewrite' ? context.find((item) => item.type === 'scene')?.content ?? '' : ''} value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} />}
-      <div className="candidate-actions">{accepted ? <><span className="accepted-label"><Check size={14} />所选{result.taskType === 'brainstorm' ? '方向' : '句子'}已插入正文，并将记录为 AI 建议后接受</span><button className="reject" onClick={() => void undoAccept()}><RotateCcw size={14}/>撤销接受</button></> : <><button className="reject" onClick={() => void reject()}><X size={14} />丢弃</button><button className="accept" disabled={selectedSegments.size === 0} onClick={() => void accept()}><Check size={14} />接受所选 {selectedSegments.size} {result.taskType === 'brainstorm' ? '个方向' : '句'}</button></>}</div>
+    {result && <section className="ai-result"><header><span><Sparkles size={15} />{result.model}</span><small>{result.inputTokens} → {result.outputTokens} token</small></header>{result.taskType === 'brainstorm' ? <BrainstormChoices value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} /> : isSingleChoiceTask(result.taskType) ? <CandidateChoices original={selectionAnchor?.originalText ?? ''} taskType={result.taskType} value={result.output} accepted={accepted} selected={selectedSegments} onSelect={(index) => setSelectedSegments(new Set([index]))}/> : <DiffText original={result.taskType === 'rewrite' || result.taskType === 'polish' ? context.find((item) => item.type === 'scene')?.content ?? '' : ''} value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} />}
+      <div className="candidate-actions">{accepted ? <><span className="accepted-label"><Check size={14} />{isSingleChoiceTask(result.taskType) ? '候选已精确替换原选区' : `所选${result.taskType === 'brainstorm' ? '方向' : '句子'}已插入正文`}，并已记录来源</span><button className="reject" onClick={() => void undoAccept()}><RotateCcw size={14}/>撤销接受</button></> : <><button className="reject" onClick={() => void reject()}><X size={14} />丢弃</button><button className="accept" disabled={selectedSegments.size === 0} onClick={() => void accept()}><Check size={14} />{isSingleChoiceTask(result.taskType) ? '用此候选替换' : `接受所选 ${selectedSegments.size} ${result.taskType === 'brainstorm' ? '个方向' : '句'}`}</button></>}</div>
     </section>}
   </div>
 }
@@ -281,6 +397,19 @@ function BrainstormChoices({ value, accepted, selected, onToggle }: { value: str
       {!direction.opportunity && !direction.risk && <p>{direction.text.replace(/^方向[^：:]+[：:]\s*/, '')}</p>}
     </div>
   </label>)}</div>
+}
+
+function isSingleChoiceTask(taskType: string) { return taskType === 'word_inspiration' || taskType === 'style_rewrite' }
+
+function CandidateChoices({ original, taskType, value, accepted, selected, onSelect }: { original: string; taskType: string; value: string; accepted: boolean; selected: Set<number>; onSelect: (index: number) => void }) {
+  const choices = candidateUnits(taskType, value)
+  return <div className={`candidate-choice-list ${accepted ? 'accepted' : ''}`}>
+    {original && <div className="candidate-original"><small>原选区</small><p>{original}</p></div>}
+    {choices.map((choice, index) => <label key={`${choice}-${index}`} className={selected.has(index) ? 'selected' : ''}>
+      <input type="radio" name="ai-candidate" checked={selected.has(index)} disabled={accepted} onChange={() => onSelect(index)} />
+      <span><small>{taskType === 'word_inspiration' ? `灵感 ${index + 1}` : `候选 ${index + 1}`}</small>{choice}</span>
+    </label>)}
+  </div>
 }
 
 function DiffText({ original, value, accepted, selected, onToggle }: { original: string; value: string; accepted: boolean; selected: Set<number>; onToggle: (index: number) => void }) {

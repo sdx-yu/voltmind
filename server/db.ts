@@ -38,6 +38,8 @@ import type {
   ReplaceMatch,
   ReplaceScope,
   SceneDocument,
+  SceneVoiceProfile,
+  StyleAnalysisRun,
   SearchResult,
   Series,
   SeriesCanonEntry,
@@ -56,6 +58,12 @@ import type {
   SyncVector,
   WritingStats,
 } from '../shared/types.js'
+import {
+  analyzeStyleSamples, compileCharacterVoiceContract, compileVoiceContract, evaluateVoiceConsistency,
+  normalizeCharacterVoice, normalizeVoiceKnobs, voiceSourceLabel,
+  type CharacterVoiceKnobs, type CharacterVoiceProfile, type VoiceConsistencyReport,
+  type VoiceKnobs, type VoicePreferenceSummary, type VoiceSource,
+} from '../shared/voice.js'
 import { countWords, jsonParse, newId, normalizeName, nowIso, sha256 } from './utils.js'
 
 type Row = Record<string, unknown>
@@ -70,7 +78,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 17)
+    backupBeforeMigration(databasePath, 20)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -1131,9 +1139,123 @@ export class AppDatabase {
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(17, nowIso())
       })
     }
+    if (version < 18) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE project_voice_defaults (
+            project_id TEXT PRIMARY KEY REFERENCES projects(id),
+            family TEXT NOT NULL,
+            intensity TEXT NOT NULL,
+            pace TEXT NOT NULL,
+            imagery TEXT NOT NULL,
+            distance TEXT NOT NULL,
+            interiority TEXT NOT NULL,
+            intents_json TEXT NOT NULL DEFAULT '[]',
+            register TEXT NOT NULL,
+            sentence TEXT NOT NULL,
+            dialogue TEXT NOT NULL,
+            allusion TEXT NOT NULL,
+            slang TEXT NOT NULL,
+            author_note TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL
+          );
+          CREATE TABLE scene_voice_profiles (
+            node_id TEXT PRIMARY KEY REFERENCES manuscript_nodes(id),
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            family TEXT NOT NULL,
+            intensity TEXT NOT NULL,
+            pace TEXT NOT NULL,
+            imagery TEXT NOT NULL,
+            distance TEXT NOT NULL,
+            interiority TEXT NOT NULL,
+            intents_json TEXT NOT NULL DEFAULT '[]',
+            register TEXT NOT NULL,
+            sentence TEXT NOT NULL,
+            dialogue TEXT NOT NULL,
+            allusion TEXT NOT NULL,
+            slang TEXT NOT NULL,
+            author_note TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_scene_voice_project ON scene_voice_profiles(project_id, updated_at DESC);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(18, nowIso())
+      })
+    }
+    if (version < 19) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE style_analysis_runs (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            sample_ids_json TEXT NOT NULL,
+            metrics_json TEXT NOT NULL,
+            suggested_json TEXT NOT NULL,
+            evidence_json TEXT NOT NULL,
+            warnings_json TEXT NOT NULL,
+            confirmed_at TEXT,
+            created_at TEXT NOT NULL
+          );
+          CREATE INDEX idx_style_analysis_project ON style_analysis_runs(project_id, created_at DESC);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(19, nowIso())
+      })
+    }
+    if (version < 20) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE character_voice_profiles (
+            entity_id TEXT PRIMARY KEY REFERENCES entities(id),
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            register TEXT NOT NULL,
+            sentence TEXT NOT NULL,
+            directness TEXT NOT NULL,
+            emotion TEXT NOT NULL,
+            signature TEXT NOT NULL DEFAULT '',
+            avoid TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL
+          );
+          CREATE TABLE voice_preference_stats (
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            family TEXT NOT NULL,
+            task_type TEXT NOT NULL,
+            accepted INTEGER NOT NULL DEFAULT 0,
+            rejected INTEGER NOT NULL DEFAULT 0,
+            undone INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY(project_id,family,task_type)
+          );
+          CREATE INDEX idx_character_voice_project ON character_voice_profiles(project_id, updated_at DESC);
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(20, nowIso())
+      })
+    }
+    // A short-lived development build used schema version 18 before the full
+    // style taxonomy was finalised. Repair those databases in place so a user
+    // never has to delete a manuscript just to receive the completed feature.
+    this.ensureColumns('project_voice_defaults', [
+      ['family', "TEXT NOT NULL DEFAULT 'natural'"], ['intensity', "TEXT NOT NULL DEFAULT 'standard'"],
+      ['pace', "TEXT NOT NULL DEFAULT 'balanced'"], ['imagery', "TEXT NOT NULL DEFAULT 'medium'"],
+      ['distance', "TEXT NOT NULL DEFAULT 'medium'"], ['interiority', "TEXT NOT NULL DEFAULT 'medium'"],
+      ['intents_json', "TEXT NOT NULL DEFAULT '[]'"],
+    ])
+    this.ensureColumns('scene_voice_profiles', [
+      ['family', "TEXT NOT NULL DEFAULT 'natural'"], ['intensity', "TEXT NOT NULL DEFAULT 'standard'"],
+      ['pace', "TEXT NOT NULL DEFAULT 'balanced'"], ['imagery', "TEXT NOT NULL DEFAULT 'medium'"],
+      ['distance', "TEXT NOT NULL DEFAULT 'medium'"], ['interiority', "TEXT NOT NULL DEFAULT 'medium'"],
+      ['intents_json', "TEXT NOT NULL DEFAULT '[]'"],
+    ])
+    this.ensureColumns('ai_tasks', [['effective_style_hash', 'TEXT'], ['selection_hash', 'TEXT']])
     const reviewTable = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'").get()
     const reviewColumns = reviewTable ? this.db.prepare('PRAGMA table_info(review_sessions)').all() as Row[] : []
     if (reviewColumns.length && !reviewColumns.some((column) => String(column.name) === 'scene_snapshots_json')) this.db.exec("ALTER TABLE review_sessions ADD COLUMN scene_snapshots_json TEXT NOT NULL DEFAULT '[]'")
+  }
+
+  private ensureColumns(table: string, columns: Array<[string, string]>) {
+    const exists = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table)
+    if (!exists) return
+    const current = new Set((this.db.prepare(`PRAGMA table_info(${table})`).all() as Row[]).map((column) => String(column.name)))
+    for (const [name, definition] of columns) if (!current.has(name)) this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`)
   }
 
   integrityCheck(): string {
@@ -1516,6 +1638,164 @@ export class AppDatabase {
       ON CONFLICT(sample_id,project_id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at`).run(sampleId, projectId, enabled ? 1 : 0, nowIso())
     this.logOperation(projectId, 'style_sample_preference', sampleId, enabled ? 'enable' : 'disable', null, null, 'human')
     return this.getStyleSample(sampleId, projectId)!
+  }
+
+  getVoiceProfile(projectId: string, nodeId: string): SceneVoiceProfile {
+    const node = this.getNode(nodeId)
+    if (!node || node.projectId !== projectId || node.type !== 'scene') throw new Error('Scene not found')
+    const sceneRow = this.db.prepare('SELECT * FROM scene_voice_profiles WHERE node_id=?').get(nodeId) as Row | undefined
+    if (sceneRow) return this.mapVoiceProfile(projectId, nodeId, sceneRow, 'scene')
+    const previous = this.listNodes(projectId)
+      .filter((item) => item.type === 'scene' && !item.deletedAt && item.sortKey < node.sortKey)
+      .sort((a, b) => b.sortKey - a.sortKey)
+    for (const item of previous) {
+      const row = this.db.prepare('SELECT * FROM scene_voice_profiles WHERE node_id=?').get(item.id) as Row | undefined
+      if (row) return this.mapVoiceProfile(projectId, nodeId, row, 'previous')
+    }
+    const projectRow = this.db.prepare('SELECT * FROM project_voice_defaults WHERE project_id=?').get(projectId) as Row | undefined
+    if (projectRow) return this.mapVoiceProfile(projectId, nodeId, projectRow, 'project')
+    return this.mapVoiceProfile(projectId, nodeId, null, 'default')
+  }
+
+  saveVoiceProfile(projectId: string, nodeId: string, knobs: Partial<VoiceKnobs>): SceneVoiceProfile {
+    const current = this.getVoiceProfile(projectId, nodeId)
+    const next = normalizeVoiceKnobs({ ...current, ...knobs })
+    const time = nowIso()
+    this.db.prepare(`INSERT INTO scene_voice_profiles(node_id,project_id,family,intensity,pace,imagery,distance,interiority,intents_json,register,sentence,dialogue,allusion,slang,author_note,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(node_id) DO UPDATE SET family=excluded.family,intensity=excluded.intensity,pace=excluded.pace,imagery=excluded.imagery,distance=excluded.distance,interiority=excluded.interiority,intents_json=excluded.intents_json,register=excluded.register,sentence=excluded.sentence,dialogue=excluded.dialogue,allusion=excluded.allusion,slang=excluded.slang,author_note=excluded.author_note,updated_at=excluded.updated_at`)
+      .run(nodeId, projectId, next.family, next.intensity, next.pace, next.imagery, next.distance, next.interiority, JSON.stringify(next.intents), next.register, next.sentence, next.dialogue, next.allusion, next.slang, next.authorNote, time)
+    this.logOperation(projectId, 'scene_voice', nodeId, 'update', null, null, 'human')
+    return this.getVoiceProfile(projectId, nodeId)
+  }
+
+  saveProjectVoiceDefault(projectId: string, knobs: Partial<VoiceKnobs>): SceneVoiceProfile {
+    if (!this.getProject(projectId)) throw new Error('Project not found')
+    const next = normalizeVoiceKnobs(knobs)
+    this.db.prepare(`INSERT INTO project_voice_defaults(project_id,family,intensity,pace,imagery,distance,interiority,intents_json,register,sentence,dialogue,allusion,slang,author_note,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(project_id) DO UPDATE SET family=excluded.family,intensity=excluded.intensity,pace=excluded.pace,imagery=excluded.imagery,distance=excluded.distance,interiority=excluded.interiority,intents_json=excluded.intents_json,register=excluded.register,sentence=excluded.sentence,dialogue=excluded.dialogue,allusion=excluded.allusion,slang=excluded.slang,author_note=excluded.author_note,updated_at=excluded.updated_at`)
+      .run(projectId, next.family, next.intensity, next.pace, next.imagery, next.distance, next.interiority, JSON.stringify(next.intents), next.register, next.sentence, next.dialogue, next.allusion, next.slang, next.authorNote, nowIso())
+    this.logOperation(projectId, 'project_voice', projectId, 'update', null, null, 'human')
+    const scene = this.listNodes(projectId).find((item) => item.type === 'scene' && !item.deletedAt)
+    return scene ? this.getVoiceProfile(projectId, scene.id) : this.mapVoiceProfile(projectId, projectId, next, 'project')
+  }
+
+  listVoiceProfiles(projectId: string): Array<VoiceKnobs & { nodeId: string; updatedAt: string }> {
+    return (this.db.prepare('SELECT * FROM scene_voice_profiles WHERE project_id=?').all(projectId) as Row[]).map((row) => ({
+      ...knobsFromRow(row),
+      nodeId: String(row.node_id),
+      updatedAt: String(row.updated_at),
+    }))
+  }
+
+  getProjectVoiceDefault(projectId: string): VoiceKnobs | null {
+    const row = this.db.prepare('SELECT * FROM project_voice_defaults WHERE project_id=?').get(projectId) as Row | undefined
+    return row ? knobsFromRow(row) : null
+  }
+
+  analyzeStyleSamples(projectId: string, sampleIds: string[]): StyleAnalysisRun {
+    if (!sampleIds.length) throw new Error('请至少选择一份风格样本')
+    const samples = sampleIds.map((id) => this.getStyleSample(id, projectId)).filter((item): item is StyleSample => Boolean(item && !item.deletedAt))
+    if (samples.length !== new Set(sampleIds).size) throw new Error('风格样本不存在或不属于当前作品')
+    const result = analyzeStyleSamples(samples)
+    const id = newId(); const createdAt = nowIso()
+    this.db.prepare('INSERT INTO style_analysis_runs(id,project_id,sample_ids_json,metrics_json,suggested_json,evidence_json,warnings_json,created_at) VALUES(?,?,?,?,?,?,?,?)').run(
+      id, projectId, JSON.stringify(sampleIds), JSON.stringify(result.metrics), JSON.stringify(result.suggested), JSON.stringify(result.evidence), JSON.stringify(result.warnings), createdAt,
+    )
+    this.logOperation(projectId, 'style_analysis', id, 'create', null, null, 'system')
+    return { id, projectId, sampleIds, ...result, confirmedAt: null, createdAt }
+  }
+
+  confirmStyleAnalysis(projectId: string, runId: string, patch: Partial<VoiceKnobs> = {}): StyleAnalysisRun {
+    const run = this.getStyleAnalysis(projectId, runId)
+    if (!run) throw new Error('文风分析不存在')
+    const suggested = normalizeVoiceKnobs({ ...run.suggested, ...patch })
+    this.saveProjectVoiceDefault(projectId, suggested)
+    const confirmedAt = nowIso()
+    this.db.prepare('UPDATE style_analysis_runs SET suggested_json=?,confirmed_at=? WHERE id=? AND project_id=?').run(JSON.stringify(suggested), confirmedAt, runId, projectId)
+    this.logOperation(projectId, 'style_analysis', runId, 'accept', null, null, 'human')
+    return { ...run, suggested, confirmedAt }
+  }
+
+  getStyleAnalysis(projectId: string, runId: string): StyleAnalysisRun | null {
+    const row = this.db.prepare('SELECT * FROM style_analysis_runs WHERE id=? AND project_id=?').get(runId, projectId) as Row | undefined
+    return row ? mapStyleAnalysis(row) : null
+  }
+
+  listStyleAnalyses(projectId: string): StyleAnalysisRun[] {
+    return (this.db.prepare('SELECT * FROM style_analysis_runs WHERE project_id=? ORDER BY created_at DESC').all(projectId) as Row[]).map(mapStyleAnalysis)
+  }
+
+  getVoiceConsistency(projectId: string, nodeId: string): VoiceConsistencyReport {
+    const scene = this.getScene(nodeId); const node = this.getNode(nodeId)
+    if (!scene || !node || node.projectId !== projectId) throw new Error('Scene not found')
+    return evaluateVoiceConsistency(scene.plainText, this.getVoiceProfile(projectId, nodeId))
+  }
+
+  getCharacterVoice(projectId: string, entityId: string): CharacterVoiceProfile {
+    const entity = this.getEntity(entityId)
+    if (!entity || entity.projectId !== projectId || entity.type !== 'character') throw new Error('Character not found')
+    const row = this.db.prepare('SELECT * FROM character_voice_profiles WHERE entity_id=?').get(entityId) as Row | undefined
+    const knobs = normalizeCharacterVoice(row ? {
+      register: row.register as CharacterVoiceKnobs['register'], sentence: row.sentence as CharacterVoiceKnobs['sentence'],
+      directness: row.directness as CharacterVoiceKnobs['directness'], emotion: row.emotion as CharacterVoiceKnobs['emotion'],
+      signature: String(row.signature), avoid: String(row.avoid),
+    } : null)
+    return { ...knobs, entityId, projectId, entityName: entity.canonicalName, updatedAt: row ? String(row.updated_at) : null }
+  }
+
+  saveCharacterVoice(projectId: string, entityId: string, patch: Partial<CharacterVoiceKnobs>): CharacterVoiceProfile {
+    const current = this.getCharacterVoice(projectId, entityId); const next = normalizeCharacterVoice({ ...current, ...patch }); const updatedAt = nowIso()
+    this.db.prepare(`INSERT INTO character_voice_profiles(entity_id,project_id,register,sentence,directness,emotion,signature,avoid,updated_at) VALUES(?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(entity_id) DO UPDATE SET register=excluded.register,sentence=excluded.sentence,directness=excluded.directness,emotion=excluded.emotion,signature=excluded.signature,avoid=excluded.avoid,updated_at=excluded.updated_at`).run(
+      entityId, projectId, next.register, next.sentence, next.directness, next.emotion, next.signature, next.avoid, updatedAt,
+    )
+    this.logOperation(projectId, 'character_voice', entityId, 'update', null, null, 'human')
+    return this.getCharacterVoice(projectId, entityId)
+  }
+
+  listCharacterVoices(projectId: string): CharacterVoiceProfile[] {
+    return (this.db.prepare('SELECT entity_id FROM character_voice_profiles WHERE project_id=? ORDER BY updated_at DESC').all(projectId) as Row[]).map((row) => this.getCharacterVoice(projectId, String(row.entity_id)))
+  }
+
+  characterVoiceContract(projectId: string, entityId: string): string {
+    const profile = this.getCharacterVoice(projectId, entityId)
+    return compileCharacterVoiceContract(profile.entityName, profile)
+  }
+
+  recordVoicePreference(projectId: string, family: VoiceKnobs['family'], taskType: string, decision: 'accepted' | 'rejected' | 'undone') {
+    const column = decision === 'accepted' ? 'accepted' : decision === 'rejected' ? 'rejected' : 'undone'
+    this.db.prepare(`INSERT INTO voice_preference_stats(project_id,family,task_type,accepted,rejected,undone,updated_at) VALUES(?,?,?,?,?,?,?)
+      ON CONFLICT(project_id,family,task_type) DO UPDATE SET ${column}=${column}+1,updated_at=excluded.updated_at`).run(
+      projectId, family, taskType, decision === 'accepted' ? 1 : 0, decision === 'rejected' ? 1 : 0, decision === 'undone' ? 1 : 0, nowIso(),
+    )
+  }
+
+  listVoicePreferences(projectId: string): VoicePreferenceSummary[] {
+    return (this.db.prepare('SELECT * FROM voice_preference_stats WHERE project_id=? ORDER BY updated_at DESC').all(projectId) as Row[]).map((row) => ({
+      family: row.family as VoicePreferenceSummary['family'], taskType: String(row.task_type), accepted: Number(row.accepted), rejected: Number(row.rejected), undone: Number(row.undone), updatedAt: String(row.updated_at),
+    }))
+  }
+
+  clearVoicePreferences(projectId: string): boolean {
+    const result = this.db.prepare('DELETE FROM voice_preference_stats WHERE project_id=?').run(projectId)
+    if (Number(result.changes)) this.logOperation(projectId, 'voice_preference', projectId, 'clear', null, null, 'human')
+    return Boolean(result.changes)
+  }
+
+  private mapVoiceProfile(projectId: string, nodeId: string, row: Row | VoiceKnobs | null, source: VoiceSource): SceneVoiceProfile {
+    const knobs = knobsFromRow(row)
+    return {
+      ...knobs,
+      nodeId,
+      projectId,
+      inherited: source !== 'scene',
+      source,
+      sourceLabel: voiceSourceLabel(source),
+      contract: compileVoiceContract(knobs),
+      updatedAt: row && typeof row === 'object' && 'updated_at' in row ? String((row as Row).updated_at) : null,
+    }
   }
 
   getReadAloudPreferences(projectId: string): ReadAloudPreferences {
@@ -2841,6 +3121,36 @@ function replaceStringsInJson(value: unknown, query: string, replacement: string
     return item
   }
   return visit(value) as Record<string, unknown>
+}
+
+function knobsFromRow(row: Row | VoiceKnobs | null | undefined): VoiceKnobs {
+  if (!row) return normalizeVoiceKnobs(null)
+  if ('authorNote' in row && !('author_note' in row)) return normalizeVoiceKnobs(row)
+  return normalizeVoiceKnobs({
+    family: row.family as VoiceKnobs['family'],
+    intensity: row.intensity as VoiceKnobs['intensity'],
+    pace: row.pace as VoiceKnobs['pace'],
+    imagery: row.imagery as VoiceKnobs['imagery'],
+    distance: row.distance as VoiceKnobs['distance'],
+    interiority: row.interiority as VoiceKnobs['interiority'],
+    intents: jsonParse(String(row.intents_json ?? '[]'), []),
+    register: row.register as VoiceKnobs['register'],
+    sentence: row.sentence as VoiceKnobs['sentence'],
+    dialogue: row.dialogue as VoiceKnobs['dialogue'],
+    allusion: row.allusion as VoiceKnobs['allusion'],
+    slang: row.slang as VoiceKnobs['slang'],
+    authorNote: String(row.author_note ?? row.authorNote ?? ''),
+  })
+}
+
+function mapStyleAnalysis(row: Row): StyleAnalysisRun {
+  return {
+    id: String(row.id), projectId: String(row.project_id), sampleIds: jsonParse(String(row.sample_ids_json), []),
+    metrics: jsonParse(String(row.metrics_json), {} as StyleAnalysisRun['metrics']),
+    suggested: normalizeVoiceKnobs(jsonParse(String(row.suggested_json), {})),
+    evidence: jsonParse(String(row.evidence_json), []), warnings: jsonParse(String(row.warnings_json), []),
+    confirmedAt: row.confirmed_at ? String(row.confirmed_at) : null, createdAt: String(row.created_at),
+  }
 }
 
 function plainTextToDoc(text: string): Record<string, unknown> {

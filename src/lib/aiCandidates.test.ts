@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { candidateUnits, splitBrainstormDirections } from './aiCandidates'
+import { candidateUnits, splitBrainstormDirections, splitStyleRewriteCandidates, splitWordInspirationCandidates } from './aiCandidates'
 
 describe('AI candidate grouping', () => {
   it('keeps each direction, opportunity and risk in one selectable unit', () => {
@@ -24,5 +24,16 @@ describe('AI candidate grouping', () => {
 
   it('keeps non-brainstorm tasks selectable by sentence', () => {
     expect(candidateUnits('continue', '第一句。第二句！')).toEqual(['第一句。', '第二句！'])
+  })
+
+  it('turns style rewrites into one-of-many replacement candidates', () => {
+    expect(splitStyleRewriteCandidates('候选一：他收回手。\n候选二：他把手拢进袖中。\n候选三：指节隐入袖口。')).toEqual([
+      '他收回手。', '他把手拢进袖中。', '指节隐入袖口。',
+    ])
+    expect(candidateUnits('style_rewrite', '候选一：甲。\n候选二：乙。')).toEqual(['甲。', '乙。'])
+  })
+
+  it('strips inspiration categories before replacing the selected words', () => {
+    expect(splitWordInspirationCandidates('动作｜收紧指节\n感官｜冷意沿掌纹渗入')).toEqual(['收紧指节', '冷意沿掌纹渗入'])
   })
 })

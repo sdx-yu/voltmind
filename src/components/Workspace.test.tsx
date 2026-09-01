@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   getScene: vi.fn(),
   trashNode: vi.fn(),
   updateProject: vi.fn(),
+  getVoiceProfile: vi.fn(),
+  listVoicePreferences: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -29,6 +31,13 @@ describe('Workspace chrome', () => {
     mocks.listNodes.mockResolvedValue(nodes)
     mocks.listEntities.mockResolvedValue([])
     mocks.getScene.mockResolvedValue({ nodeId: 'scene', contentJson: { type: 'doc', content: [{ type: 'paragraph' }] }, plainText: '', contentHash: '', currentRevisionId: null, updatedAt: '' })
+    mocks.getVoiceProfile.mockResolvedValue({
+      nodeId: 'scene', projectId: 'p', inherited: true, source: 'default', sourceLabel: '尚未指定，使用中性默认',
+      family: 'natural', intensity: 'standard', pace: 'balanced', imagery: 'medium', distance: 'medium', interiority: 'medium', intents: [],
+      register: 'balanced', sentence: 'mixed', dialogue: 'balanced', allusion: 'light', slang: 'avoid',
+      authorNote: '', contract: '', updatedAt: null,
+    })
+    mocks.listVoicePreferences.mockResolvedValue([])
   })
   afterEach(cleanup)
 
@@ -56,6 +65,7 @@ describe('Workspace chrome', () => {
 
   it('persists keyboard resized pane widths', async () => {
     render(<Workspace project={project} onBack={vi.fn()} notify={vi.fn()} />)
+    expect(await screen.findByRole('heading', { name: '本场文风档' })).toBeInTheDocument()
     const separator = await screen.findByRole('separator', { name: '调整书稿树宽度' })
     separator.focus()
     await userEvent.keyboard('{ArrowRight}')
