@@ -1,6 +1,6 @@
 # Windows x64 自动构建与内测交付
 
-状态：工程流程已落地，等待 GitHub 仓库首次真实运行
+状态：工程流程已落地，正在进行 GitHub Windows 云端真实运行验收
 
 ## 给产品经理的结论
 
@@ -11,7 +11,7 @@
 ## 自动化流程
 
 1. 只允许手动运行，或推送与 `package.json` 版本一致的 `v版本号` 标签；不会因每次提交自动消耗构建额度。
-2. 使用固定的 Windows 2025 x64 云主机、Node.js 24.10.0、锁定依赖和 Rust stable。
+2. 使用固定的 Windows 2025 x64 云主机、Node.js 24.10.0、锁定依赖和 Rust stable；构建前检查并启用 Tauri/WiX 生成 MSI 所需的 Windows `VBSCRIPT` 可选功能。
 3. 先执行 UI 基础检查、UI 质量检查、双端类型检查和全部 Vitest 测试；任一失败即停止，不生成安装包。
 4. 构建项目自己的 Windows x64 Node sidecar，再由 Tauri 生成 NSIS `.exe` 和 MSI `.msi`。
 5. 校验两个安装包的 SHA-256 和 Authenticode 状态，在临时 Windows 系统中静默安装、卸载 MSI。

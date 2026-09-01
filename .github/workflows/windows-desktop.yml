@@ -68,6 +68,22 @@ jobs:
           WINDOWS_TIMESTAMP_URL: ${{ secrets.WINDOWS_TIMESTAMP_URL }}
         run: ./scripts/g4/import-windows-signing-certificate.ps1
 
+      - name: Enable the MSI VBScript prerequisite
+        shell: pwsh
+        run: |
+          $feature = Get-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -ErrorAction Stop
+          if ($feature.State -ne 'Enabled') {
+            $result = Enable-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -All -NoRestart -ErrorAction Stop
+            if ($result.RestartNeeded) {
+              throw '启用 VBSCRIPT 后需要重启 runner，当前 Windows 镜像无法继续构建 MSI。'
+            }
+          }
+          $verified = Get-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -ErrorAction Stop
+          if ($verified.State -ne 'Enabled') {
+            throw "VBSCRIPT 可选功能未启用，当前状态：$($verified.State)"
+          }
+          Write-Output "VBSCRIPT optional feature: $($verified.State)"
+
       - name: Build NSIS and MSI installers
         run: npm run desktop:build:windows-ci
 

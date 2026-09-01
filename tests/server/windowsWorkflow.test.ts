@@ -26,6 +26,9 @@ describe('Windows x64 automated desktop delivery', () => {
   it('locks quality gates, x64 packaging and MSI install/uninstall into the same revision', () => {
     expect(workflow).toContain('npm ci')
     expect(workflow).toContain('npm run ui:check && npm run ui:quality && npm run typecheck && npm test')
+    expect(workflow).toContain('Get-WindowsOptionalFeature -Online -FeatureName VBSCRIPT')
+    expect(workflow).toContain('Enable-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -All -NoRestart')
+    expect(workflow).toContain("$verified.State -ne 'Enabled'")
     expect(workflow).toContain('npm run desktop:build:windows-ci')
     expect(workflow).toContain('windows-ci-package.ps1')
     expect(workflow).toContain('windows-installer-smoke.ps1')
