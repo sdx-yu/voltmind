@@ -3,6 +3,7 @@ import { diffWords } from 'diff'
 import { Bot, BrainCircuit, Check, ChevronDown, CircleAlert, Clock3, Eye, FileClock, Link2, LoaderCircle, LockKeyhole, MessageSquareText, Plus, RotateCcw, Sparkles, Square, Trash2, UserRound, WandSparkles, X } from 'lucide-react'
 import type { AiContextItem, AiTaskResult, ContinuityIssue, Entity, EntityState, KnowledgeFact, ManuscriptNode, Mention, Revision } from '../../shared/types'
 import { api } from '../lib/api'
+import { candidateUnits, splitBrainstormDirections, splitSentenceCandidates } from '../lib/aiCandidates'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Modal } from './Modal'
 import { IconButton, SelectControl, SelectField, Tabs, TextareaField, TextField } from '../ui'
@@ -211,7 +212,7 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
         if (event.type === 'delta') setStreamOutput((current) => current + event.delta)
       }, controller.signal)
       setResult(next)
-      setSelectedSegments(new Set(splitSegments(next.output).map((_, index) => index)))
+      setSelectedSegments(new Set(candidateUnits(next.taskType, next.output).map((_, index) => index)))
       setStreamOutput('')
     }
     catch (error) {
@@ -228,7 +229,7 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
     if (!result || selectedSegments.size === 0) return
     try {
       await api.recordAiDecision(projectId, node.id, result.taskId, 'accepted')
-      const text = splitSegments(result.output).filter((_, index) => selectedSegments.has(index)).join('')
+      const text = candidateUnits(result.taskType, result.output).filter((_, index) => selectedSegments.has(index)).join(result.taskType === 'brainstorm' ? '\n\n' : '')
       window.dispatchEvent(new CustomEvent('bbd:accept-ai', { detail: { text, taskId: result.taskId } })); setAccepted(true)
     } catch (error) { notify('error', error instanceof Error ? error.message : 'AI 接受记录失败') }
   }
@@ -254,19 +255,29 @@ function AiPanel({ projectId, node, notify }: Pick<Props, 'projectId' | 'node' |
     </section>
     {running && <section className="ai-progress" role="status" aria-live="polite"><header><LoaderCircle className="ui-spin" size={16}/><div><strong>{progress}</strong><span>{elapsed} 秒 · 已生成 {streamOutput.length} 字</span></div><button type="button" onClick={stop}><Square size={12}/>停止</button></header>{streamOutput && <div className="ai-stream-output">{streamOutput}<span className="ai-stream-cursor" /></div>}</section>}
     {runNotice && !running && <p className="ai-run-notice"><CircleAlert size={14}/>{runNotice}</p>}
-    {result && <section className="ai-result"><header><span><Sparkles size={15} />{result.model}</span><small>{result.inputTokens} → {result.outputTokens} token</small></header><DiffText original={task === 'rewrite' ? context.find((item) => item.type === 'scene')?.content ?? '' : ''} value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} />
-      <div className="candidate-actions">{accepted ? <><span className="accepted-label"><Check size={14} />所选句子已插入正文，并将记录为 AI 建议后接受</span><button className="reject" onClick={() => void undoAccept()}><RotateCcw size={14}/>撤销接受</button></> : <><button className="reject" onClick={() => void reject()}><X size={14} />丢弃</button><button className="accept" disabled={selectedSegments.size === 0} onClick={() => void accept()}><Check size={14} />接受所选 {selectedSegments.size} 句</button></>}</div>
+    {result && <section className="ai-result"><header><span><Sparkles size={15} />{result.model}</span><small>{result.inputTokens} → {result.outputTokens} token</small></header>{result.taskType === 'brainstorm' ? <BrainstormChoices value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} /> : <DiffText original={result.taskType === 'rewrite' ? context.find((item) => item.type === 'scene')?.content ?? '' : ''} value={result.output} accepted={accepted} selected={selectedSegments} onToggle={(index) => setSelectedSegments((current) => { const next = new Set(current); next.has(index) ? next.delete(index) : next.add(index); return next })} />}
+      <div className="candidate-actions">{accepted ? <><span className="accepted-label"><Check size={14} />所选{result.taskType === 'brainstorm' ? '方向' : '句子'}已插入正文，并将记录为 AI 建议后接受</span><button className="reject" onClick={() => void undoAccept()}><RotateCcw size={14}/>撤销接受</button></> : <><button className="reject" onClick={() => void reject()}><X size={14} />丢弃</button><button className="accept" disabled={selectedSegments.size === 0} onClick={() => void accept()}><Check size={14} />接受所选 {selectedSegments.size} {result.taskType === 'brainstorm' ? '个方向' : '句'}</button></>}</div>
     </section>}
   </div>
 }
 
-function DiffText({ original, value, accepted, selected, onToggle }: { original: string; value: string; accepted: boolean; selected: Set<number>; onToggle: (index: number) => void }) {
-  const segments = splitSegments(value)
-  return <div className={`diff-output ${accepted ? 'accepted' : ''}`}>{original && <div className="diff-comparison"><small>原文 ↔ 候选</small><p>{diffWords(original, value).map((part, index) => <span key={index} className={part.added ? 'diff-added' : part.removed ? 'diff-removed' : ''}>{part.value}</span>)}</p></div>}{segments.map((segment, index) => <label className="diff-segment" key={index}><input type="checkbox" checked={selected.has(index)} disabled={accepted} onChange={() => onToggle(index)} /><span>{diffWords('', segment).map((part, partIndex) => <span key={partIndex} className={part.added ? 'diff-added' : ''}>{part.value}</span>)}</span></label>)}</div>
+function BrainstormChoices({ value, accepted, selected, onToggle }: { value: string; accepted: boolean; selected: Set<number>; onToggle: (index: number) => void }) {
+  const directions = splitBrainstormDirections(value)
+  if (!directions.length) return <DiffText original="" value={value} accepted={accepted} selected={selected} onToggle={onToggle} />
+  return <div className={`brainstorm-choices ${accepted ? 'accepted' : ''}`}>{directions.map((direction, index) => <label className={`brainstorm-choice ${selected.has(index) ? 'selected' : ''}`} key={`${direction.title}-${index}`}>
+    <header><input type="checkbox" aria-label={`选择${direction.title}`} checked={selected.has(index)} disabled={accepted} onChange={() => onToggle(index)} /><span>{direction.title}</span></header>
+    {direction.premise && <strong>{direction.premise}</strong>}
+    <div className="brainstorm-choice-details">
+      {direction.opportunity && <p><span>机会</span>{direction.opportunity}</p>}
+      {direction.risk && <p className="risk"><span>风险</span>{direction.risk}</p>}
+      {!direction.opportunity && !direction.risk && <p>{direction.text.replace(/^方向[^：:]+[：:]\s*/, '')}</p>}
+    </div>
+  </label>)}</div>
 }
 
-function splitSegments(value: string): string[] {
-  return value.match(/[^。！？!?\n]+[。！？!?]?|\n+/g)?.filter((segment) => segment.trim()) ?? [value]
+function DiffText({ original, value, accepted, selected, onToggle }: { original: string; value: string; accepted: boolean; selected: Set<number>; onToggle: (index: number) => void }) {
+  const segments = splitSentenceCandidates(value)
+  return <div className={`diff-output ${accepted ? 'accepted' : ''}`}>{original && <div className="diff-comparison"><small>原文 ↔ 候选</small><p>{diffWords(original, value).map((part, index) => <span key={index} className={part.added ? 'diff-added' : part.removed ? 'diff-removed' : ''}>{part.value}</span>)}</p></div>}{segments.map((segment, index) => <label className="diff-segment" key={index}><input type="checkbox" checked={selected.has(index)} disabled={accepted} onChange={() => onToggle(index)} /><span>{diffWords('', segment).map((part, partIndex) => <span key={partIndex} className={part.added ? 'diff-added' : ''}>{part.value}</span>)}</span></label>)}</div>
 }
 
 function sourceLabel(source: Revision['provenanceLabel']) { return ({ human: '人工编辑', human_after_ai: 'AI 后人工修订', import: '导入', ai_accepted: 'AI 建议后接受', restore: '恢复', merge: '合并' } as const)[source] }

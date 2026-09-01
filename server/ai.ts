@@ -262,7 +262,7 @@ function foreshadowLabel(status: string) {
 
 function buildPrompt(taskType: string, instruction: string, context: string): string {
   const taskRules: Record<string, string> = {
-    brainstorm: '给出 3 个彼此明显不同的剧情方向。每个方向包含机会、风险，不替作者做最终决定。',
+    brainstorm: '给出 3 个彼此明显不同的剧情方向。每个方向必须同时包含机会、风险，不替作者做最终决定。严格按“方向一：…\\n机会：…\\n风险：…”的三行结构依次输出；不要添加开场、总结、提醒或其他段落。',
     continue: '续写一小段中文正文，保持人物状态与现有文风，不引入未经支持的重大设定。',
     rewrite: '改写用户指定内容，保留事实、视角和时态，仅改善表达。',
     cold_read: '以第一次阅读的读者身份，列出期待、困惑和最想继续读的点，不直接重写。',
@@ -280,8 +280,8 @@ function buildPrompt(taskType: string, instruction: string, context: string): st
   return `你是中文长篇创作助手。作者拥有最终决定权。不要展示思考过程。\n任务：${taskRules[taskType] ?? taskType}\n输出约束：${lengthRules[taskType] ?? '简洁作答。'}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
 }
 
-function runMockTask(taskType: string, instruction: string, text: string): string {
-  if (taskType === 'brainstorm') return `方向一｜让场景中的目标立刻受阻，迫使人物作出代价明确的选择。\n方向二｜让一个旧线索产生新的解释，但不直接揭晓答案。\n方向三｜用另一人物的反应改变当前场景的权力关系。\n\n提醒：以上只是候选，请结合正典决定。${instruction ? `\n你的要求：${instruction}` : ''}`
+function runMockTask(taskType: string, _instruction: string, text: string): string {
+  if (taskType === 'brainstorm') return `方向一：目标受阻\n机会：迫使人物作出代价明确的选择。\n风险：冲突升级过快会压缩人物反应空间。\n\n方向二：旧线索转义\n机会：让一个旧线索产生新的解释，但不直接揭晓答案。\n风险：新解释需要与既有正典保持一致。\n\n方向三：权力关系变化\n机会：用另一人物的反应改变当前场景的权力关系。\n风险：新增反应不能替代当前人物的主动行动。`
   if (taskType === 'cold_read') return `读者期待：当前冲突会在下一步产生不可逆后果。\n可能困惑：场景中人物的即时目标还可以更明确。\n继续阅读动力：想知道刚出现的线索是否与前文事件有关。`
   if (taskType === 'continuity') return '演示模型不替代规则检查。请查看“检查”页签中的带证据结果。'
   if (taskType === 'extract_facts') return '演示模式不会虚构事实候选。请在正典页手工建立候选，或配置支持结构化输出的模型。'

@@ -8,7 +8,7 @@ import { Inspector } from './Inspector'
 const mocks = vi.hoisted(() => ({
   listKnowledge: vi.fn(), listNodes: vi.fn(), createKnowledge: vi.fn(), trashKnowledge: vi.fn(), grantKnowledge: vi.fn(),
   listMentions: vi.fn(), suggestMentions: vi.fn(), currentStates: vi.fn(),
-  getContext: vi.fn(), getAiSettings: vi.fn(), streamAiTask: vi.fn(), warmAi: vi.fn(),
+  getContext: vi.fn(), getAiSettings: vi.fn(), streamAiTask: vi.fn(), warmAi: vi.fn(), recordAiDecision: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -27,6 +27,7 @@ describe('Inspector knowledge panel', () => {
     mocks.getContext.mockResolvedValue([{ id: 's1', type: 'scene', title: '当前场景', content: '雨落在窗前。', selected: true, privacyLevel: 'normal', estimatedTokens: 8, reason: '当前正文' }])
     mocks.getAiSettings.mockResolvedValue({ baseUrl: 'mock://local', model: '笔不怠演示模型', hasApiKey: false, credentialStore: 'protected_file', provider: 'demo', costPolicy: 'local_only' })
     mocks.warmAi.mockResolvedValue({ ok: true, message: '已预热' })
+    mocks.recordAiDecision.mockResolvedValue(undefined)
   })
   afterEach(cleanup)
 
@@ -66,6 +67,32 @@ describe('Inspector knowledge panel', () => {
     await userEvent.click(screen.getByRole('button', { name: '停止' }))
     expect(await screen.findByText('已停止生成，未写入正文')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /接受所选/ })).not.toBeInTheDocument()
+  })
+
+  it('selects a brainstorm direction together with its opportunity and risk', async () => {
+    mocks.streamAiTask.mockResolvedValue({
+      taskId: 'ai-1', taskType: 'brainstorm', model: '笔不怠演示模型', inputTokens: 30, outputTokens: 60, estimatedCost: null,
+      output: `方向一：资源争夺。\n机会：掠夺崖壁稀有矿产；风险：触发岩层崩塌。\n\n方向二：秘境探险。\n机会：发现上古遗迹入口；风险：陷入致命陷阱。\n\n方向三：危机求生。\n机会：获取关键生存物资；风险：暴露自身位置。`,
+    })
+    const accepted = vi.fn()
+    window.addEventListener('bbd:accept-ai', accepted as EventListener, { once: true })
+    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
+    await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
+    await userEvent.click(await screen.findByRole('button', { name: '生成演示候选' }))
+
+    expect(await screen.findAllByRole('checkbox', { name: /选择方向/ })).toHaveLength(3)
+    expect(screen.getAllByText('机会')).toHaveLength(3)
+    expect(screen.getAllByText('风险')).toHaveLength(3)
+    expect(screen.getByRole('button', { name: '接受所选 3 个方向' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('checkbox', { name: '选择方向二' }))
+    await userEvent.click(screen.getByRole('button', { name: '接受所选 2 个方向' }))
+    await waitFor(() => expect(mocks.recordAiDecision).toHaveBeenCalledWith('p', 's1', 'ai-1', 'accepted'))
+    const detail = (accepted.mock.calls[0][0] as CustomEvent<{ text: string }>).detail
+    expect(detail.text).toContain('方向一：资源争夺。')
+    expect(detail.text).toContain('机会：掠夺崖壁稀有矿产')
+    expect(detail.text).not.toContain('方向二：秘境探险。')
+    expect(detail.text).toContain('方向三：危机求生。')
   })
 })
 
