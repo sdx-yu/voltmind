@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-windows:
     name: Build, install and verify Windows x64
-    runs-on: windows-2025
+    runs-on: windows-2022
     timeout-minutes: 60
     env:
       CI: 'true'
@@ -68,21 +68,21 @@ jobs:
           WINDOWS_TIMESTAMP_URL: ${{ secrets.WINDOWS_TIMESTAMP_URL }}
         run: ./scripts/g4/import-windows-signing-certificate.ps1
 
-      - name: Enable the MSI VBScript prerequisite
+      - name: Verify the MSI VBScript prerequisite
         shell: pwsh
         run: |
-          $feature = Get-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -ErrorAction Stop
-          if ($feature.State -ne 'Enabled') {
-            $result = Enable-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -All -NoRestart -ErrorAction Stop
-            if ($result.RestartNeeded) {
-              throw '启用 VBSCRIPT 后需要重启 runner，当前 Windows 镜像无法继续构建 MSI。'
-            }
+          $cscript = Get-Command 'cscript.exe' -ErrorAction SilentlyContinue
+          if (-not $cscript) {
+            throw '当前 Windows runner 没有可用的 VBScript 引擎，无法运行 WiX MSI 校验。'
           }
-          $verified = Get-WindowsOptionalFeature -Online -FeatureName VBSCRIPT -ErrorAction Stop
-          if ($verified.State -ne 'Enabled') {
-            throw "VBSCRIPT 可选功能未启用，当前状态：$($verified.State)"
+          $smokeScript = Join-Path $env:RUNNER_TEMP 'bibudai-vbscript-smoke.vbs'
+          Set-Content -LiteralPath $smokeScript -Value 'WScript.Quit 0' -Encoding ascii
+          & $cscript.Source //NoLogo $smokeScript
+          if ($LASTEXITCODE -ne 0) {
+            throw "VBScript 引擎烟测失败，退出码：$LASTEXITCODE"
           }
-          Write-Output "VBSCRIPT optional feature: $($verified.State)"
+          Remove-Item -LiteralPath $smokeScript -Force
+          Write-Output "VBScript engine: $($cscript.Source)"
 
       - name: Build NSIS and MSI installers
         run: npm run desktop:build:windows-ci
