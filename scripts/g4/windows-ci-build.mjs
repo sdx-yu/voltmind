@@ -13,7 +13,9 @@ const timestampUrl = process.env.WINDOWS_TIMESTAMP_URL ?? ''
 if (thumbprint && !/^[A-F0-9]{40}$/.test(thumbprint)) throw new Error('WINDOWS_CERTIFICATE_THUMBPRINT 格式无效')
 if (thumbprint && !/^https:\/\//i.test(timestampUrl)) throw new Error('签名构建必须配置 HTTPS 时间戳地址')
 
-run('npm.cmd', ['run', 'desktop:prepare'])
+const npmCli = process.env.npm_execpath
+if (!npmCli || !fs.existsSync(npmCli)) throw new Error('缺少 npm CLI 路径；请通过 npm run desktop:build:windows-ci 启动构建')
+run(process.execPath, [npmCli, 'run', 'desktop:prepare'])
 
 const tooling = path.join(root, '.tooling')
 fs.mkdirSync(tooling, { recursive: true })
