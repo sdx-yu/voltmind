@@ -26,7 +26,7 @@ fs.writeFileSync(override, `${JSON.stringify({ bundle: { targets: ['nsis', 'msi'
 
 const tauriCli = path.join(root, 'node_modules', '@tauri-apps', 'cli', 'tauri.js')
 run(process.execPath, [
-  tauriCli, 'build', '--bundles', 'nsis,msi',
+  tauriCli, 'build', '--verbose', '--bundles', 'nsis,msi',
   '--config', path.join(root, 'src-tauri', 'tauri.windows.conf.json'),
   '--config', override,
 ])

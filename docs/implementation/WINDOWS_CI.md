@@ -13,7 +13,7 @@
 1. 只允许手动运行，或推送与 `package.json` 版本一致的 `v版本号` 标签；不会因每次提交自动消耗构建额度。
 2. 使用固定的 Windows 2022 x64 云主机、Node.js 24.10.0、锁定依赖和 Rust stable；构建前实际运行一次 VBScript 烟测，确认 Tauri/WiX 的 MSI 校验引擎可用。Windows 2025 云镜像不再带兼容的传统 VBScript 功能，因此不用于当前 WiX v3 打包。
 3. 先执行 UI 基础检查、UI 质量检查、双端类型检查和全部 Vitest 测试；任一失败即停止，不生成安装包。
-4. 构建项目自己的 Windows x64 Node sidecar，再由 Tauri 生成 NSIS `.exe` 和 MSI `.msi`。
+4. 构建项目自己的 Windows x64 Node sidecar，再由 Tauri 生成 NSIS `.exe` 和简体中文 `zh-CN` MSI `.msi`；中文 MSI 使用与产品名匹配的代码页，避免默认 `en-US` 无法编码“笔不怠”。
 5. 校验两个安装包的 SHA-256 和 Authenticode 状态，在临时 Windows 系统中静默安装、卸载 MSI。
 6. 上传 `.exe`、`.msi`、`SHA256SUMS`、构建证据、安装/卸载证据和 MSI 日志，保留 14 天。
 

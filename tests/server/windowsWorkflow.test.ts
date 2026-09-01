@@ -7,6 +7,7 @@ const packageScript = fs.readFileSync('scripts/g4/windows-ci-package.ps1', 'utf8
 const smokeScript = fs.readFileSync('scripts/g4/windows-installer-smoke.ps1', 'utf8')
 const certificateScript = fs.readFileSync('scripts/g4/import-windows-signing-certificate.ps1', 'utf8')
 const sidecarScript = fs.readFileSync('scripts/build-sidecar.mjs', 'utf8')
+const windowsConfig = JSON.parse(fs.readFileSync('src-tauri/tauri.windows.conf.json', 'utf8'))
 
 describe('Windows x64 automated desktop delivery', () => {
   it('uses a bounded Windows runner workflow with least-privilege artifact delivery', () => {
@@ -37,6 +38,8 @@ describe('Windows x64 automated desktop delivery', () => {
     expect(buildScript).toContain("run(process.execPath, [npmCli, 'run', 'desktop:prepare'])")
     expect(buildScript).not.toContain("run('npm.cmd'")
     expect(buildScript).toContain("'--bundles', 'nsis,msi'")
+    expect(buildScript).toContain("'build', '--verbose'")
+    expect(windowsConfig.bundle.windows.wix.language).toBe('zh-CN')
     expect(sidecarScript).toContain("'postject', 'dist', 'cli.js'")
     expect(sidecarScript).toContain('execFileSync(process.execPath, [postject, ...args]')
     expect(packageScript).toContain("Get-FileHash -Algorithm SHA256")

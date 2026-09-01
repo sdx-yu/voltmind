@@ -3,7 +3,10 @@
   "bundle": {
     "targets": ["nsis", "msi"],
     "windows": {
-      "digestAlgorithm": "sha256"
+      "digestAlgorithm": "sha256",
+      "wix": {
+        "language": "zh-CN"
+      }
     }
   }
 }
