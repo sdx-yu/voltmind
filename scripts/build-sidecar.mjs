@@ -50,9 +50,9 @@ if (process.platform !== 'win32') fs.chmodSync(target, 0o755)
 if (process.platform === 'darwin') {
   try { execFileSync('codesign', ['--remove-signature', target], { stdio: 'ignore' }) } catch { /* unsigned node binaries need no removal */ }
 }
-const postject = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'postject.cmd' : 'postject')
+const postject = path.join(root, 'node_modules', 'postject', 'dist', 'cli.js')
 const args = [target, 'NODE_SEA_BLOB', blob, '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2']
 if (process.platform === 'darwin') args.push('--macho-segment-name', 'NODE_SEA')
-execFileSync(postject, args, { stdio: 'inherit' })
+execFileSync(process.execPath, [postject, ...args], { stdio: 'inherit' })
 if (process.platform === 'darwin') execFileSync('codesign', ['--sign', '-', '--force', target], { stdio: 'inherit' })
 process.stdout.write(`Sidecar: ${target}\n`)

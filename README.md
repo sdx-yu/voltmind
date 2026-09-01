@@ -64,6 +64,8 @@ npm run release:macos:preflight
 - [2.6.0 STYLE-C 人物口吻与一致性验收报告](归档/2026-09-01/笔不怠STYLE-C人物口吻与一致性验收报告_v2.6.0.md)
 - [UI 贡献与新增页面准入规范](docs/implementation/UI_CONTRIBUTION_GUIDE.md)
 - [G4-C UI 内测发行候选计划](docs/implementation/G4C_PLAN.md)
+- [Windows x64 自动构建与内测交付](docs/implementation/WINDOWS_CI.md)
+- [Windows 自动构建流程验收报告](归档/2026-09-01/笔不怠Windows自动构建流程验收报告_v2.6.0.md)
 - [需求追踪矩阵](docs/implementation/TRACEABILITY.md)
 - [架构决策 ADR-001](docs/adr/ADR-001-local-node-sqlite.md)
 - [架构决策 ADR-002](docs/adr/ADR-002-tauri-sidecar-desktop.md)

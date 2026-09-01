@@ -23,6 +23,7 @@
     "desktop:prepare": "npm run build && npm run sidecar:build",
     "desktop:dev": "npm run desktop:prepare && node scripts/run-tauri.mjs dev",
     "desktop:build": "npm run desktop:prepare && node scripts/run-tauri.mjs build --bundles app,dmg",
+    "desktop:build:windows-ci": "node scripts/g4/windows-ci-build.mjs",
     "release:macos": "node scripts/g4/macos-release.mjs",
     "release:macos:preflight": "node scripts/g4/macos-release.mjs --preflight-only",
     "release:windows": "node scripts/g4/windows-release.mjs",
