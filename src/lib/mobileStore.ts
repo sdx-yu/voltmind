@@ -35,13 +35,24 @@ export async function listLocalMobileItems(): Promise<MobileInboxItem[]> {
 
 export async function saveMobileLibrary(library: Omit<CachedMobileLibrary, 'cachedAt'>) {
   const database = await openMobileDatabase(); const transaction = database.transaction('library', 'readwrite')
-  transaction.objectStore('library').put({ id: 'main', ...library, cachedAt: new Date().toISOString() }); await transactionDone(transaction); database.close()
+  transaction.objectStore('library').put({
+    id: 'main',
+    projects: Array.isArray(library.projects) ? library.projects : [],
+    scenes: Array.isArray(library.scenes) ? library.scenes : [],
+    sprintCards: Array.isArray(library.sprintCards) ? library.sprintCards : [],
+    cachedAt: new Date().toISOString(),
+  }); await transactionDone(transaction); database.close()
 }
 
 export async function getMobileLibrary(): Promise<CachedMobileLibrary> {
   const database = await openMobileDatabase(); const transaction = database.transaction('library', 'readonly')
   const record = await requestResult<(CachedMobileLibrary & { id: string }) | undefined>(transaction.objectStore('library').get('main')); await transactionDone(transaction); database.close()
-  return record ? { projects: record.projects, scenes: record.scenes, sprintCards: record.sprintCards ?? [], cachedAt: record.cachedAt } : { projects: [], scenes: [], sprintCards: [], cachedAt: '' }
+  return record ? {
+    projects: Array.isArray(record.projects) ? record.projects : [],
+    scenes: Array.isArray(record.scenes) ? record.scenes : [],
+    sprintCards: Array.isArray(record.sprintCards) ? record.sprintCards : [],
+    cachedAt: typeof record.cachedAt === 'string' ? record.cachedAt : '',
+  } : { projects: [], scenes: [], sprintCards: [], cachedAt: '' }
 }
 
 export function getMobileDeviceId(): string {

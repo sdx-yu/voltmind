@@ -1,3 +1,4 @@
+#[cfg(not(mobile))]
 use std::{
   fs,
   net::{TcpListener, TcpStream},
@@ -5,16 +6,66 @@ use std::{
   thread,
   time::Duration,
 };
+#[cfg(not(mobile))]
 use tauri::{
   menu::{AboutMetadata, MenuBuilder, MenuItem, SubmenuBuilder},
   Manager, WebviewUrl, WebviewWindowBuilder,
 };
+#[cfg(not(mobile))]
 use tauri_plugin_shell::{process::{CommandChild, CommandEvent}, ShellExt};
 
+#[cfg(not(mobile))]
 struct SidecarState(Mutex<Option<CommandChild>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  #[cfg(mobile)]
+  run_mobile();
+
+  #[cfg(not(mobile))]
+  run_desktop();
+}
+
+#[cfg(mobile)]
+fn run_mobile() {
+  tauri::Builder::default()
+    .on_page_load(|webview, payload| {
+      if payload.event() == tauri::webview::PageLoadEvent::Finished {
+        let _ = webview.eval(r#"
+          window.setTimeout(async () => {
+            const root = document.getElementById('root');
+            if (!root || root.childElementCount > 0) return;
+            try {
+              if (typeof window.__BBD_MOUNT_APPLICATION__ !== 'function') {
+                const entry = Array.from(document.scripts).find((script) => script.type === 'module' && script.src)?.src;
+                if (entry) await import(entry);
+              }
+              window.__BBD_MOUNT_APPLICATION__?.();
+              await new Promise((resolve) => window.setTimeout(resolve, 800));
+            } catch {}
+            if (root.childElementCount > 0) return;
+            const fallback = document.createElement('main');
+            fallback.style.cssText = 'box-sizing:border-box;min-height:100dvh;padding:64px 28px;background:#f3efe6;color:#292722;font:16px/1.7 -apple-system,BlinkMacSystemFont,sans-serif;text-align:center;';
+            const title = document.createElement('h1');
+            title.textContent = '笔不怠暂时未能打开';
+            const description = document.createElement('p');
+            description.textContent = '你的本机记录没有被改动，请完全退出应用后重新打开。';
+            const retry = document.createElement('button');
+            retry.textContent = '重新打开';
+            retry.style.cssText = 'min-height:48px;padding:0 24px;border:0;border-radius:12px;background:#2f6650;color:white;font:inherit;font-weight:700;';
+            retry.addEventListener('click', () => location.reload());
+            fallback.append(title, description, retry);
+            root.appendChild(fallback);
+          }, 250);
+        "#);
+      }
+    })
+    .run(tauri::generate_context!())
+    .expect("笔不怠 iPad 测试程序启动失败");
+}
+
+#[cfg(not(mobile))]
+fn run_desktop() {
   let application = tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .manage(SidecarState(Mutex::new(None)))
@@ -93,6 +144,7 @@ pub fn run() {
   });
 }
 
+#[cfg(not(mobile))]
 fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
   let settings = MenuItem::with_id(app, "settings", "设置…", true, Some("CmdOrCtrl+,"))?;
   let command_palette = MenuItem::with_id(app, "command-palette", "命令面板…", true, Some("CmdOrCtrl+K"))?;

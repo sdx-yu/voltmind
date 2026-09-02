@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MobileHome } from './MobileHome'
 import { api } from '../lib/api'
-import { listLocalMobileItems, putLocalMobileItem, resetMobileStore } from '../lib/mobileStore'
+import { getMobileLibrary, listLocalMobileItems, putLocalMobileItem, resetMobileStore } from '../lib/mobileStore'
 
 vi.mock('../lib/api', () => ({ api: { createMobileInboxItem: vi.fn(), createMobileInboxAction: vi.fn(), listMobileInbox: vi.fn(), getMobileLibrary: vi.fn() } }))
 vi.mock('../lib/mobileStore', () => ({
@@ -32,6 +32,13 @@ describe('MobileHome', () => {
     expect(screen.getByRole('heading', { name: '继续阅读' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /待处理/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '最近冲刺' })).toBeInTheDocument()
+  })
+
+  it('recovers from a missing or legacy local library record without blanking the app', async () => {
+    vi.mocked(getMobileLibrary).mockResolvedValueOnce(undefined as never)
+    render(<MobileHome/>)
+    expect(await screen.findByRole('heading', { name: '此刻想到什么？' })).toBeInTheDocument()
+    expect(screen.getByText('尚无离线书稿')).toBeInTheDocument()
   })
 
   it('never claims a low-storage write succeeded and offers explicit cache recovery', async () => {

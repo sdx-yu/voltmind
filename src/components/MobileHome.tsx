@@ -16,7 +16,9 @@ import {
 } from '../lib/mobileStore'
 
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
-type SyncState = 'idle' | 'syncing' | 'offline' | 'error'
+type SyncState = 'idle' | 'syncing' | 'offline' | 'local' | 'error'
+
+const nativeStandalone = window.location.protocol === 'tauri:'
 
 const kindLabels: Record<MobileInboxKind, string> = { inspiration: '灵感', scene_idea: '场景想法', review_note: '审阅笔记' }
 const actionLabels: Record<MobileInboxActionType, string> = { filed: '已归档', dismissed: '已忽略', revisit: '稍后再看', approved: '已认可' }
@@ -29,7 +31,7 @@ export function MobileHome() {
   const [targetNodeId, setTargetNodeId] = useState('')
   const [content, setContent] = useState('')
   const [reader, setReader] = useState<MobileLibraryScene | null>(null)
-  const [syncState, setSyncState] = useState<SyncState>(navigator.onLine ? 'idle' : 'offline')
+  const [syncState, setSyncState] = useState<SyncState>(nativeStandalone ? 'local' : navigator.onLine ? 'idle' : 'offline')
   const [message, setMessage] = useState('')
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
   const [storageError, setStorageError] = useState(false)
@@ -37,10 +39,16 @@ export function MobileHome() {
 
   const reloadLocal = useCallback(async () => {
     const [cachedLibrary, localItems] = await Promise.all([getMobileLibrary(), listLocalMobileItems()])
-    setLibrary(cachedLibrary); setItems(localItems)
+    setLibrary({
+      projects: Array.isArray(cachedLibrary?.projects) ? cachedLibrary.projects : [],
+      scenes: Array.isArray(cachedLibrary?.scenes) ? cachedLibrary.scenes : [],
+      sprintCards: Array.isArray(cachedLibrary?.sprintCards) ? cachedLibrary.sprintCards : [],
+      cachedAt: typeof cachedLibrary?.cachedAt === 'string' ? cachedLibrary.cachedAt : '',
+    }); setItems(Array.isArray(localItems) ? localItems : [])
   }, [])
 
   const synchronize = useCallback(async () => {
+    if (nativeStandalone) { await reloadLocal(); setSyncState('local'); return }
     if (!navigator.onLine) { setSyncState('offline'); await reloadLocal(); return }
     setSyncState('syncing')
     try {
@@ -68,7 +76,7 @@ export function MobileHome() {
     return () => { window.removeEventListener('online', online); window.removeEventListener('offline', offline); window.removeEventListener('beforeinstallprompt', captureInstall) }
   }, [reloadLocal, synchronize])
 
-  const projectScenes = useMemo(() => library.scenes.filter((scene) => !projectId || scene.projectId === projectId), [library.scenes, projectId])
+  const projectScenes = useMemo(() => (library.scenes ?? []).filter((scene) => !projectId || scene.projectId === projectId), [library.scenes, projectId])
   const pending = useMemo(() => items.filter((item) => item.currentAction === null || item.currentAction === 'revisit'), [items])
 
   async function capture() {
@@ -79,7 +87,7 @@ export function MobileHome() {
     }
     try {
       await navigator.storage?.persist?.().catch(() => false)
-      await putLocalMobileItem(item); setContent(''); setMessage(navigator.onLine ? '已存入本机，正在回流' : '已安全存入本机，联网后自动回流')
+      await putLocalMobileItem(item); setContent(''); setMessage(nativeStandalone ? '已安全存入本机' : navigator.onLine ? '已存入本机，正在回流' : '已安全存入本机，联网后自动回流')
       await reloadLocal(); await synchronize()
     } catch (error) {
       const quota = error instanceof DOMException && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
@@ -110,8 +118,8 @@ export function MobileHome() {
     <header className="mobile-header">
       <div className="mobile-brand"><span>笔</span><div><strong>笔不怠</strong><small>笔耕不怠，写尽所思。</small></div></div>
       <div className={`mobile-network mobile-network-${syncState}`} aria-live="polite">
-        {syncState === 'offline' ? <CloudOff size={15}/> : syncState === 'syncing' ? <RefreshCw className="spin" size={15}/> : <Wifi size={15}/>}
-        <span>{syncState === 'offline' ? '离线可用' : syncState === 'syncing' ? '回流中' : syncState === 'error' ? '仅本机' : '已同步'}</span>
+        {syncState === 'offline' || syncState === 'local' ? <CloudOff size={15}/> : syncState === 'syncing' ? <RefreshCw className="spin" size={15}/> : <Wifi size={15}/>}
+        <span>{syncState === 'offline' ? '离线可用' : syncState === 'local' ? '仅本机' : syncState === 'syncing' ? '回流中' : syncState === 'error' ? '仅本机' : '已同步'}</span>
       </div>
     </header>
 
@@ -127,7 +135,7 @@ export function MobileHome() {
       </div>
       <textarea aria-label="记录内容" value={content} onChange={(event) => setContent(event.target.value)} placeholder={kind === 'review_note' ? '写下阅读时的判断或疑问…' : '先记下来，不打断思路…'} rows={5}/>
       <div className="mobile-targets">
-        <label>归属项目<SelectControl aria-label="归属项目" value={projectId} onChange={(event) => { setProjectId(event.target.value); setTargetNodeId('') }}><option value="">稍后整理</option>{library.projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</SelectControl></label>
+        <label>归属项目<SelectControl aria-label="归属项目" value={projectId} onChange={(event) => { setProjectId(event.target.value); setTargetNodeId('') }}><option value="">稍后整理</option>{(library.projects ?? []).map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</SelectControl></label>
         <label>关联场景<SelectControl aria-label="关联场景" value={targetNodeId} onChange={(event) => setTargetNodeId(event.target.value)}><option value="">不关联场景</option>{projectScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}</option>)}</SelectControl></label>
       </div>
       <button className="mobile-capture-button" disabled={!content.trim()} onClick={() => void capture()}><Send size={18}/>存入收集箱</button>
@@ -136,7 +144,7 @@ export function MobileHome() {
 
     <section className="mobile-section" aria-labelledby="reading-title">
       <div className="mobile-section-title"><div><span className="eyebrow">CONTINUE READING</span><h2 id="reading-title">继续阅读</h2></div><BookOpen size={21}/></div>
-      {library.scenes.length ? <div className="mobile-scene-list">{library.scenes.slice(0, 4).map((scene) => <button key={scene.id} onClick={() => openReview(scene)}>
+      {(library.scenes ?? []).length ? <div className="mobile-scene-list">{(library.scenes ?? []).slice(0, 4).map((scene) => <button key={scene.id} onClick={() => openReview(scene)}>
         <span className="mobile-scene-project">{scene.projectTitle}</span><strong>{scene.title}</strong><p>{scene.plainText || '空场景'}</p><small>{formatTime(scene.updatedAt)} · {provenanceText(scene.provenanceLabel)}</small>
       </button>)}</div> : <MobileEmpty icon={<BookOpen size={19}/>} title="尚无离线书稿" text="联网打开一次后，最近场景会保存在本机供阅读。"/>}
     </section>

@@ -90,27 +90,40 @@ function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, on
 
 function VoicePanel({ projectId, nodeId, entities, notify }: { projectId: string; nodeId: string; entities: Entity[]; notify: Props['notify'] }) {
   const [profile, setProfile] = useState<SceneVoiceProfile | null>(null)
+  const [projectProfile, setProjectProfile] = useState<SceneVoiceProfile | null>(null)
+  const [voiceScope, setVoiceScope] = useState<'book' | 'scene'>('scene')
   const [preferences, setPreferences] = useState<VoicePreferenceSummary[]>([])
   const [characterId, setCharacterId] = useState('')
   const [characterVoice, setCharacterVoice] = useState<CharacterVoiceProfile | null>(null)
   const labels = voiceKnobLabels()
   useEffect(() => {
-    void Promise.all([api.getVoiceProfile(projectId, nodeId), api.listVoicePreferences(projectId)]).then(([next, nextPreferences]) => { setProfile(next); setPreferences(nextPreferences) }).catch((error) => notify('error', error instanceof Error ? error.message : '文风档加载失败'))
+    void Promise.all([api.getVoiceProfile(projectId, nodeId), api.getProjectVoiceProfile(projectId), api.listVoicePreferences(projectId)]).then(([next, nextProject, nextPreferences]) => { setProfile(next); setProjectProfile(nextProject); setPreferences(nextPreferences) }).catch((error) => notify('error', error instanceof Error ? error.message : '文风设置加载失败'))
   }, [projectId, nodeId, notify])
   async function patch(knobs: Partial<VoiceKnobs>) {
-    try { setProfile(await api.saveVoiceProfile(projectId, nodeId, knobs)) }
-    catch (error) { notify('error', error instanceof Error ? error.message : '文风档保存失败') }
+    try {
+      if (voiceScope === 'book' && projectProfile) {
+        const nextProject = await api.saveProjectVoiceDefault(projectId, { ...projectProfile, ...knobs, intents: [] })
+        setProjectProfile(nextProject)
+        if (profile?.inherited) setProfile(await api.getVoiceProfile(projectId, nodeId))
+        return
+      }
+      setProfile(await api.saveVoiceProfile(projectId, nodeId, knobs))
+    } catch (error) { notify('error', error instanceof Error ? error.message : '文风设置保存失败') }
   }
-  async function makeDefault() {
-    if (!profile) return
-    try { setProfile(await api.saveProjectVoiceDefault(projectId, profile)); notify('success', '已把当前旋钮和作者原话设为本书默认') }
-    catch (error) { notify('error', error instanceof Error ? error.message : '本书默认保存失败') }
+  async function resetSceneVoice() {
+    try { setProfile(await api.resetVoiceProfile(projectId, nodeId)); notify('success', '本场已恢复继承全书文风') }
+    catch (error) { notify('error', error instanceof Error ? error.message : '恢复全书文风失败') }
   }
-  async function chooseFamily(value: VoiceKnobs['family']) { if (profile) await patch(applyStyleFamily(value, profile)) }
+  const activeProfile = voiceScope === 'book' ? projectProfile : profile
+  async function chooseFamily(value: VoiceKnobs['family']) { if (activeProfile) await patch(applyStyleFamily(value, activeProfile)) }
   async function toggleIntent(value: VoiceKnobs['intents'][number]) {
     if (!profile) return
     const intents = profile.intents.includes(value) ? profile.intents.filter((item) => item !== value) : [...profile.intents, value].slice(-3)
     await patch({ intents })
+  }
+  function updateDraft(knobs: Partial<VoiceKnobs>) {
+    if (voiceScope === 'book' && projectProfile) setProjectProfile({ ...projectProfile, ...knobs })
+    else if (profile) setProfile({ ...profile, ...knobs })
   }
   async function loadCharacter(value: string) {
     setCharacterId(value)
@@ -122,20 +135,20 @@ function VoicePanel({ projectId, nodeId, entities, notify }: { projectId: string
     try { setCharacterVoice(await api.saveCharacterVoice(projectId, characterId, value)) } catch (error) { notify('error', error instanceof Error ? error.message : '人物口吻保存失败') }
   }
   async function clearPreferences() { await api.clearVoicePreferences(projectId); setPreferences([]); notify('success', '本机文风偏好统计已清空') }
-  if (!profile) return null
-  const preview = compileVoiceContract(profile).split('\n').filter((line) => line.startsWith('- ')).slice(0, 4)
+  if (!profile || !projectProfile || !activeProfile) return null
+  const preview = compileVoiceContract(activeProfile).split('\n').filter((line) => line.startsWith('- ')).slice(0, 4)
   const preferenceTaskLabels: Record<string, string> = {
     brainstorm: '脑暴', continue: '续写', rewrite: '改写', cold_read: '冷读',
     idea_to_prose: '思路成文', style_rewrite: '按文风改写', word_inspiration: '词语灵感',
   }
-  return <section className="inspector-section voice-panel"><header><span className="section-icon"><PenLine size={15} /></span><h3>本场文风档</h3></header>
-    <p className="muted">{profile.sourceLabel} · {voiceSummary(profile)}。{profile.inherited && profile.source === 'previous' ? '修改后只变成这一场自己的档。' : ''}</p>
-    <SelectField label="主风格" value={profile.family} onValueChange={(value) => void chooseFamily(value as VoiceKnobs['family'])}>{Object.entries(labels.family).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
-    <div className="voice-primary-grid"><SelectField label="调整强度" value={profile.intensity} onValueChange={(value) => void patch({ intensity: value as VoiceKnobs['intensity'] })}>{Object.entries(labels.intensity).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="节奏" value={profile.pace} onValueChange={(value) => void patch({ pace: value as VoiceKnobs['pace'] })}>{Object.entries(labels.pace).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div>
-    <fieldset className="voice-intents"><legend>场景意图（最多 3 项）</legend>{Object.entries(labels.intents).map(([value, label]) => <button type="button" key={value} className={profile.intents.includes(value as VoiceKnobs['intents'][number]) ? 'active' : ''} onClick={() => void toggleIntent(value as VoiceKnobs['intents'][number])}>{label}</button>)}</fieldset>
-    <details className="voice-advanced"><summary>表达维度</summary><div className="form-stack"><SelectField label="句长" value={profile.sentence} onValueChange={(value) => void patch({ sentence: value as VoiceKnobs['sentence'] })}>{Object.entries(labels.sentence).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="叙事距离" value={profile.distance} onValueChange={(value) => void patch({ distance: value as VoiceKnobs['distance'] })}>{Object.entries(labels.distance).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="心理描写" value={profile.interiority} onValueChange={(value) => void patch({ interiority: value as VoiceKnobs['interiority'] })}>{Object.entries(labels.interiority).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="意象密度" value={profile.imagery} onValueChange={(value) => void patch({ imagery: value as VoiceKnobs['imagery'] })}>{Object.entries(labels.imagery).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="语域" value={profile.register} onValueChange={(value) => void patch({ register: value as VoiceKnobs['register'] })}>{Object.entries(labels.register).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="对白" value={profile.dialogue} onValueChange={(value) => void patch({ dialogue: value as VoiceKnobs['dialogue'] })}>{Object.entries(labels.dialogue).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="用典" value={profile.allusion} onValueChange={(value) => void patch({ allusion: value as VoiceKnobs['allusion'] })}>{Object.entries(labels.allusion).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="套话" value={profile.slang} onValueChange={(value) => void patch({ slang: value as VoiceKnobs['slang'] })}>{Object.entries(labels.slang).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div></details>
-    <TextareaField label="作者原话（最优先）" value={profile.authorNote} onChange={(event) => setProfile({ ...profile, authorNote: event.target.value })} onBlur={(event) => void patch({ authorNote: event.target.value })} rows={3} placeholder="例如：这场要冷、慢，不解释法术，沈砚少说话。" />
-    <button className="button secondary full" onClick={() => void makeDefault()}>用作本书默认</button>
+  return <section className="inspector-section voice-panel"><header><span className="section-icon"><PenLine size={15} /></span><h3>文风设置</h3></header>
+    <div className="voice-scope-switch" role="tablist" aria-label="文风作用范围"><button type="button" role="tab" aria-selected={voiceScope === 'book'} className={voiceScope === 'book' ? 'active' : ''} onClick={() => setVoiceScope('book')}>全书基准</button><button type="button" role="tab" aria-selected={voiceScope === 'scene'} className={voiceScope === 'scene' ? 'active' : ''} onClick={() => setVoiceScope('scene')}>本场调整</button></div>
+    {voiceScope === 'book' ? <div className="voice-scope-status"><strong>控制整本作品</strong><span>{projectProfile.source === 'default' ? '尚未设置，当前使用中性默认。修改后，未单独覆盖的场景都会继承。' : `${voiceSummary(projectProfile)}。未单独覆盖的场景会自动跟随。`}</span></div> : <div className={`voice-scope-status${profile.inherited ? '' : ' is-override'}`}><strong>{profile.inherited ? `当前继承：${profile.sourceLabel}` : '本场已覆盖全书文风'}</strong><span>{profile.inherited ? '修改任一文风项会为本场建立单独设置。' : '后续修改全书基准不会影响这一场。'}</span>{!profile.inherited && <button type="button" onClick={() => void resetSceneVoice()}>恢复全书设置</button>}</div>}
+    <SelectField label="主风格" value={activeProfile.family} onValueChange={(value) => void chooseFamily(value as VoiceKnobs['family'])}>{Object.entries(labels.family).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
+    <div className="voice-primary-grid"><SelectField label="改写幅度" description="控制 AI 对措辞和句式的改动程度" value={activeProfile.intensity} onValueChange={(value) => void patch({ intensity: value as VoiceKnobs['intensity'] })}>{Object.entries(labels.intensity).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="节奏" value={activeProfile.pace} onValueChange={(value) => void patch({ pace: value as VoiceKnobs['pace'] })}>{Object.entries(labels.pace).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div>
+    {voiceScope === 'scene' && <fieldset className="voice-intents"><legend>场景意图（最多 3 项，仅本场生效）</legend>{Object.entries(labels.intents).map(([value, label]) => <button type="button" key={value} className={profile.intents.includes(value as VoiceKnobs['intents'][number]) ? 'active' : ''} onClick={() => void toggleIntent(value as VoiceKnobs['intents'][number])}>{label}</button>)}</fieldset>}
+    <details className="voice-advanced"><summary>表达维度</summary><div className="form-stack"><SelectField label="句长" value={activeProfile.sentence} onValueChange={(value) => void patch({ sentence: value as VoiceKnobs['sentence'] })}>{Object.entries(labels.sentence).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="叙事距离" value={activeProfile.distance} onValueChange={(value) => void patch({ distance: value as VoiceKnobs['distance'] })}>{Object.entries(labels.distance).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="心理描写" value={activeProfile.interiority} onValueChange={(value) => void patch({ interiority: value as VoiceKnobs['interiority'] })}>{Object.entries(labels.interiority).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="意象密度" value={activeProfile.imagery} onValueChange={(value) => void patch({ imagery: value as VoiceKnobs['imagery'] })}>{Object.entries(labels.imagery).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="语域" value={activeProfile.register} onValueChange={(value) => void patch({ register: value as VoiceKnobs['register'] })}>{Object.entries(labels.register).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="对白" value={activeProfile.dialogue} onValueChange={(value) => void patch({ dialogue: value as VoiceKnobs['dialogue'] })}>{Object.entries(labels.dialogue).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="用典" value={activeProfile.allusion} onValueChange={(value) => void patch({ allusion: value as VoiceKnobs['allusion'] })}>{Object.entries(labels.allusion).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="套话" value={activeProfile.slang} onValueChange={(value) => void patch({ slang: value as VoiceKnobs['slang'] })}>{Object.entries(labels.slang).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div></details>
+    <TextareaField label={voiceScope === 'book' ? '全书文风说明（最优先）' : '本场文风说明（最优先）'} value={activeProfile.authorNote} onChange={(event) => updateDraft({ authorNote: event.target.value })} onBlur={(event) => void patch({ authorNote: event.target.value })} rows={3} placeholder={voiceScope === 'book' ? '例如：整体克制、少解释设定，以具体动作承载情绪。' : '例如：这场要冷、慢，不解释法术，沈砚少说话。'} />
     <div className="voice-contract-preview" aria-label="模型将读到的文风约束">{preview.map((line) => <small key={line}>{line.slice(2)}</small>)}</div>
     <details className="character-voice"><summary>人物对白口吻</summary>
       <SelectField label="人物" value={characterId} onValueChange={(value) => void loadCharacter(value)}><option value="">选择人物…</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>

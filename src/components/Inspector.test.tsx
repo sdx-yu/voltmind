@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   listKnowledge: vi.fn(), listNodes: vi.fn(), createKnowledge: vi.fn(), trashKnowledge: vi.fn(), grantKnowledge: vi.fn(),
   listMentions: vi.fn(), suggestMentions: vi.fn(), currentStates: vi.fn(), detectSceneCanon: vi.fn(), checkScene: vi.fn(), ignoreIssue: vi.fn(),
   getContext: vi.fn(), getAiSettings: vi.fn(), streamAiTask: vi.fn(), warmAi: vi.fn(), recordAiDecision: vi.fn(),
-  getVoiceProfile: vi.fn(), saveVoiceProfile: vi.fn(), saveProjectVoiceDefault: vi.fn(), listVoicePreferences: vi.fn(), clearVoicePreferences: vi.fn(),
+  getVoiceProfile: vi.fn(), saveVoiceProfile: vi.fn(), resetVoiceProfile: vi.fn(), getProjectVoiceProfile: vi.fn(), saveProjectVoiceDefault: vi.fn(), listVoicePreferences: vi.fn(), clearVoicePreferences: vi.fn(),
   getVoiceConsistency: vi.fn(), getCharacterVoice: vi.fn(), saveCharacterVoice: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
@@ -31,17 +31,19 @@ describe('Inspector knowledge panel', () => {
     mocks.ignoreIssue.mockResolvedValue({ ok: true })
     mocks.getContext.mockResolvedValue([
       { id: 's1', type: 'scene', title: '当前场景', content: '雨落在窗前。', selected: true, privacyLevel: 'normal', estimatedTokens: 8, reason: '当前正文' },
-      { id: 'voice:s1', type: 'voice', title: '本场景文风档 · 尚未指定，使用中性默认', content: '本场景文风档', selected: true, privacyLevel: 'normal', estimatedTokens: 40, reason: '本场文笔契约；在场景页可以改档' },
+      { id: 'voice:s1', type: 'voice', title: '本场景文风档 · 全书尚未设置，使用中性默认', content: '本场景文风档', selected: true, privacyLevel: 'normal', estimatedTokens: 40, reason: '本场文笔契约；在场景页可以改档' },
     ])
     mocks.getAiSettings.mockResolvedValue({ baseUrl: 'mock://local', model: '笔不怠演示模型', hasApiKey: false, credentialStore: 'protected_file', provider: 'demo', costPolicy: 'local_only' })
     mocks.warmAi.mockResolvedValue({ ok: true, message: '已预热' })
     mocks.recordAiDecision.mockResolvedValue(undefined)
     mocks.getVoiceProfile.mockResolvedValue(voiceProfile())
+    mocks.getProjectVoiceProfile.mockResolvedValue({ ...voiceProfile(), nodeId: 'p', source: 'default', sourceLabel: '全书尚未设置，使用中性默认' })
     mocks.listVoicePreferences.mockResolvedValue([])
     mocks.getVoiceConsistency.mockResolvedValue({ score: 96, metrics: {}, issues: [], summary: '与本场文风档基本一致' })
     mocks.getCharacterVoice.mockResolvedValue({ entityId: 'lin', projectId: 'p', entityName: '林照', register: 'balanced', sentence: 'mixed', directness: 'balanced', emotion: 'balanced', signature: '', avoid: '', updatedAt: null })
     mocks.saveCharacterVoice.mockImplementation(async (_projectId: string, _entityId: string, patch: Record<string, unknown>) => ({ entityId: 'lin', projectId: 'p', entityName: '林照', register: 'balanced', sentence: 'mixed', directness: 'balanced', emotion: 'balanced', signature: '', avoid: '', updatedAt: 'now', ...patch }))
-    mocks.saveVoiceProfile.mockImplementation(async (_projectId: string, _nodeId: string, knobs: Record<string, unknown>) => ({ ...voiceProfile(), ...knobs, inherited: false, source: 'scene', sourceLabel: '本场指定' }))
+    mocks.saveVoiceProfile.mockImplementation(async (_projectId: string, _nodeId: string, knobs: Record<string, unknown>) => ({ ...voiceProfile(), ...knobs, inherited: false, source: 'scene', sourceLabel: '本场单独设置' }))
+    mocks.resetVoiceProfile.mockResolvedValue({ ...voiceProfile(), source: 'project', sourceLabel: '继承全书文风' })
     mocks.saveProjectVoiceDefault.mockResolvedValue({ ...voiceProfile(), source: 'project', sourceLabel: '本书默认', inherited: true })
   })
   afterEach(cleanup)
@@ -132,9 +134,9 @@ describe('Inspector knowledge panel', () => {
 
   it('lets the author set a scene voice and defaults AI to idea-to-prose against that contract', async () => {
     render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
-    expect(await screen.findByRole('heading', { name: '本场文风档' })).toBeInTheDocument()
-    expect(screen.getByText(/尚未指定，使用中性默认/)).toBeInTheDocument()
-    await userEvent.type(screen.getByRole('textbox', { name: '作者原话（最优先）' }), '这场要冷、慢，不解释法术。')
+    expect(await screen.findByRole('heading', { name: '文风设置' })).toBeInTheDocument()
+    expect(screen.getByText(/当前继承：全书尚未设置，使用中性默认/)).toBeInTheDocument()
+    await userEvent.type(screen.getByRole('textbox', { name: '本场文风说明（最优先）' }), '这场要冷、慢，不解释法术。')
     await userEvent.tab()
     await waitFor(() => expect(mocks.saveVoiceProfile).toHaveBeenCalledWith('p', 's1', { authorNote: '这场要冷、慢，不解释法术。' }))
 
@@ -143,12 +145,29 @@ describe('Inspector knowledge panel', () => {
       output: '雨落在窗前，灯还没亮。',
     })
     await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
-    expect(await screen.findByText(/本场景文风档 · 尚未指定，使用中性默认/)).toBeInTheDocument()
+    expect(await screen.findByText(/本场景文风档 · 全书尚未设置，使用中性默认/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '思路成文' })).toHaveClass('active')
     expect(screen.getByPlaceholderText(/写下情节思路或句子骨架/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '生成演示候选' }))
     await waitFor(() => expect(mocks.streamAiTask).toHaveBeenCalledWith(expect.objectContaining({ taskType: 'idea_to_prose' }), expect.any(Function), expect.any(AbortSignal)))
     expect(await screen.findByText('雨落在窗前，灯还没亮。')).toBeInTheDocument()
+  })
+
+  it('separates the book baseline from a scene override and can restore inheritance', async () => {
+    const notify = vi.fn()
+    mocks.getVoiceProfile.mockResolvedValue({ ...voiceProfile(), inherited: false, source: 'scene', sourceLabel: '本场单独设置', family: 'restrained' })
+    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={notify} />)
+
+    expect(await screen.findByText('本场已覆盖全书文风')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: '全书基准' }))
+    await userEvent.type(screen.getByRole('textbox', { name: '全书文风说明（最优先）' }), '整本保持克制。')
+    await userEvent.tab()
+    await waitFor(() => expect(mocks.saveProjectVoiceDefault).toHaveBeenCalledWith('p', expect.objectContaining({ authorNote: '整本保持克制。', intents: [] })))
+
+    await userEvent.click(screen.getByRole('tab', { name: '本场调整' }))
+    await userEvent.click(screen.getByRole('button', { name: '恢复全书设置' }))
+    await waitFor(() => expect(mocks.resetVoiceProfile).toHaveBeenCalledWith('p', 's1'))
+    expect(notify).toHaveBeenCalledWith('success', '本场已恢复继承全书文风')
   })
 
   it('opens from an exact editor selection and accepts one replacement candidate', async () => {
@@ -191,7 +210,7 @@ function node(id: string, title: string, parentId: string | null, sortKey: numbe
 function fact(): KnowledgeFact { return { id: 'k', projectId: 'p', title: '凶手身份', detail: '凶手是沈砚', keywords: ['沈砚是凶手'], firstRevealedNodeId: 's2', privacyLevel: 'author_only', createdAt: '', updatedAt: '', deletedAt: null, grants: [{ id: 'g', knowledgeId: 'k', entityId: 'lin', knownFromNodeId: 's2', sourceNodeId: 's2', evidence: '', note: '', createdAt: '' }] } }
 function voiceProfile() {
   return {
-    nodeId: 's1', projectId: 'p', inherited: true, source: 'default' as const, sourceLabel: '尚未指定，使用中性默认',
+    nodeId: 's1', projectId: 'p', inherited: true, source: 'default' as const, sourceLabel: '全书尚未设置，使用中性默认',
     family: 'natural' as const, intensity: 'standard' as const, pace: 'balanced' as const, imagery: 'medium' as const,
     distance: 'medium' as const, interiority: 'medium' as const, intents: [],
     register: 'balanced' as const, sentence: 'mixed' as const, dialogue: 'balanced' as const, allusion: 'light' as const, slang: 'avoid' as const,

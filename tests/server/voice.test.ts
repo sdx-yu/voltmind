@@ -23,7 +23,7 @@ describe('scene voice profiles', () => {
   })
   afterEach(() => { database.close(); fs.rmSync(dir, { recursive: true, force: true }) })
 
-  it('inherits a previous scene profile, then injects the authored contract into polish and beat', async () => {
+  it('keeps scene overrides local and injects the inherited book contract into polish and beat', async () => {
     const project = database.createProject('文风之书')
     const nodes = database.listNodes(project.id)
     const chapter = nodes.find((node) => node.type === 'chapter')!
@@ -38,17 +38,23 @@ describe('scene voice profiles', () => {
     }).expect(200)
     expect(saved.body).toMatchObject({ source: 'scene', inherited: false, register: 'literary', authorNote: '这场要冷、慢，不解释法术。' })
 
+    const notLeaked = await request(app).get(`/api/projects/${project.id}/scenes/${second.id}/voice`).set('Cookie', cookie).expect(200)
+    expect(notLeaked.body).toMatchObject({ source: 'default', inherited: true, register: 'balanced', authorNote: '' })
+
+    await request(app).put(`/api/projects/${project.id}/voice-default`).set('Cookie', cookie).send({
+      register: 'literary', sentence: 'short', slang: 'avoid', authorNote: '全书要冷、慢，不解释法术。',
+    }).expect(200)
     const inherited = await request(app).get(`/api/projects/${project.id}/scenes/${second.id}/voice`).set('Cookie', cookie).expect(200)
-    expect(inherited.body).toMatchObject({ source: 'previous', inherited: true, register: 'literary', authorNote: '这场要冷、慢，不解释法术。' })
+    expect(inherited.body).toMatchObject({ source: 'project', inherited: true, register: 'literary', authorNote: '全书要冷、慢，不解释法术。' })
 
     database.createStyleSample({ projectId: project.id, actorProjectId: project.id, title: '克制短句', content: '雨停了。他没有回头。门在身后合上。', guidance: '学停顿，不抄雨和门', privacyLevel: 'normal' })
     database.saveScene(first.id, doc('林照站在廊下。'), '林照站在廊下。')
 
     const context = await request(app).get(`/api/projects/${project.id}/scenes/${second.id}/context`).set('Cookie', cookie).expect(200)
     const voice = context.body.find((item: { type: string }) => item.type === 'voice')
-    expect(voice).toMatchObject({ selected: true, title: '本场景文风档 · 沿用上一场' })
+    expect(voice).toMatchObject({ selected: true, title: '本场景文风档 · 继承全书文风' })
     expect(voice.content).toContain('作者原话（最高优先级，比上面的旋钮更重要）')
-    expect(voice.content).toContain('这场要冷、慢，不解释法术。')
+    expect(voice.content).toContain('全书要冷、慢，不解释法术。')
     expect(voice.content).toContain('学停顿，不抄雨和门')
     expect(voice.content).toContain('雨停了。他没有回头。')
     expect(voice.content).toContain('不要模仿任何在世作者的名字或作品标题。')
@@ -68,10 +74,16 @@ describe('scene voice profiles', () => {
     const project = database.createProject('默认文风')
     const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
     await request(app).put(`/api/projects/${project.id}/voice-default`).set('Cookie', cookie).send({
-      register: 'vernacular', dialogue: 'heavy', authorNote: '对白推进，少写风景。',
+      register: 'vernacular', dialogue: 'heavy', authorNote: '对白推进，少写风景。', intents: ['drive_dialogue'],
     }).expect(200)
+    const projectProfile = await request(app).get(`/api/projects/${project.id}/voice-default`).set('Cookie', cookie).expect(200)
+    expect(projectProfile.body).toMatchObject({ source: 'project', nodeId: project.id, intents: [] })
     const profile = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/voice`).set('Cookie', cookie).expect(200)
-    expect(profile.body).toMatchObject({ source: 'project', inherited: true, register: 'vernacular', dialogue: 'heavy', authorNote: '对白推进，少写风景。' })
+    expect(profile.body).toMatchObject({ source: 'project', inherited: true, register: 'vernacular', dialogue: 'heavy', authorNote: '对白推进，少写风景。', intents: [] })
+
+    await request(app).put(`/api/projects/${project.id}/scenes/${scene.id}/voice`).set('Cookie', cookie).send({ pace: 'fast' }).expect(200)
+    const reset = await request(app).delete(`/api/projects/${project.id}/scenes/${scene.id}/voice`).set('Cookie', cookie).expect(200)
+    expect(reset.body).toMatchObject({ source: 'project', inherited: true, pace: 'balanced' })
   })
 
   it('generates selection candidates only against the exact saved source', async () => {

@@ -1645,16 +1645,15 @@ export class AppDatabase {
     if (!node || node.projectId !== projectId || node.type !== 'scene') throw new Error('Scene not found')
     const sceneRow = this.db.prepare('SELECT * FROM scene_voice_profiles WHERE node_id=?').get(nodeId) as Row | undefined
     if (sceneRow) return this.mapVoiceProfile(projectId, nodeId, sceneRow, 'scene')
-    const previous = this.listNodes(projectId)
-      .filter((item) => item.type === 'scene' && !item.deletedAt && item.sortKey < node.sortKey)
-      .sort((a, b) => b.sortKey - a.sortKey)
-    for (const item of previous) {
-      const row = this.db.prepare('SELECT * FROM scene_voice_profiles WHERE node_id=?').get(item.id) as Row | undefined
-      if (row) return this.mapVoiceProfile(projectId, nodeId, row, 'previous')
-    }
     const projectRow = this.db.prepare('SELECT * FROM project_voice_defaults WHERE project_id=?').get(projectId) as Row | undefined
-    if (projectRow) return this.mapVoiceProfile(projectId, nodeId, projectRow, 'project')
+    if (projectRow) return this.mapVoiceProfile(projectId, nodeId, { ...knobsFromRow(projectRow), intents: [] }, 'project')
     return this.mapVoiceProfile(projectId, nodeId, null, 'default')
+  }
+
+  getProjectVoiceProfile(projectId: string): SceneVoiceProfile {
+    if (!this.getProject(projectId)) throw new Error('Project not found')
+    const row = this.db.prepare('SELECT * FROM project_voice_defaults WHERE project_id=?').get(projectId) as Row | undefined
+    return this.mapVoiceProfile(projectId, projectId, row ? { ...knobsFromRow(row), intents: [] } : null, row ? 'project' : 'default')
   }
 
   saveVoiceProfile(projectId: string, nodeId: string, knobs: Partial<VoiceKnobs>): SceneVoiceProfile {
@@ -1669,16 +1668,23 @@ export class AppDatabase {
     return this.getVoiceProfile(projectId, nodeId)
   }
 
+  resetVoiceProfile(projectId: string, nodeId: string): SceneVoiceProfile {
+    const node = this.getNode(nodeId)
+    if (!node || node.projectId !== projectId || node.type !== 'scene') throw new Error('Scene not found')
+    const result = this.db.prepare('DELETE FROM scene_voice_profiles WHERE node_id=? AND project_id=?').run(nodeId, projectId)
+    if (Number(result.changes)) this.logOperation(projectId, 'scene_voice', nodeId, 'delete', null, null, 'human')
+    return this.getVoiceProfile(projectId, nodeId)
+  }
+
   saveProjectVoiceDefault(projectId: string, knobs: Partial<VoiceKnobs>): SceneVoiceProfile {
     if (!this.getProject(projectId)) throw new Error('Project not found')
-    const next = normalizeVoiceKnobs(knobs)
+    const next = { ...normalizeVoiceKnobs(knobs), intents: [] }
     this.db.prepare(`INSERT INTO project_voice_defaults(project_id,family,intensity,pace,imagery,distance,interiority,intents_json,register,sentence,dialogue,allusion,slang,author_note,updated_at)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(project_id) DO UPDATE SET family=excluded.family,intensity=excluded.intensity,pace=excluded.pace,imagery=excluded.imagery,distance=excluded.distance,interiority=excluded.interiority,intents_json=excluded.intents_json,register=excluded.register,sentence=excluded.sentence,dialogue=excluded.dialogue,allusion=excluded.allusion,slang=excluded.slang,author_note=excluded.author_note,updated_at=excluded.updated_at`)
       .run(projectId, next.family, next.intensity, next.pace, next.imagery, next.distance, next.interiority, JSON.stringify(next.intents), next.register, next.sentence, next.dialogue, next.allusion, next.slang, next.authorNote, nowIso())
     this.logOperation(projectId, 'project_voice', projectId, 'update', null, null, 'human')
-    const scene = this.listNodes(projectId).find((item) => item.type === 'scene' && !item.deletedAt)
-    return scene ? this.getVoiceProfile(projectId, scene.id) : this.mapVoiceProfile(projectId, projectId, next, 'project')
+    return this.getProjectVoiceProfile(projectId)
   }
 
   listVoiceProfiles(projectId: string): Array<VoiceKnobs & { nodeId: string; updatedAt: string }> {

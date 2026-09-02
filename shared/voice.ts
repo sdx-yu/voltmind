@@ -240,7 +240,7 @@ export function compileVoiceContract(knobs: VoiceKnobs, excerpts: string[] = [])
   ]
   const samples = excerpts.map((item) => item.trim()).filter(Boolean).slice(0, 2)
   const parts = [
-    `本场景文风档：${voiceSummary(voice)}。这是作者为这一场指定的文笔契约，优先于你自己的习惯。`,
+    `当前场景生效的文风：${voiceSummary(voice)}。这是作者确认的文笔约束，优先于你自己的表达习惯。`,
     '',
     '必须做到：',
     ...must.map((item) => `- ${item}`),
@@ -260,7 +260,7 @@ export function compileVoiceContract(knobs: VoiceKnobs, excerpts: string[] = [])
 }
 
 export function voiceSourceLabel(source: VoiceSource): string {
-  return ({ scene: '本场指定', previous: '沿用上一场', project: '本书默认', default: '尚未指定，使用中性默认' })[source]
+  return ({ scene: '本场单独设置', previous: '旧版场景继承', project: '继承全书文风', default: '全书尚未设置，使用中性默认' })[source]
 }
 
 export function voiceKnobLabels() {
