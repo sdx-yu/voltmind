@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getContext: vi.fn(), getAiSettings: vi.fn(), streamAiTask: vi.fn(), warmAi: vi.fn(), recordAiDecision: vi.fn(),
   getVoiceProfile: vi.fn(), saveVoiceProfile: vi.fn(), resetVoiceProfile: vi.fn(), getProjectVoiceProfile: vi.fn(), saveProjectVoiceDefault: vi.fn(), listVoicePreferences: vi.fn(), clearVoicePreferences: vi.fn(),
   getVoiceConsistency: vi.fn(), getCharacterVoice: vi.fn(), saveCharacterVoice: vi.fn(),
+  getSetting: vi.fn(), setSetting: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -45,6 +46,8 @@ describe('Inspector knowledge panel', () => {
     mocks.saveVoiceProfile.mockImplementation(async (_projectId: string, _nodeId: string, knobs: Record<string, unknown>) => ({ ...voiceProfile(), ...knobs, inherited: false, source: 'scene', sourceLabel: '本场单独设置' }))
     mocks.resetVoiceProfile.mockResolvedValue({ ...voiceProfile(), source: 'project', sourceLabel: '继承全书文风' })
     mocks.saveProjectVoiceDefault.mockResolvedValue({ ...voiceProfile(), source: 'project', sourceLabel: '本书默认', inherited: true })
+    mocks.getSetting.mockResolvedValue({ value: { defaultMode: 'custom', customEra: '承平' } })
+    mocks.setSetting.mockResolvedValue({ ok: true })
   })
   afterEach(cleanup)
 
@@ -67,6 +70,18 @@ describe('Inspector knowledge panel', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
     expect(await screen.findByText('演示模式 · 固定候选 · 不联网')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '生成演示候选' })).toBeInTheDocument()
+  })
+
+  it('uses the book time system to save an ancient-style date as structured data', async () => {
+    const update = vi.fn().mockResolvedValue(undefined); const notify = vi.fn(); const openSettings = vi.fn()
+    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={update} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} onOpenTimeSettings={openSettings} notify={notify} />)
+    await userEvent.click(screen.getByRole('button', { name: '编辑故事时间：时间未定' }))
+    expect(await screen.findByRole('combobox', { name: '时间方式' })).toHaveTextContent('古风／自定义纪年')
+    await userEvent.type(screen.getByRole('spinbutton', { name: '年' }), '12')
+    await userEvent.type(screen.getByRole('textbox', { name: /作者显示文字/ }), '承平十二年腊月廿三子时')
+    await userEvent.click(screen.getByRole('button', { name: '保存故事时间' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ storyTime: '承平十二年腊月廿三子时', storyTimeSpec: expect.objectContaining({ mode: 'custom', era: '承平', year: 12 }) })))
+    expect(notify).toHaveBeenCalledWith('success', '故事时间已结构化保存')
   })
 
   it('shows recognized preset canon separately from continuity conflicts and refreshes after save', async () => {

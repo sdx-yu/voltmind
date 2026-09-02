@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Bot, CheckCircle2, CircleAlert, CircleHelp, CloudOff, Cpu, DatabaseBackup, Goal, KeyRound, MonitorCog, PenLine, ShieldCheck, WalletCards } from 'lucide-react'
+import { Bot, CalendarDays, CheckCircle2, CircleAlert, CircleHelp, CloudOff, Cpu, DatabaseBackup, Goal, KeyRound, MonitorCog, PenLine, ShieldCheck, WalletCards } from 'lucide-react'
 import { api } from '../lib/api'
 import { applyDisplay, readDisplay, saveDisplay, type DisplayDensity, type DisplayTheme } from '../lib/display'
 import { Modal } from './Modal'
 import { SelectControl } from '../ui'
 import { ProjectVoiceSettings } from './VoiceSettings'
+import { StoryTimeSettingsPanel } from './StoryTimeControl'
 
-export type SettingsTab = 'ai' | 'voice' | 'goals' | 'display' | 'help'
+export type SettingsTab = 'ai' | 'voice' | 'time' | 'goals' | 'display' | 'help'
 type AiMode = 'demo' | 'ollama'
 
 const OLLAMA_BASE_URL = 'http://127.0.0.1:11434/v1'
@@ -104,6 +105,7 @@ export function SettingsModal({ projectId, initialTab = 'ai', onClose, onOpenToo
       <nav>
         <button className={tab === 'ai' ? 'active' : ''} onClick={() => setTab('ai')}><KeyRound size={16} />AI 与隐私</button>
         <button className={tab === 'voice' ? 'active' : ''} onClick={() => setTab('voice')}><PenLine size={16} />文风</button>
+        <button className={tab === 'time' ? 'active' : ''} onClick={() => setTab('time')}><CalendarDays size={16} />故事时间</button>
         <button className={tab === 'goals' ? 'active' : ''} onClick={() => setTab('goals')}><Goal size={16} />写作目标</button>
         <button className={tab === 'display' ? 'active' : ''} onClick={() => setTab('display')}><MonitorCog size={16} />显示</button>
         <button className={tab === 'help' ? 'active' : ''} onClick={() => setTab('help')}><CircleHelp size={16} />帮助与恢复</button>
@@ -148,7 +150,7 @@ export function SettingsModal({ projectId, initialTab = 'ai', onClose, onOpenToo
             <Bot size={22} /><div><strong>先继续使用演示模式</strong><p>它不会调用真正的 AI，只返回固定候选，适合体验流程。</p></div>
             <button className="button secondary" onClick={() => void activateDemo()}>使用演示模式</button>
           </div>}
-        </> : tab === 'voice' ? <ProjectVoiceSettings projectId={projectId} notify={notify} /> : tab === 'goals' ? <>
+        </> : tab === 'voice' ? <ProjectVoiceSettings projectId={projectId} notify={notify} /> : tab === 'time' ? <StoryTimeSettingsPanel projectId={projectId} notify={notify} /> : tab === 'goals' ? <>
           <span className="eyebrow">写作目标</span><h3>看净新增，不奖励无效操作</h3><p className="muted">今日净新增按当前正文与今日开始前基线计算，粘贴、删除和撤销不会重复累计。</p>
           <div className="form-stack"><label>每日目标（字）<input type="number" min="0" value={dailyGoal} onChange={(event) => setDailyGoal(Number(event.target.value))} /></label><label>项目目标（字）<input type="number" min="0" value={projectGoal} onChange={(event) => setProjectGoal(Number(event.target.value))} /></label><div className="modal-actions"><button className="button primary" onClick={() => void saveGoals()}>保存目标</button></div></div>
         </> : tab === 'display' ? <>

@@ -10,6 +10,7 @@ import { getConfig } from '../../server/config.js'
 import { AppDatabase } from '../../server/db.js'
 import { SyncService } from '../../server/sync.js'
 import type { SyncTransferPackage } from '../../shared/types.js'
+import { emptyStoryTimeSpec } from '../../shared/storyTime.js'
 
 describe('V1-S encrypted handoff protocol', () => {
   let dir: string
@@ -33,6 +34,7 @@ describe('V1-S encrypted handoff protocol', () => {
   it('encrypts all manuscript metadata and rejects wrong keys, missing chunks and tampering', () => {
     const db = database('crypto'); const sync = new SyncService(db); const project = db.createProject('密文中的书名')
     const scene = db.listNodes(project.id).find((node) => node.type === 'scene')!; db.saveScene(scene.id, doc('不能出现在信封里的正文'), '不能出现在信封里的正文')
+    db.updateNode(scene.id, { storyTime: '承平十二年腊月廿三', storyTimeSpec: { ...emptyStoryTimeSpec('custom'), era: '承平', year: 12, month: 12, day: 23 } })
     const attachment = Buffer.from('original source bytes'); const attachmentHash = createHash('sha256').update(attachment).digest('hex')
     db.db.prepare('INSERT INTO imported_sources(id,project_id,file_name,mime_type,byte_size,content_hash,content_base64,created_at) VALUES(?,?,?,?,?,?,?,?)').run(randomUUID(), project.id, '原稿.txt', 'text/plain', attachment.length, attachmentHash, attachment.toString('base64'), new Date().toISOString())
     const { recoveryPhrase } = sync.initialize(project.id, '离线电脑 A')
@@ -46,6 +48,7 @@ describe('V1-S encrypted handoff protocol', () => {
     expect(() => sync.inspectPackage(tampered, recoveryPhrase)).toThrow(/哈希|hash|损坏/i)
     const restored = database('crypto-restore'); new SyncService(restored).importPackage(transfer, recoveryPhrase, '恢复设备')
     expect(restored.db.prepare('SELECT content_hash FROM imported_sources WHERE project_id=?').get(project.id)).toMatchObject({ content_hash: attachmentHash })
+    expect(restored.getNode(scene.id)).toMatchObject({ storyTime: '承平十二年腊月廿三', storyTimeSpec: { mode: 'custom', era: '承平', year: 12, month: 12, day: 23 } })
   }, 15_000)
 
   it('bootstraps two isolated replicas, converges concurrent text and makes business forks explicit', () => {

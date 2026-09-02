@@ -23,7 +23,7 @@ describe('PlotWorkspace', () => {
     await userEvent.click(screen.getByRole('tab', { name: '故事时间' }))
     const lane = screen.getByText('按实际发生先后').closest('.timeline-lane')!
     expect(lane.textContent?.indexOf('三日前')).toBeLessThan(lane.textContent?.indexOf('现在') ?? 0)
-    expect(screen.getByText('2/2 场已定时')).toBeInTheDocument()
+    expect(screen.getByText('2/2 场可排序')).toBeInTheDocument()
   })
 
   it('creates a foreshadow with scene evidence through the visible workflow', async () => {

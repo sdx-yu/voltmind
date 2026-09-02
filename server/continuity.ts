@@ -1,4 +1,5 @@
 import type { ContinuityIssue, Entity, EntityState, ManuscriptNode } from '../shared/types.js'
+import { compareStoryTime, describeStoryTime, storyTimeDomain, storyTimeSortValue } from '../shared/storyTime.js'
 import { newId } from './utils.js'
 
 interface CheckInput {
@@ -15,6 +16,9 @@ export function checkContinuity(input: CheckInput): ContinuityIssue[] {
   const orderedScenes = input.nodes.filter((node) => node.type === 'scene').sort((a, b) => (parentOrder.get(a.parentId ?? '') ?? 0) - (parentOrder.get(b.parentId ?? '') ?? 0) || a.sortKey - b.sortKey)
   const nodeOrder = new Map(orderedScenes.map((node, index) => [node.id, index]))
   const currentOrder = nodeOrder.get(input.node.id) ?? Number.MAX_SAFE_INTEGER
+  const storyScenes = [...orderedScenes].sort((a, b) => compareStoryTime(a, b, orderedScenes))
+  const storyOrder = new Map(storyScenes.map((node, index) => [node.id, index]))
+  const currentStoryOrder = storyOrder.get(input.node.id) ?? currentOrder
 
   for (const entity of input.entities) {
     const names = [entity.canonicalName, ...entity.aliases]
@@ -25,7 +29,7 @@ export function checkContinuity(input: CheckInput): ContinuityIssue[] {
     const death = states.find((state) => {
       if (state.attributeKey !== 'life_status' || !['dead', '死亡', '已死亡'].includes(String(state.value))) return false
       if (!state.validFromNodeId) return true
-      return (nodeOrder.get(state.validFromNodeId) ?? Number.MAX_SAFE_INTEGER) <= currentOrder
+      return (storyOrder.get(state.validFromNodeId) ?? nodeOrder.get(state.validFromNodeId) ?? Number.MAX_SAFE_INTEGER) <= currentStoryOrder
     })
     if (death) {
       issues.push({
@@ -74,8 +78,11 @@ export function checkContinuity(input: CheckInput): ContinuityIssue[] {
   }
   const currentIndex = nodeOrder.get(input.node.id) ?? -1
   const previous = currentIndex > 0 ? orderedScenes[currentIndex - 1] : undefined
-  if (previous?.storyTime && input.node.storyTime && /^\d{4}-\d{2}-\d{2}/.test(previous.storyTime) && /^\d{4}-\d{2}-\d{2}/.test(input.node.storyTime) && previous.storyTime > input.node.storyTime) {
-    issues.push({ id: newId(), rule: 'story_time_reverse', severity: 'review', confidence: 0.85, message: `本场景故事时间 ${input.node.storyTime} 早于上一场景 ${previous.storyTime}。如为倒叙可设为例外。`, currentEvidence: { nodeId: input.node.id, quote: input.node.storyTime }, conflictingEvidence: { nodeId: previous.id, quote: `${previous.title}：${previous.storyTime}` }, actions: ['edit_text', 'ignore', 'exception'] })
+  const previousTime = previous ? storyTimeSortValue(previous, orderedScenes) : null
+  const currentTime = storyTimeSortValue(input.node, orderedScenes)
+  if (previous && previousTime !== null && currentTime !== null && storyTimeDomain(previous, orderedScenes) === storyTimeDomain(input.node, orderedScenes) && previousTime > currentTime) {
+    const currentLabel = describeStoryTime(input.node, orderedScenes); const previousLabel = describeStoryTime(previous, orderedScenes)
+    issues.push({ id: newId(), rule: 'story_time_reverse', severity: 'review', confidence: 0.85, message: `本场景故事时间 ${currentLabel} 早于上一场景 ${previousLabel}。如为倒叙可设为例外。`, currentEvidence: { nodeId: input.node.id, quote: currentLabel }, conflictingEvidence: { nodeId: previous.id, quote: `${previous.title}：${previousLabel}` }, actions: ['edit_text', 'ignore', 'exception'] })
   }
   return dedupeIssues(issues)
 }

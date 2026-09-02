@@ -5,6 +5,8 @@ export type CandidateStatus = 'pending' | 'accepted' | 'accepted_modified' | 'ig
 export type PrivacyLevel = 'normal' | 'author_only' | 'local_private'
 export type ForeshadowStatus = 'planted' | 'reinforced' | 'misdirected' | 'resolved'
 export type ForeshadowImportance = 'low' | 'medium' | 'high'
+export type { StoryTimeMode, StoryTimeOffsetUnit, StoryTimePrecision, StoryTimeRelation, StoryTimeSettings, StoryTimeSpec } from './storyTime.js'
+import type { StoryTimeSpec } from './storyTime.js'
 
 export interface Project {
   id: string
@@ -151,6 +153,7 @@ export interface ManuscriptNode {
   status: SceneStatus
   povEntityId: string | null
   storyTime: string | null
+  storyTimeSpec?: StoryTimeSpec | null
   deletedAt: string | null
   wordCount: number
   children?: ManuscriptNode[]
@@ -1253,7 +1256,7 @@ export interface WritingStats {
 
 export interface AiContextItem {
   id: string
-  type: 'scene' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'voice' | 'foreshadow' | 'knowledge'
+  type: 'scene' | 'time' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'voice' | 'foreshadow' | 'knowledge'
   title: string
   content: string
   reason: string

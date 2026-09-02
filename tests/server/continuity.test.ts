@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { checkContinuity } from '../../server/continuity.js'
-import type { Entity, EntityState, ManuscriptNode } from '../../shared/types.js'
+import type { Entity, EntityState, ManuscriptNode, StoryTimeSpec } from '../../shared/types.js'
+import { emptyStoryTimeSpec } from '../../shared/storyTime.js'
 
 describe('continuity checks', () => {
   it('provides evidence when a dead character appears later', () => {
@@ -29,6 +30,15 @@ describe('continuity checks', () => {
     const issues = checkContinuity({ node: current, plainText: '阿照没有回头。', entities: [primary, duplicate], states: [], nodes: [current] })
     expect(issues.find((issue) => issue.rule === 'proper_name_variant')).toBeUndefined()
   })
+
+  it('detects a reverse custom-era date but does not compare unrelated calendar systems', () => {
+    const previous = scene('s1', 1000, ancient({ year: 12, month: 8, day: 2, displayLabel: '承平十二年八月初二' }))
+    const current = scene('s2', 2000, ancient({ year: 12, month: 7, day: 1, displayLabel: '承平十二年七月初一' }))
+    expect(checkContinuity({ node: current, plainText: '', entities: [], states: [], nodes: [previous, current] })).toContainEqual(expect.objectContaining({ rule: 'story_time_reverse' }))
+    const modern = scene('s2', 2000, { ...emptyStoryTimeSpec('calendar'), calendarDate: '1900-01-01' })
+    expect(checkContinuity({ node: modern, plainText: '', entities: [], states: [], nodes: [previous, modern] }).find((issue) => issue.rule === 'story_time_reverse')).toBeUndefined()
+  })
 })
 
-function scene(id: string, sortKey: number): ManuscriptNode { return { id, projectId: 'p1', parentId: 'c1', type: 'scene', title: id, sortKey, status: 'draft', povEntityId: null, storyTime: null, deletedAt: null, wordCount: 0 } }
+function ancient(patch: Partial<StoryTimeSpec>): StoryTimeSpec { return { ...emptyStoryTimeSpec('custom'), era: '承平', ...patch } }
+function scene(id: string, sortKey: number, storyTimeSpec?: StoryTimeSpec): ManuscriptNode { return { id, projectId: 'p1', parentId: 'c1', type: 'scene', title: id, sortKey, status: 'draft', povEntityId: null, storyTime: storyTimeSpec?.displayLabel || null, storyTimeSpec, deletedAt: null, wordCount: 0 } }

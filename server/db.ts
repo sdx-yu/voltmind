@@ -64,6 +64,7 @@ import {
   type CharacterVoiceKnobs, type CharacterVoiceProfile, type VoiceConsistencyReport,
   type VoiceKnobs, type VoicePreferenceSummary, type VoiceSource,
 } from '../shared/voice.js'
+import { compareStoryTime } from '../shared/storyTime.js'
 import { countWords, jsonParse, newId, normalizeName, nowIso, sha256 } from './utils.js'
 
 type Row = Record<string, unknown>
@@ -1233,6 +1234,7 @@ export class AppDatabase {
     // A short-lived development build used schema version 18 before the full
     // style taxonomy was finalised. Repair those databases in place so a user
     // never has to delete a manuscript just to receive the completed feature.
+    this.ensureColumns('manuscript_nodes', [['story_time_json', 'TEXT']])
     this.ensureColumns('project_voice_defaults', [
       ['family', "TEXT NOT NULL DEFAULT 'natural'"], ['intensity', "TEXT NOT NULL DEFAULT 'standard'"],
       ['pace', "TEXT NOT NULL DEFAULT 'balanced'"], ['imagery', "TEXT NOT NULL DEFAULT 'medium'"],
@@ -1343,17 +1345,18 @@ export class AppDatabase {
     return this.getNode(id)!
   }
 
-  updateNode(id: string, patch: Partial<Pick<ManuscriptNode, 'parentId' | 'title' | 'sortKey' | 'status' | 'povEntityId' | 'storyTime'>>): ManuscriptNode | null {
+  updateNode(id: string, patch: Partial<Pick<ManuscriptNode, 'parentId' | 'title' | 'sortKey' | 'status' | 'povEntityId' | 'storyTime' | 'storyTimeSpec'>>): ManuscriptNode | null {
     const current = this.getNode(id)
     if (!current) return null
     this.transaction(() => {
-      this.db.prepare(`UPDATE manuscript_nodes SET parent_id=?,title=?,sort_key=?,status=?,pov_entity_id=?,story_time=? WHERE id=?`).run(
+      this.db.prepare(`UPDATE manuscript_nodes SET parent_id=?,title=?,sort_key=?,status=?,pov_entity_id=?,story_time=?,story_time_json=? WHERE id=?`).run(
         patch.parentId === undefined ? current.parentId : patch.parentId,
         patch.title ?? current.title,
         patch.sortKey ?? current.sortKey,
         patch.status ?? current.status,
         patch.povEntityId === undefined ? current.povEntityId : patch.povEntityId,
         patch.storyTime === undefined ? current.storyTime : patch.storyTime,
+        patch.storyTimeSpec === undefined ? JSON.stringify(current.storyTimeSpec ?? null) : JSON.stringify(patch.storyTimeSpec),
         id,
       )
       if (current.type === 'scene' && patch.title) {
@@ -2908,6 +2911,7 @@ function mapNode(row: Row): ManuscriptNode {
     id: String(row.id), projectId: String(row.project_id), parentId: row.parent_id ? String(row.parent_id) : null,
     type: row.type as ManuscriptNode['type'], title: String(row.title), sortKey: Number(row.sort_key), status: row.status as ManuscriptNode['status'],
     povEntityId: row.pov_entity_id ? String(row.pov_entity_id) : null, storyTime: row.story_time ? String(row.story_time) : null,
+    storyTimeSpec: row.story_time_json ? jsonParse(String(row.story_time_json), null) : null,
     deletedAt: row.deleted_at ? String(row.deleted_at) : null, wordCount: countWords(String(row.plain_text ?? '')),
   }
 }
@@ -2989,9 +2993,9 @@ function resolveRelationshipState(states: RelationshipState[], atNodeId: string 
   if (!states.length) return null
   if (!atNodeId) return states.at(-1) ?? null
   const atNode = nodes.find((node) => node.id === atNodeId)
-  const order = narrativeSceneOrder(nodes); const at = order.get(atNodeId) ?? Number.MAX_SAFE_INTEGER
+  const order = storySceneOrder(nodes); const at = order.get(atNodeId) ?? Number.MAX_SAFE_INTEGER
   const matching = states.filter((state) => {
-    if (atNode?.storyTime && (state.worldTimeFrom || state.worldTimeTo)) return (!state.worldTimeFrom || state.worldTimeFrom <= atNode.storyTime) && (!state.worldTimeTo || atNode.storyTime < state.worldTimeTo)
+    if (!state.validFromNodeId && !state.validToNodeId && !atNode?.storyTimeSpec && atNode?.storyTime && (state.worldTimeFrom || state.worldTimeTo)) return (!state.worldTimeFrom || state.worldTimeFrom <= atNode.storyTime) && (!state.worldTimeTo || atNode.storyTime < state.worldTimeTo)
     const from = state.validFromNodeId ? order.get(state.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
     const to = state.validToNodeId ? order.get(state.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
     return from <= at && at < to
@@ -3000,6 +3004,14 @@ function resolveRelationshipState(states: RelationshipState[], atNodeId: string 
 }
 
 function relationshipStateIntervalsOverlap(a: RelationshipState, b: Omit<RelationshipState, 'id' | 'createdAt'>, nodes: ManuscriptNode[]): boolean {
+  if (a.validFromNodeId || a.validToNodeId || b.validFromNodeId || b.validToNodeId) {
+    const order = storySceneOrder(nodes)
+    const aFrom = a.validFromNodeId ? order.get(a.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
+    const aTo = a.validToNodeId ? order.get(a.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
+    const bFrom = b.validFromNodeId ? order.get(b.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
+    const bTo = b.validToNodeId ? order.get(b.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
+    return aFrom < bTo && bFrom < aTo
+  }
   const aWorld = Boolean(a.worldTimeFrom || a.worldTimeTo); const bWorld = Boolean(b.worldTimeFrom || b.worldTimeTo)
   if (aWorld || bWorld) {
     if (!aWorld || !bWorld) return true
@@ -3011,6 +3023,11 @@ function relationshipStateIntervalsOverlap(a: RelationshipState, b: Omit<Relatio
   const bFrom = b.validFromNodeId ? order.get(b.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1
   const bTo = b.validToNodeId ? order.get(b.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
   return aFrom < bTo && bFrom < aTo
+}
+
+function storySceneOrder(nodes: ManuscriptNode[]): Map<string, number> {
+  const scenes = nodes.filter((node) => node.type === 'scene')
+  return new Map([...scenes].sort((a, b) => compareStoryTime(a, b, scenes)).map((node, index) => [node.id, index]))
 }
 
 function narrativeSceneOrder(nodes: ManuscriptNode[]): Map<string, number> {

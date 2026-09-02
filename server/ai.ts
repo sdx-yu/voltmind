@@ -1,4 +1,5 @@
 import type { AiContextItem, AiStreamEvent, AiTaskResult, EntityState, TextSelectionAnchor } from '../shared/types.js'
+import { storyTimeContext } from '../shared/storyTime.js'
 import { compileVoiceContract } from '../shared/voice.js'
 import type { AppDatabase } from './db.js'
 import { estimateTokens, newId, nowIso, sha256 } from './utils.js'
@@ -71,6 +72,7 @@ export class AiService {
     const voice = this.database.getVoiceProfile(projectId, nodeId)
     const voiceExcerpts = this.voiceExcerpts(projectId, nodeId)
     const voiceContract = compileVoiceContract(voice, voiceExcerpts)
+    const projectNodes = this.database.listNodes(projectId)
     const items: AiContextItem[] = [{
       id: nodeId, type: 'scene', title: `当前场景：${node.title}`, content: scene.plainText,
       reason: '当前文本与任务', privacyLevel: 'normal', selected: true, estimatedTokens: estimateTokens(scene.plainText),
@@ -78,6 +80,9 @@ export class AiService {
       id: `voice:${nodeId}`, type: 'voice', title: `本场景文风档 · ${voice.sourceLabel}`, content: voiceContract,
       reason: voice.authorNote ? '作者原话与旋钮共同约束这一场的文笔' : '本场文笔契约；在场景页可以改档',
       privacyLevel: 'normal', selected: true, estimatedTokens: estimateTokens(voiceContract),
+    }, {
+      id: `time:${nodeId}`, type: 'time', title: '本场故事时间', content: storyTimeContext(node, projectNodes),
+      reason: '用于判断人物状态、先后与倒叙；不会猜测缺失日期', privacyLevel: 'normal', selected: true, estimatedTokens: 30,
     }]
     const entities = this.database.listEntities(projectId)
     const mentionedNames = entities.filter((entity) => [entity.canonicalName, ...entity.aliases].some((name) => name.length >= 2 && scene.plainText.includes(name)))
@@ -107,7 +112,7 @@ export class AiService {
       const content = `${source.canonicalName}${arrow}${target.canonicalName}\n关系：${relationship.label || relationship.relationType}\n当前状态：${state.statusLabel}${state.note ? `\n${state.note}` : ''}`
       items.push({ id: `relationship:${relationship.id}`, type: 'relationship', title: `当前关系：${source.canonicalName} / ${target.canonicalName}`, content, reason: '与当前场景实体相连且在本场景有效', privacyLevel: relationship.privacyLevel, selected: relationship.privacyLevel !== 'local_private', estimatedTokens: estimateTokens(content) })
     }
-    const nodes = this.database.listNodes(projectId).filter((item) => item.type === 'scene' && item.id !== nodeId && item.sortKey < node.sortKey).sort((a, b) => b.sortKey - a.sortKey).slice(0, 2)
+    const nodes = projectNodes.filter((item) => item.type === 'scene' && item.id !== nodeId && item.sortKey < node.sortKey).sort((a, b) => b.sortKey - a.sortKey).slice(0, 2)
     for (const previous of nodes) {
       const doc = this.database.getScene(previous.id)
       if (!doc?.plainText) continue
@@ -199,7 +204,7 @@ export class AiService {
     if (['word_inspiration', 'style_rewrite'].includes(input.taskType) && !selection) throw new Error('该任务需要有效的正文选区')
     const built = this.buildContext(input.projectId, input.nodeId)
     const selected = new Set(input.selectedContextIds)
-    const context = built.filter((item) => item.privacyLevel !== 'local_private' && (selected.has(item.id) || item.type === 'voice'))
+    const context = built.filter((item) => item.privacyLevel !== 'local_private' && (selected.has(item.id) || item.type === 'voice' || item.type === 'time'))
     const selectionText = selection ? `## 精确选区\n选中文本：${selection.originalText}\n前文：${selection.contextBefore || '无'}\n后文：${selection.contextAfter || '无'}` : ''
     const contextText = [selectionText, ...context.map((item) => `## ${item.title}\n${item.content}`)].filter(Boolean).join('\n\n')
     const taskId = newId()

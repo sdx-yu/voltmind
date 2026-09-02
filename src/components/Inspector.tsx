@@ -8,6 +8,7 @@ import { candidateUnits, splitBrainstormDirections, splitSentenceCandidates } fr
 import { ConfirmDialog } from './ConfirmDialog'
 import { Modal } from './Modal'
 import { SceneVoiceControl } from './VoiceSettings'
+import { StoryTimeControl } from './StoryTimeControl'
 import { IconButton, SelectControl, SelectField, Tabs, TextareaField, TextField } from '../ui'
 
 type Tab = 'scene' | 'canon' | 'check' | 'ai'
@@ -30,9 +31,10 @@ interface Props {
   notify: (type: 'success' | 'error', message: string) => void
   onClose?: () => void
   onOpenVoiceSettings?: () => void
+  onOpenTimeSettings?: () => void
 }
 
-export function Inspector({ projectId, node, entities, contentVersion = 0, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose, onOpenVoiceSettings }: Props) {
+export function Inspector({ projectId, node, entities, contentVersion = 0, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose, onOpenVoiceSettings, onOpenTimeSettings }: Props) {
   const [tab, setTab] = useState<Tab>('scene')
   const [pendingAiRequest, setPendingAiRequest] = useState<EditorAiRequest | null>(null)
   useEffect(() => {
@@ -47,7 +49,7 @@ export function Inspector({ projectId, node, entities, contentVersion = 0, refre
   return <aside className="inspector" aria-label="场景检查器">
     <div className="ui-inspector-tabbar"><Tabs items={TABS} value={tab} onChange={(value) => setTab(value as Tab)} label="检查器分页" />{onClose && <IconButton size="small" className="inspector-close" onClick={onClose} label="关闭检查器"><X size={16} /></IconButton>}</div>
     <div className="inspector-scroll">
-      {tab === 'scene' && <ScenePanel projectId={projectId} node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} notify={notify} />}
+      {tab === 'scene' && <ScenePanel projectId={projectId} node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} onOpenTimeSettings={onOpenTimeSettings} notify={notify} />}
       {tab === 'canon' && <CanonPanel projectId={projectId} node={node} entities={entities} contentVersion={contentVersion} refreshEntities={refreshEntities} notify={notify} />}
       {tab === 'check' && <CheckPanel node={node} contentVersion={contentVersion} notify={notify} />}
       {tab === 'ai' && <AiPanel projectId={projectId} node={node} notify={notify} pendingRequest={pendingAiRequest} onRequestConsumed={() => setPendingAiRequest(null)} onOpenVoiceSettings={onOpenVoiceSettings} />}
@@ -55,7 +57,7 @@ export function Inspector({ projectId, node, entities, contentVersion = 0, refre
   </aside>
 }
 
-function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, onReloadScene, notify }: Pick<Props, 'projectId' | 'node' | 'entities' | 'onUpdateNode' | 'onRefreshTree' | 'onReloadScene' | 'notify'>) {
+function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, onReloadScene, onOpenTimeSettings, notify }: Pick<Props, 'projectId' | 'node' | 'entities' | 'onUpdateNode' | 'onRefreshTree' | 'onReloadScene' | 'onOpenTimeSettings' | 'notify'>) {
   const [revisions, setRevisions] = useState<Revision[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [previewRevision, setPreviewRevision] = useState<Revision | null>(null)
@@ -78,7 +80,7 @@ function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, on
       <SelectField label="进度" value={node.status} onValueChange={(value) => void update({ status: value as ManuscriptNode['status'] })}>
         <option value="idea">想法</option><option value="planned">计划</option><option value="draft">草稿</option><option value="revising">修订中</option><option value="complete">已完成</option><option value="published">已发布</option>
       </SelectField>
-      <TextField label="故事时间" value={node.storyTime ?? ''} onChange={(event) => void update({ storyTime: event.target.value || null })} placeholder="建议 YYYY-MM-DD，便于顺序检查" />
+      <StoryTimeControl projectId={projectId} node={node} onUpdateNode={onUpdateNode} notify={notify} onOpenSettings={onOpenTimeSettings}/>
       <SelectField label="视角人物" value={node.povEntityId ?? ''} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
       {node.status !== 'complete' && <button className="button primary full" onClick={() => void complete()}><Check size={16} />完成本场景并提取事实</button>}
     </section>
@@ -356,7 +358,7 @@ function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed, o
 
   function stop() { runController.current?.abort(); setProgress('正在停止本地生成') }
 
-  function toggle(id: string) { setContext((items) => items.map((item) => item.id === id && item.type !== 'voice' && item.privacyLevel !== 'local_private' ? { ...item, selected: !item.selected } : item)) }
+  function toggle(id: string) { setContext((items) => items.map((item) => item.id === id && item.type !== 'voice' && item.type !== 'time' && item.privacyLevel !== 'local_private' ? { ...item, selected: !item.selected } : item)) }
   async function accept() {
     if (!result || selectedSegments.size === 0) return
     let inserted = false
@@ -384,7 +386,7 @@ function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed, o
   }
   return <div className="panel-stack">
     <section className="context-capsule"><button onClick={() => setContextOpen(!contextOpen)}><span><LockKeyhole size={14} />本次上下文</span><strong>{selected.length} 项 · 约 {tokens} token</strong><ChevronDown className={contextOpen ? 'rotated' : ''} size={15} /></button>
-      {contextOpen && <div className="context-items">{context.map((item) => <label key={`${item.type}-${item.id}`} className={item.privacyLevel === 'local_private' ? 'private' : ''}><input type="checkbox" checked={item.selected} disabled={item.type === 'voice' || item.privacyLevel === 'local_private'} onChange={() => toggle(item.id)} /><span><strong>{item.title}</strong><small>{item.privacyLevel === 'local_private' ? '仅本地，不会发送' : item.type === 'voice' ? `${item.reason} · 始终带上` : `${item.reason} · ${item.estimatedTokens} token`}</small></span></label>)}</div>}
+      {contextOpen && <div className="context-items">{context.map((item) => <label key={`${item.type}-${item.id}`} className={item.privacyLevel === 'local_private' ? 'private' : ''}><input type="checkbox" checked={item.selected} disabled={item.type === 'voice' || item.type === 'time' || item.privacyLevel === 'local_private'} onChange={() => toggle(item.id)} /><span><strong>{item.title}</strong><small>{item.privacyLevel === 'local_private' ? '仅本地，不会发送' : item.type === 'voice' || item.type === 'time' ? `${item.reason} · 始终带上` : `${item.reason} · ${item.estimatedTokens} token`}</small></span></label>)}</div>}
     </section>
     <section className="inspector-section"><header><span className="section-icon"><Bot size={15} /></span><h3>创作助手</h3></header>
       <p className={`ai-provider-status ${provider?.kind === 'ollama' ? 'is-live' : 'is-demo'}`}>{providerLabel}</p>

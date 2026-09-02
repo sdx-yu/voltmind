@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   clearVoicePreferences: vi.fn(),
   getCharacterVoice: vi.fn(),
   saveCharacterVoice: vi.fn(),
+  getSetting: vi.fn(),
+  setSetting: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -33,6 +35,8 @@ describe('SettingsModal function truth', () => {
     mocks.clearVoicePreferences.mockResolvedValue({ ok: true })
     mocks.getCharacterVoice.mockResolvedValue({ entityId: 'lin', projectId: 'p', entityName: '林照', register: 'balanced', sentence: 'mixed', directness: 'balanced', emotion: 'balanced', signature: '', avoid: '', updatedAt: null })
     mocks.saveCharacterVoice.mockImplementation(async (_projectId: string, _entityId: string, patch: Record<string, unknown>) => ({ entityId: 'lin', projectId: 'p', entityName: '林照', register: 'balanced', sentence: 'mixed', directness: 'balanced', emotion: 'balanced', signature: '', avoid: '', updatedAt: 'now', ...patch }))
+    mocks.getSetting.mockResolvedValue({ value: null })
+    mocks.setSetting.mockResolvedValue({ ok: true })
   })
   afterEach(cleanup)
 
@@ -71,6 +75,18 @@ describe('SettingsModal function truth', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: '说话习惯' }), '回答前先停一下')
     await userEvent.tab()
     await waitFor(() => expect(mocks.saveCharacterVoice).toHaveBeenCalledWith('p', 'lin', { signature: '回答前先停一下' }))
+  })
+
+  it('sets a book-level ancient time system without rewriting existing scenes', async () => {
+    const notify = vi.fn()
+    render(<SettingsModal projectId="p" initialTab="time" onClose={vi.fn()} notify={notify} />)
+    expect(await screen.findByRole('heading', { name: '让显示符合题材，让排序保持准确' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('combobox', { name: '默认时间方式' }))
+    await userEvent.click(screen.getByRole('option', { name: '古风／自定义纪年' }))
+    await userEvent.type(screen.getByRole('textbox', { name: /默认纪年／年号/ }), '承平')
+    await userEvent.click(screen.getByRole('button', { name: '保存默认体系' }))
+    await waitFor(() => expect(mocks.setSetting).toHaveBeenCalledWith('p', 'story_time_system', { defaultMode: 'custom', customEra: '承平' }))
+    expect(notify).toHaveBeenCalledWith('success', '本书默认时间体系已保存')
   })
 })
 

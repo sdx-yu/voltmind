@@ -22,9 +22,21 @@ import { ResearchService, buildReleaseReadiness, buildSupportBundle } from './re
 import { ResearchCohortService } from './researchCohort.js'
 import { ResearchWaveService } from './researchWave.js'
 import type { VisualSelectedField } from '../shared/types.js'
+import { compareStoryTime, describeStoryTime } from '../shared/storyTime.js'
 import { newId, nowIso, sha256 } from './utils.js'
 
 const nodeInput = z.object({ parentId: z.string().nullable(), type: z.enum(['book', 'volume', 'chapter', 'scene']), title: z.string().trim().min(1).max(200), sortKey: z.number().int().optional() })
+const storyTimeInput = z.object({
+  version: z.literal(1), mode: z.enum(['calendar', 'custom', 'relative', 'sequence']), precision: z.enum(['exact', 'day', 'month', 'year', 'approximate']), displayLabel: z.string().max(120),
+  calendarDate: z.string().max(10), clockTime: z.string().max(5), era: z.string().max(40), eraOrder: z.number().int().min(1).max(9999), year: z.number().int().min(0).max(99999).nullable(), month: z.number().int().min(1).max(99).nullable(), day: z.number().int().min(1).max(99).nullable(), period: z.string().max(20),
+  anchorNodeId: z.string().nullable(), relation: z.enum(['before', 'same', 'after']), offsetValue: z.number().int().min(0).max(99999), offsetUnit: z.enum(['scene', 'hour', 'day', 'month', 'year']),
+}).superRefine((value, context) => {
+  if (value.mode === 'calendar' && !isValidCalendarDate(value.calendarDate)) context.addIssue({ code: 'custom', message: '请选择有效的现代日期' })
+  if (value.clockTime && !isValidClockTime(value.clockTime)) context.addIssue({ code: 'custom', message: '时刻格式不正确' })
+  if (value.mode === 'custom' && value.year === null) context.addIssue({ code: 'custom', message: '古风或自定义纪年需要填写年份' })
+  if ((value.mode === 'relative' || value.mode === 'sequence') && !value.anchorNodeId) context.addIssue({ code: 'custom', message: '请选择作为时间锚点的场景' })
+  if (value.mode === 'relative' && value.relation !== 'same' && value.offsetValue < 1) context.addIssue({ code: 'custom', message: '相对时间的间隔至少为 1' })
+})
 const sceneInput = z.object({ contentJson: z.record(z.string(), z.unknown()), plainText: z.string(), sourceType: z.enum(['human', 'import', 'ai_accepted', 'restore', 'merge']).default('human'), sourceTaskId: z.string().nullable().default(null) })
 const entityInput = z.object({ type: z.enum(['character', 'location', 'item', 'event']), canonicalName: z.string().trim().min(1).max(100), aliases: z.array(z.string()).default([]), summary: z.string().default(''), privacyLevel: z.enum(['normal', 'author_only', 'local_private']).default('normal') })
 const privacyLevel = z.enum(['normal', 'author_only', 'local_private'])
@@ -117,9 +129,25 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.get('/api/projects/:id/tree', route(async (req, res) => res.json(database.listNodes(param(req, 'id'), req.query.trash === '1'))))
   app.post('/api/projects/:id/nodes', route(async (req, res) => res.status(201).json(database.createNode({ projectId: param(req, 'id'), ...nodeInput.parse(req.body) }))))
   app.patch('/api/nodes/:id', route(async (req, res) => {
-    const input = z.object({ parentId: z.string().nullable().optional(), title: z.string().trim().min(1).max(200).optional(), sortKey: z.number().int().optional(), status: z.enum(['idea', 'planned', 'draft', 'revising', 'complete', 'published']).optional(), povEntityId: z.string().nullable().optional(), storyTime: z.string().nullable().optional() }).parse(req.body)
-    const result = database.updateNode(param(req, 'id'), input)
-    if (!result) return res.status(404).json({ error: 'Node not found' })
+    const input = z.object({ parentId: z.string().nullable().optional(), title: z.string().trim().min(1).max(200).optional(), sortKey: z.number().int().optional(), status: z.enum(['idea', 'planned', 'draft', 'revising', 'complete', 'published']).optional(), povEntityId: z.string().nullable().optional(), storyTime: z.string().max(120).nullable().optional(), storyTimeSpec: storyTimeInput.nullable().optional() }).parse(req.body)
+    const nodeId = param(req, 'id'); const current = database.getNode(nodeId)
+    if (!current) return res.status(404).json({ error: 'Node not found' })
+    if (input.storyTimeSpec?.anchorNodeId) {
+      const seen = new Set([nodeId]); let anchorId: string | null = input.storyTimeSpec.anchorNodeId
+      while (anchorId) {
+        if (seen.has(anchorId)) return res.status(400).json({ error: '故事时间不能形成循环引用' })
+        seen.add(anchorId)
+        const anchor = database.getNode(anchorId)
+        if (!anchor || anchor.type !== 'scene' || anchor.projectId !== current.projectId || anchor.deletedAt) return res.status(400).json({ error: '时间锚点必须是本作品中有效的场景' })
+        anchorId = anchor.storyTimeSpec?.anchorNodeId ?? null
+      }
+    }
+    if (input.storyTimeSpec) {
+      const nodes = database.listNodes(current.projectId)
+      const nextNode = { ...current, ...input }
+      input.storyTime = describeStoryTime(nextNode, nodes.map((item) => item.id === nodeId ? nextNode : item))
+    }
+    const result = database.updateNode(nodeId, input)
     res.json(result)
   }))
   app.delete('/api/nodes/:id', route(async (req, res) => {
@@ -709,12 +737,12 @@ function extractFactCandidates(database: AppDatabase, nodeId: string) {
   for (const entity of entities) {
     if (entity.type === 'character') {
       const match = scene.plainText.match(new RegExp(`${escapeRegExp(entity.canonicalName)}[^。！？]{0,12}(死亡|身亡|死去|断了气)`))
-      if (match && !candidateExists(database, node.projectId, nodeId, entity.id, match[0])) created.push(database.createCandidate({ projectId: node.projectId, nodeId, targetType: 'entity_state', targetId: entity.id, operation: 'set_state', before: currentState(database, entity.id, 'life_status'), after: { attributeKey: 'life_status', value: '死亡', worldTimeFrom: node.storyTime }, evidence: { quote: match[0], startOffset: match.index, endOffset: (match.index ?? 0) + match[0].length, reason: '正文出现明确死亡描述' }, confidence: 0.93, sourceTaskId: null }))
+      if (match && !candidateExists(database, node.projectId, nodeId, entity.id, match[0])) created.push(database.createCandidate({ projectId: node.projectId, nodeId, targetType: 'entity_state', targetId: entity.id, operation: 'set_state', before: currentState(database, entity.id, 'life_status'), after: { attributeKey: 'life_status', value: '死亡', worldTimeFrom: node.storyTimeSpec ? null : node.storyTime }, evidence: { quote: match[0], startOffset: match.index, endOffset: (match.index ?? 0) + match[0].length, reason: '正文出现明确死亡描述' }, confidence: 0.93, sourceTaskId: null }))
     }
     if (entity.type === 'item') {
       for (const person of entities.filter((item) => item.type === 'character')) {
         const match = scene.plainText.match(new RegExp(`(?:把|将)${escapeRegExp(entity.canonicalName)}[^。！？]{0,8}(?:交给|递给|送给)${escapeRegExp(person.canonicalName)}`))
-        if (match && !candidateExists(database, node.projectId, nodeId, entity.id, match[0])) created.push(database.createCandidate({ projectId: node.projectId, nodeId, targetType: 'entity_state', targetId: entity.id, operation: 'set_state', before: currentState(database, entity.id, 'holder'), after: { attributeKey: 'holder', value: person.canonicalName, worldTimeFrom: node.storyTime }, evidence: { quote: match[0], startOffset: match.index, endOffset: (match.index ?? 0) + match[0].length, reason: '正文出现明确转交关系' }, confidence: 0.9, sourceTaskId: null }))
+        if (match && !candidateExists(database, node.projectId, nodeId, entity.id, match[0])) created.push(database.createCandidate({ projectId: node.projectId, nodeId, targetType: 'entity_state', targetId: entity.id, operation: 'set_state', before: currentState(database, entity.id, 'holder'), after: { attributeKey: 'holder', value: person.canonicalName, worldTimeFrom: node.storyTimeSpec ? null : node.storyTime }, evidence: { quote: match[0], startOffset: match.index, endOffset: (match.index ?? 0) + match[0].length, reason: '正文出现明确转交关系' }, confidence: 0.9, sourceTaskId: null }))
       }
     }
   }
@@ -724,12 +752,12 @@ function extractFactCandidates(database: AppDatabase, nodeId: string) {
 function currentStatesAtScene(database: AppDatabase, nodeId: string) {
   const node = database.getNode(nodeId); if (!node) throw new Error('Scene not found')
   const nodes = database.listNodes(node.projectId); const chapters = nodes.filter((item) => item.type === 'chapter').sort((a, b) => a.sortKey - b.sortKey); const chapterOrder = new Map(chapters.map((item, index) => [item.id, index]))
-  const scenes = nodes.filter((item) => item.type === 'scene').sort((a, b) => (chapterOrder.get(a.parentId ?? '') ?? 0) - (chapterOrder.get(b.parentId ?? '') ?? 0) || a.sortKey - b.sortKey); const order = new Map(scenes.map((item, index) => [item.id, index])); const at = order.get(nodeId) ?? Number.MAX_SAFE_INTEGER
+  const scenes = nodes.filter((item) => item.type === 'scene').sort((a, b) => (chapterOrder.get(a.parentId ?? '') ?? 0) - (chapterOrder.get(b.parentId ?? '') ?? 0) || a.sortKey - b.sortKey); const storyScenes = [...scenes].sort((a, b) => compareStoryTime(a, b, scenes)); const order = new Map(storyScenes.map((item, index) => [item.id, index])); const at = order.get(nodeId) ?? Number.MAX_SAFE_INTEGER
   return database.listEntities(node.projectId).flatMap((entity) => {
     const groups = new Map<string, ReturnType<AppDatabase['listStates']>>()
     for (const state of database.listStates(entity.id)) groups.set(state.attributeKey, [...(groups.get(state.attributeKey) ?? []), state])
     return [...groups.values()].map((states) => states.filter((state) => {
-      if (node.storyTime && state.worldTimeFrom) return state.worldTimeFrom <= node.storyTime && (!state.worldTimeTo || node.storyTime < state.worldTimeTo)
+      if (!node.storyTimeSpec && node.storyTime && state.worldTimeFrom) return state.worldTimeFrom <= node.storyTime && (!state.worldTimeTo || node.storyTime < state.worldTimeTo)
       const from = state.validFromNodeId ? order.get(state.validFromNodeId) ?? Number.MAX_SAFE_INTEGER : -1; const to = state.validToNodeId ? order.get(state.validToNodeId) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER
       return from <= at && at < to
     }).at(-1)).filter(Boolean)
@@ -808,7 +836,7 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
       if (readyIndex < 0) throw new Error('备份中的书稿树存在断裂引用')
       const node: any = pending.splice(readyIndex, 1)[0]
       const created = database.createNode({ projectId: project.id, parentId: node.parentId ? idMap.get(node.parentId)! : book.id, type: node.type, title: node.title, sortKey: node.sortKey })
-      database.updateNode(created.id, { status: node.status, storyTime: node.storyTime ?? null }); idMap.set(node.id, created.id)
+      database.updateNode(created.id, { status: node.status, storyTime: node.storyTime ?? null, storyTimeSpec: node.storyTimeSpec ?? null }); idMap.set(node.id, created.id)
     }
     for (const entity of source.entities as any[]) {
       const created = database.createEntity({ projectId: project.id, type: entity.type, canonicalName: entity.canonicalName, aliases: entity.aliases, summary: entity.summary, privacyLevel: entity.privacyLevel }); entityMap.set(entity.id, created.id)
@@ -1023,4 +1051,19 @@ function cleanupProject(database: AppDatabase, projectId: string) {
     database.db.prepare('DELETE FROM manuscript_nodes WHERE project_id=?').run(projectId); database.db.prepare('DELETE FROM entities WHERE project_id=?').run(projectId); database.db.prepare('DELETE FROM projects WHERE id=?').run(projectId)
     database.db.exec(`DELETE FROM visual_assets WHERE content_hash NOT IN (SELECT asset_hash FROM visual_candidates) AND content_hash NOT IN (SELECT asset_hash FROM storyboard_cards WHERE asset_hash IS NOT NULL)`)
   } finally { database.db.exec('PRAGMA foreign_keys=ON') }
+}
+
+function isValidCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return false
+  const year = Number(match[1]); const month = Number(match[2]); const day = Number(match[3])
+  if (month < 1 || month > 12 || day < 1) return false
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return day <= days[month - 1]
+}
+
+function isValidClockTime(value: string): boolean {
+  const match = /^(\d{2}):(\d{2})$/.exec(value)
+  return Boolean(match && Number(match[1]) < 24 && Number(match[2]) < 60)
 }

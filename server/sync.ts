@@ -242,7 +242,7 @@ export class SyncService {
   private captureScene(projectId: string, node: ManuscriptNode, vector: SyncVector): SyncScenePayload {
     const document = this.database.getScene(node.id)!
     const state = this.reconcileSceneState(projectId, node.id, document.plainText)
-    const contentHash = sha256(JSON.stringify({ title: node.title, status: node.status, storyTime: node.storyTime, deletedAt: node.deletedAt, plainText: document.plainText }))
+    const contentHash = sha256(JSON.stringify({ title: node.title, status: node.status, storyTime: node.storyTime, storyTimeSpec: node.storyTimeSpec ?? null, deletedAt: node.deletedAt, plainText: document.plainText }))
     return { node, document, revisions: this.database.listRevisions(node.id).slice().reverse(), yState: state.stateBase64, yStateVector: state.stateVectorBase64, vector: this.versionForExport(projectId, 'scene', node.id, vector, contentHash, Boolean(node.deletedAt)), contentHash, deleted: Boolean(node.deletedAt) }
   }
 
@@ -331,7 +331,7 @@ export class SyncService {
 
   private writeSceneState(projectId: string, remote: SyncScenePayload, stateBase64: string, merged: boolean) {
     const doc = new Y.Doc(); Y.applyUpdate(doc, fromBase64(stateBase64)); const text = doc.getText('body').toString()
-    this.database.db.prepare('UPDATE manuscript_nodes SET title=?,status=?,story_time=?,deleted_at=? WHERE id=?').run(remote.node.title, remote.node.status, remote.node.storyTime, remote.deleted ? remote.node.deletedAt ?? nowIso() : null, remote.node.id)
+    this.database.db.prepare('UPDATE manuscript_nodes SET title=?,status=?,story_time=?,story_time_json=?,deleted_at=? WHERE id=?').run(remote.node.title, remote.node.status, remote.node.storyTime, JSON.stringify(remote.node.storyTimeSpec ?? null), remote.deleted ? remote.node.deletedAt ?? nowIso() : null, remote.node.id)
     this.database.saveScene(remote.node.id, merged ? plainTextDoc(text) : remote.document.contentJson, text, 'merge')
     const stateVectorBase64 = toBase64(Y.encodeStateVector(doc)); const updatedAt = nowIso()
     this.database.db.prepare(`INSERT INTO sync_scene_states(node_id,project_id,state_base64,state_vector_base64,plain_hash,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(node_id) DO UPDATE SET state_base64=excluded.state_base64,state_vector_base64=excluded.state_vector_base64,plain_hash=excluded.plain_hash,updated_at=excluded.updated_at`).run(remote.node.id, projectId, stateBase64, stateVectorBase64, sha256(text), updatedAt)
@@ -388,7 +388,7 @@ export class SyncService {
       const index = pending.findIndex((node) => !node.parentId || this.database.getNode(node.parentId))
       if (index < 0) throw new Error('接力包中的书稿树引用断裂')
       const node = pending.splice(index, 1)[0]
-      this.database.db.prepare('INSERT INTO manuscript_nodes(id,project_id,parent_id,type,title,sort_key,status,pov_entity_id,story_time,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(node.id, payload.project.id, node.parentId, node.type, node.title, node.sortKey, node.status, null, node.storyTime, node.deletedAt)
+      this.database.db.prepare('INSERT INTO manuscript_nodes(id,project_id,parent_id,type,title,sort_key,status,pov_entity_id,story_time,story_time_json,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(node.id, payload.project.id, node.parentId, node.type, node.title, node.sortKey, node.status, null, node.storyTime, JSON.stringify(node.storyTimeSpec ?? null), node.deletedAt)
     }
   }
 
