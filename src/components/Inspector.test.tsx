@@ -133,19 +133,22 @@ describe('Inspector knowledge panel', () => {
   })
 
   it('lets the author set a scene voice and defaults AI to idea-to-prose against that contract', async () => {
-    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
-    expect(await screen.findByRole('heading', { name: '文风设置' })).toBeInTheDocument()
-    expect(screen.getByText(/当前继承：全书尚未设置，使用中性默认/)).toBeInTheDocument()
+    const openBookSettings = vi.fn()
+    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} onOpenVoiceSettings={openBookSettings} notify={vi.fn()} />)
+    expect(screen.queryByRole('heading', { name: '文风设置' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
+    const compactVoice = await screen.findByRole('button', { name: /文风：继承全书 · 自然流畅 · 标准 · 平衡/ })
+    await userEvent.click(compactVoice)
     await userEvent.type(screen.getByRole('textbox', { name: '本场文风说明（最优先）' }), '这场要冷、慢，不解释法术。')
     await userEvent.tab()
     await waitFor(() => expect(mocks.saveVoiceProfile).toHaveBeenCalledWith('p', 's1', { authorNote: '这场要冷、慢，不解释法术。' }))
+    await userEvent.click(screen.getByRole('button', { name: '编辑全书基准文风' }))
+    expect(openBookSettings).toHaveBeenCalledOnce()
 
     mocks.streamAiTask.mockResolvedValue({
       taskId: 'ai-polish', taskType: 'polish', model: '笔不怠演示模型', inputTokens: 20, outputTokens: 30, estimatedCost: null,
       output: '雨落在窗前，灯还没亮。',
     })
-    await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
-    expect(await screen.findByText(/本场景文风档 · 全书尚未设置，使用中性默认/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '思路成文' })).toHaveClass('active')
     expect(screen.getByPlaceholderText(/写下情节思路或句子骨架/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '生成演示候选' }))
@@ -153,19 +156,15 @@ describe('Inspector knowledge panel', () => {
     expect(await screen.findByText('雨落在窗前，灯还没亮。')).toBeInTheDocument()
   })
 
-  it('separates the book baseline from a scene override and can restore inheritance', async () => {
+  it('marks a scene override and can restore inheritance from the compact control', async () => {
     const notify = vi.fn()
     mocks.getVoiceProfile.mockResolvedValue({ ...voiceProfile(), inherited: false, source: 'scene', sourceLabel: '本场单独设置', family: 'restrained' })
     render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={notify} />)
 
-    expect(await screen.findByText('本场已覆盖全书文风')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('tab', { name: '全书基准' }))
-    await userEvent.type(screen.getByRole('textbox', { name: '全书文风说明（最优先）' }), '整本保持克制。')
-    await userEvent.tab()
-    await waitFor(() => expect(mocks.saveProjectVoiceDefault).toHaveBeenCalledWith('p', expect.objectContaining({ authorNote: '整本保持克制。', intents: [] })))
-
-    await userEvent.click(screen.getByRole('tab', { name: '本场调整' }))
-    await userEvent.click(screen.getByRole('button', { name: '恢复全书设置' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'AI' }))
+    await userEvent.click(await screen.findByRole('button', { name: /文风：本场覆盖 · 冷峻克制/ }))
+    expect(screen.getByText('当前场景使用单独设置，不受全书后续修改影响。')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '恢复全书' }))
     await waitFor(() => expect(mocks.resetVoiceProfile).toHaveBeenCalledWith('p', 's1'))
     expect(notify).toHaveBeenCalledWith('success', '本场已恢复继承全书文风')
   })
@@ -190,16 +189,8 @@ describe('Inspector knowledge panel', () => {
     expect(detail).toMatchObject({ text: '他的指节隐入袖口。', selection })
   })
 
-  it('keeps character dialogue voice and scene consistency explicit', async () => {
+  it('keeps scene voice consistency explicit in the check panel', async () => {
     render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={vi.fn()} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
-    await userEvent.click(await screen.findByText('人物对白口吻'))
-    await userEvent.click(screen.getByRole('combobox', { name: '人物' }))
-    await userEvent.click(screen.getByRole('option', { name: '林照' }))
-    expect(await screen.findByRole('textbox', { name: '说话习惯' })).toBeInTheDocument()
-    await userEvent.type(screen.getByRole('textbox', { name: '说话习惯' }), '回答前先停一下')
-    await userEvent.tab()
-    await waitFor(() => expect(mocks.saveCharacterVoice).toHaveBeenCalledWith('p', 'lin', { signature: '回答前先停一下' }))
-
     await userEvent.click(screen.getByRole('tab', { name: '检查' }))
     expect(await screen.findByRole('heading', { name: '文风一致性' })).toBeInTheDocument()
     expect(screen.getByText('与本场文风档基本一致')).toBeInTheDocument()

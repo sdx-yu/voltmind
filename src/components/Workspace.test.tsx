@@ -72,7 +72,7 @@ describe('Workspace chrome', () => {
 
   it('persists keyboard resized pane widths', async () => {
     render(<Workspace project={project} onBack={vi.fn()} notify={vi.fn()} />)
-    expect(await screen.findByRole('heading', { name: '文风设置' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '场景状态' })).toBeInTheDocument()
     const separator = await screen.findByRole('separator', { name: '调整书稿树宽度' })
     separator.focus()
     await userEvent.keyboard('{ArrowRight}')

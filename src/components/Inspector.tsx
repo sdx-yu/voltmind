@@ -7,6 +7,7 @@ import { api } from '../lib/api'
 import { candidateUnits, splitBrainstormDirections, splitSentenceCandidates } from '../lib/aiCandidates'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Modal } from './Modal'
+import { SceneVoiceControl } from './VoiceSettings'
 import { IconButton, SelectControl, SelectField, Tabs, TextareaField, TextField } from '../ui'
 
 type Tab = 'scene' | 'canon' | 'check' | 'ai'
@@ -28,9 +29,10 @@ interface Props {
   onReloadScene: () => void
   notify: (type: 'success' | 'error', message: string) => void
   onClose?: () => void
+  onOpenVoiceSettings?: () => void
 }
 
-export function Inspector({ projectId, node, entities, contentVersion = 0, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose }: Props) {
+export function Inspector({ projectId, node, entities, contentVersion = 0, refreshEntities, onUpdateNode, onRefreshTree, onReloadScene, notify, onClose, onOpenVoiceSettings }: Props) {
   const [tab, setTab] = useState<Tab>('scene')
   const [pendingAiRequest, setPendingAiRequest] = useState<EditorAiRequest | null>(null)
   useEffect(() => {
@@ -48,7 +50,7 @@ export function Inspector({ projectId, node, entities, contentVersion = 0, refre
       {tab === 'scene' && <ScenePanel projectId={projectId} node={node} entities={entities} onUpdateNode={onUpdateNode} onRefreshTree={onRefreshTree} onReloadScene={onReloadScene} notify={notify} />}
       {tab === 'canon' && <CanonPanel projectId={projectId} node={node} entities={entities} contentVersion={contentVersion} refreshEntities={refreshEntities} notify={notify} />}
       {tab === 'check' && <CheckPanel node={node} contentVersion={contentVersion} notify={notify} />}
-      {tab === 'ai' && <AiPanel projectId={projectId} node={node} notify={notify} pendingRequest={pendingAiRequest} onRequestConsumed={() => setPendingAiRequest(null)} />}
+      {tab === 'ai' && <AiPanel projectId={projectId} node={node} notify={notify} pendingRequest={pendingAiRequest} onRequestConsumed={() => setPendingAiRequest(null)} onOpenVoiceSettings={onOpenVoiceSettings} />}
     </div>
   </aside>
 }
@@ -80,7 +82,6 @@ function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, on
       <SelectField label="视角人物" value={node.povEntityId ?? ''} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
       {node.status !== 'complete' && <button className="button primary full" onClick={() => void complete()}><Check size={16} />完成本场景并提取事实</button>}
     </section>
-    <VoicePanel projectId={projectId} nodeId={node.id} entities={entities} notify={notify} />
     <section className="inspector-section"><button className="section-toggle" onClick={() => setShowHistory(!showHistory)}><span><FileClock size={15} />版本历史</span><ChevronDown className={showHistory ? 'rotated' : ''} size={16} /></button>
       {showHistory && <><div className="revision-filters" aria-label="版本来源筛选">{([['all','全部'],['human','人工'],['ai','AI'],['system','导入/恢复']] as const).map(([value,label]) => <button key={value} className={historyFilter === value ? 'active' : ''} onClick={() => setHistoryFilter(value)}>{label}</button>)}</div><div className="revision-list">{visibleRevisions.length === 0 ? <p className="muted">当前筛选下没有版本。</p> : visibleRevisions.map((revision) => <div key={revision.id} className="revision-item"><div><strong>{new Date(revision.createdAt).toLocaleString('zh-CN')}</strong><span>{sourceLabel(revision.provenanceLabel)} · {revision.plainText.length} 字符</span></div><span className="revision-actions"><button className="icon-button" onClick={() => setPreviewRevision(revision)} aria-label="预览版本差异"><Eye size={14}/></button><button className="icon-button" onClick={() => void restore(revision)} aria-label="恢复此版本"><RotateCcw size={14} /></button></span></div>)}</div></>}
       {previewRevision && <div className="revision-preview"><header><strong>与父版本的差异</strong><button onClick={() => setPreviewRevision(null)}>关闭</button></header><small>{sourceLabel(previewRevision.provenanceLabel)} · 内容哈希 {previewRevision.contentHash.slice(0, 12)}</small><p>{diffWords(revisions.find((item) => item.id === previewRevision.parentRevisionId)?.plainText ?? '', previewRevision.plainText).map((part, index) => <span key={index} className={part.added ? 'preview-added' : part.removed ? 'preview-removed' : ''}>{part.value}</span>)}</p><button className="button secondary full" onClick={() => void restore(previewRevision)}><RotateCcw size={14}/>恢复为新版本</button></div>}
@@ -270,7 +271,7 @@ function CheckPanel({ node, contentVersion, notify }: Pick<Props, 'node' | 'cont
   </section>{issues.length === 0 && !loading ? <div className="all-clear"><Check size={20} /><strong>已完成冲突检查</strong><span>{detectionGroups.length ? '已识别正典，但暂未发现高置信度冲突。' : '正文尚未命中正典，也没有可报告的冲突。'}</span></div> : issues.map((issue) => <article key={issue.id} className={`issue-card issue-${issue.severity}`}><header><CircleAlert size={16} /><span>{issue.severity === 'risk' ? '错误风险' : '建议复核'}</span><small>{Math.round(issue.confidence * 100)}%</small></header><p>{issue.message}</p><blockquote>{issue.currentEvidence.quote}</blockquote>{expanded.has(issue.id) && issue.conflictingEvidence && <blockquote className="conflicting-evidence">冲突证据：{issue.conflictingEvidence.quote}</blockquote>}<div className="issue-actions"><button onClick={() => setExpanded((current) => { const next = new Set(current); next.has(issue.id) ? next.delete(issue.id) : next.add(issue.id); return next })}>查看证据</button><button onClick={() => void ignore(issue)}>忽略一次</button></div></article>)}</div>
 }
 
-function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed }: Pick<Props, 'projectId' | 'node' | 'notify'> & { pendingRequest: EditorAiRequest | null; onRequestConsumed: () => void }) {
+function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed, onOpenVoiceSettings }: Pick<Props, 'projectId' | 'node' | 'notify' | 'onOpenVoiceSettings'> & { pendingRequest: EditorAiRequest | null; onRequestConsumed: () => void }) {
   const [context, setContext] = useState<AiContextItem[]>([])
   const [provider, setProvider] = useState<{ kind: 'demo' | 'ollama' | 'blocked'; model: string } | null>(null)
   const [contextOpen, setContextOpen] = useState(false)
@@ -287,12 +288,16 @@ function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed }:
   const [selectedSegments, setSelectedSegments] = useState<Set<number>>(new Set())
   const runController = useRef<AbortController | null>(null)
   const processedRequest = useRef('')
+  async function reloadContext() {
+    try {
+      const [nextContext, settings] = await Promise.all([api.getContext(projectId, node.id), api.getAiSettings()])
+      setContext(nextContext); setProvider({ kind: settings.provider, model: settings.model })
+      if (settings.provider === 'ollama') void api.warmAi().catch(() => {})
+    } catch (error) { notify('error', error instanceof Error ? error.message : 'AI 配置与上下文加载失败') }
+  }
   useEffect(() => {
-    const load = () => Promise.all([api.getContext(projectId, node.id), api.getAiSettings()])
-      .then(([nextContext, settings]) => { setContext(nextContext); setProvider({ kind: settings.provider, model: settings.model }); if (settings.provider === 'ollama') void api.warmAi().catch(() => {}) })
-      .catch((error) => notify('error', error instanceof Error ? error.message : 'AI 配置与上下文加载失败'))
-    const reload = () => { void load() }
-    void load(); window.addEventListener('bbd:ai-settings-changed', reload)
+    const reload = () => { void reloadContext() }
+    void reloadContext(); window.addEventListener('bbd:ai-settings-changed', reload)
     setResult(null); setAccepted(false)
     return () => { window.removeEventListener('bbd:ai-settings-changed', reload); runController.current?.abort(); runController.current = null }
   }, [projectId, node.id])
@@ -306,7 +311,6 @@ function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed }:
   const tokens = selected.reduce((total, item) => total + item.estimatedTokens, 0)
   const demoMode = provider?.kind !== 'ollama'
   const providerLabel = !provider ? '正在确认模型状态…' : provider.kind === 'ollama' ? `本地免费 · ${provider.model} · API 费用 ¥0` : provider.kind === 'blocked' ? '外网模型已停用 · 零费用保护生效' : '演示模式 · 固定候选 · 不联网'
-  const voiceItem = context.find((item) => item.type === 'voice')
   const instructionHint = ({
     word_inspiration: '还缺哪类词？例如：更具体的动作、潮湿环境的感官词。（可选）',
     style_rewrite: '补充改写倾向，例如：更冷、更轻、更少解释。（可选）',
@@ -384,7 +388,7 @@ function AiPanel({ projectId, node, notify, pendingRequest, onRequestConsumed }:
     </section>
     <section className="inspector-section"><header><span className="section-icon"><Bot size={15} /></span><h3>创作助手</h3></header>
       <p className={`ai-provider-status ${provider?.kind === 'ollama' ? 'is-live' : 'is-demo'}`}>{providerLabel}</p>
-      {voiceItem && <p className="voice-ai-summary">{voiceItem.title}。所有成文任务都会先读分类文风档，不模仿固定名家。</p>}
+      <SceneVoiceControl projectId={projectId} nodeId={node.id} notify={notify} onOpenBookSettings={onOpenVoiceSettings} onChanged={() => void reloadContext()} />
       {selectionAnchor && <div className="ai-selection-chip"><strong>{task === 'word_inspiration' ? '词语灵感' : '按文风改写'}</strong><span>“{selectionAnchor.originalText.slice(0, 42)}{selectionAnchor.originalText.length > 42 ? '…' : ''}”</span><button type="button" onClick={() => { setSelectionAnchor(null); setTask('idea_to_prose'); setResult(null) }} aria-label="取消选区任务"><X size={13}/></button></div>}
       <div className="task-grid">{(selectionAnchor ? [['word_inspiration','词语灵感'],['style_rewrite','文风改写'],['idea_to_prose','思路成文'],['brainstorm','剧情脑暴']] : [['idea_to_prose','思路成文'],['brainstorm','剧情脑暴'],['continue','续写'],['cold_read','冷读']]).map(([value,label]) => <button key={value} className={task === value ? 'active' : ''} onClick={() => setTask(value)}>{label}</button>)}</div>
       <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder={instructionHint} rows={3} />

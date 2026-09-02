@@ -52,8 +52,8 @@ export function Drawer({ title, description, children, trigger, open, onOpenChan
   </DialogPrimitive.Root>
 }
 
-export function Popover({ trigger, children, align = 'center', sideOffset = 8 }: { trigger: ReactElement; children: ReactNode; align?: 'start' | 'center' | 'end'; sideOffset?: number }) {
-  return <PopoverPrimitive.Root>
+export function Popover({ trigger, children, align = 'center', sideOffset = 8, open, onOpenChange }: { trigger: ReactElement; children: ReactNode; align?: 'start' | 'center' | 'end'; sideOffset?: number; open?: boolean; onOpenChange?: (open: boolean) => void }) {
+  return <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
     <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
     <PopoverPrimitive.Portal><PopoverPrimitive.Content className="ui-popover" align={align} sideOffset={sideOffset}>{children}<PopoverPrimitive.Arrow className="ui-popover-arrow" /></PopoverPrimitive.Content></PopoverPrimitive.Portal>
   </PopoverPrimitive.Root>

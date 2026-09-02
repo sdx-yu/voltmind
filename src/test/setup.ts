@@ -10,3 +10,10 @@ if (typeof URL !== 'undefined') {
   if (!URL.createObjectURL) URL.createObjectURL = () => 'blob:test'
   if (!URL.revokeObjectURL) URL.revokeObjectURL = () => undefined
 }
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
