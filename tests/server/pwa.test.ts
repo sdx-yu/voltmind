@@ -12,8 +12,9 @@ describe('V1-M PWA shell contract', () => {
   })
 
   it('keeps one rollback shell, excludes API writes and activates updates only by message', () => {
+    const { version } = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')) as { version: string }
     const worker = fs.readFileSync(path.resolve('public/sw.js'), 'utf8')
-    expect(worker).toContain("const CURRENT_SHELL = 'bbd-shell-v2.6.0'")
+    expect(worker).toContain(`const CURRENT_SHELL = 'bbd-shell-v${version}'`)
     expect(worker).toContain('html.matchAll(/(?:src|href)')
     expect(worker).toContain('\\/assets\\/')
     expect(worker).toContain("await cache.addAll([...CORE.filter((path) => path !== '/'), ...new Set(assets)])")
