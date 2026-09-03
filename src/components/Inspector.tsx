@@ -9,7 +9,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { Modal } from './Modal'
 import { SceneVoiceControl } from './VoiceSettings'
 import { StoryTimeControl } from './StoryTimeControl'
-import { IconButton, SelectControl, SelectField, Tabs, TextareaField, TextField } from '../ui'
+import { Badge, Button, IconButton, SelectControl, SelectField, Tabs, TextareaField, TextField } from '../ui'
 
 type Tab = 'scene' | 'canon' | 'check' | 'ai'
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -73,16 +73,19 @@ function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, on
     try { await api.restoreRevision(node.id, revision.id); notify('success', '已恢复为一个新版本，当前历史没有被覆盖'); await onRefreshTree(); onReloadScene(); setShowHistory(false) }
     catch (error) { notify('error', error instanceof Error ? error.message : '恢复失败') }
   }
-  async function complete() { try { const result = await api.completeScene(node.id); await onRefreshTree(); notify('success', result.candidates.length ? `场景已完成，${result.candidates.length} 条事实变化等待确认` : '场景已完成，并已生成快照与连续性检查') } catch (error) { notify('error', error instanceof Error ? error.message : '完成场景失败') } }
+  async function complete() { try { const result = await api.completeScene(node.id); await onRefreshTree(); notify('success', result.candidates.length ? `场景已完成，${result.candidates.length} 条事实变化等待确认` : '场景已完成，连续性检查已经运行') } catch (error) { notify('error', error instanceof Error ? error.message : '完成场景失败') } }
+  const finalStatus = node.status === 'complete' || node.status === 'published'
 
   return <div className="panel-stack">
-    <section className="inspector-section"><header><span className="section-icon"><MessageSquareText size={15} /></span><h3>场景状态</h3></header>
-      <SelectField label="进度" value={node.status} onValueChange={(value) => void update({ status: value as ManuscriptNode['status'] })}>
-        <option value="idea">想法</option><option value="planned">计划</option><option value="draft">草稿</option><option value="revising">修订中</option><option value="complete">已完成</option><option value="published">已发布</option>
-      </SelectField>
-      <StoryTimeControl projectId={projectId} node={node} onUpdateNode={onUpdateNode} notify={notify} onOpenSettings={onOpenTimeSettings}/>
-      <SelectField label="视角人物" value={node.povEntityId ?? ''} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
-      {node.status !== 'complete' && <button className="button primary full" onClick={() => void complete()}><Check size={16} />完成本场景并提取事实</button>}
+    <section className="inspector-section scene-status-section"><header><span className="section-icon"><MessageSquareText size={15} /></span><h3>场景状态</h3></header>
+      <div className="scene-status-fields">
+        {finalStatus ? <div className="scene-final-field"><span>进度</span><div className="scene-final-state" role="status"><div><Badge tone="success">{node.status === 'published' ? '已发布' : '已完成'}</Badge><small>{node.status === 'published' ? '历史发布标记；修改正文后自动进入修订。' : '完成检查已运行；修改正文后自动进入修订。'}</small></div><Button size="small" variant="ghost" onClick={() => void update({ status: 'revising' })}>进入修订</Button></div></div> : <SelectField label="进度" value={node.status} onValueChange={(value) => void update({ status: value as ManuscriptNode['status'] })}>
+          <option value="idea">想法</option><option value="planned">计划</option><option value="draft">草稿</option><option value="revising">修订中</option>
+        </SelectField>}
+        <StoryTimeControl projectId={projectId} node={node} onUpdateNode={onUpdateNode} notify={notify} onOpenSettings={onOpenTimeSettings}/>
+        <SelectField label="视角人物" value={node.povEntityId ?? ''} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
+      </div>
+      {!finalStatus && <div className="scene-status-action"><Button variant="primary" full leadingIcon={<Check size={16} />} onClick={() => void complete()}>完成本场景并提取事实</Button></div>}
     </section>
     <section className="inspector-section"><button className="section-toggle" onClick={() => setShowHistory(!showHistory)}><span><FileClock size={15} />版本历史</span><ChevronDown className={showHistory ? 'rotated' : ''} size={16} /></button>
       {showHistory && <><div className="revision-filters" aria-label="版本来源筛选">{([['all','全部'],['human','人工'],['ai','AI'],['system','导入/恢复']] as const).map(([value,label]) => <button key={value} className={historyFilter === value ? 'active' : ''} onClick={() => setHistoryFilter(value)}>{label}</button>)}</div><div className="revision-list">{visibleRevisions.length === 0 ? <p className="muted">当前筛选下没有版本。</p> : visibleRevisions.map((revision) => <div key={revision.id} className="revision-item"><div><strong>{new Date(revision.createdAt).toLocaleString('zh-CN')}</strong><span>{sourceLabel(revision.provenanceLabel)} · {revision.plainText.length} 字符</span></div><span className="revision-actions"><button className="icon-button" onClick={() => setPreviewRevision(revision)} aria-label="预览版本差异"><Eye size={14}/></button><button className="icon-button" onClick={() => void restore(revision)} aria-label="恢复此版本"><RotateCcw size={14} /></button></span></div>)}</div></>}

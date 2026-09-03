@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   getContext: vi.fn(), getAiSettings: vi.fn(), streamAiTask: vi.fn(), warmAi: vi.fn(), recordAiDecision: vi.fn(),
   getVoiceProfile: vi.fn(), saveVoiceProfile: vi.fn(), resetVoiceProfile: vi.fn(), getProjectVoiceProfile: vi.fn(), saveProjectVoiceDefault: vi.fn(), listVoicePreferences: vi.fn(), clearVoicePreferences: vi.fn(),
   getVoiceConsistency: vi.fn(), getCharacterVoice: vi.fn(), saveCharacterVoice: vi.fn(),
-  getSetting: vi.fn(), setSetting: vi.fn(),
+  getSetting: vi.fn(), setSetting: vi.fn(), completeScene: vi.fn(),
 }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
@@ -48,6 +48,7 @@ describe('Inspector knowledge panel', () => {
     mocks.saveProjectVoiceDefault.mockResolvedValue({ ...voiceProfile(), source: 'project', sourceLabel: '本书默认', inherited: true })
     mocks.getSetting.mockResolvedValue({ value: { defaultMode: 'custom', customEra: '承平' } })
     mocks.setSetting.mockResolvedValue({ ok: true })
+    mocks.completeScene.mockResolvedValue({ node: { ...nodes[2], status: 'complete' }, candidates: [], issues: [] })
   })
   afterEach(cleanup)
 
@@ -82,6 +83,28 @@ describe('Inspector knowledge panel', () => {
     await userEvent.click(screen.getByRole('button', { name: '保存故事时间' }))
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ storyTime: '承平十二年腊月廿三子时', storyTimeSpec: expect.objectContaining({ mode: 'custom', era: '承平', year: 12 }) })))
     expect(notify).toHaveBeenCalledWith('success', '故事时间已结构化保存')
+  })
+
+  it('keeps final states out of manual progress and routes completion through the evidence workflow', async () => {
+    const update = vi.fn().mockResolvedValue(undefined); const refresh = vi.fn().mockResolvedValue(undefined); const notify = vi.fn()
+    const props = { projectId: 'p', node: nodes[2], entities: [character], refreshEntities: vi.fn(), onUpdateNode: update, onRefreshTree: refresh, onReloadScene: vi.fn(), notify }
+    const view = render(<Inspector {...props} />)
+
+    await userEvent.click(screen.getByRole('combobox', { name: '进度' }))
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['想法', '计划', '草稿', '修订中'])
+    expect(screen.queryByRole('option', { name: '已完成' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '已发布' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(screen.getByRole('button', { name: '完成本场景并提取事实' }))
+    await waitFor(() => expect(mocks.completeScene).toHaveBeenCalledWith('s1'))
+    expect(refresh).toHaveBeenCalledOnce()
+
+    view.rerender(<Inspector {...props} node={{ ...nodes[2], status: 'complete' }} />)
+    expect(screen.queryByRole('combobox', { name: '进度' })).not.toBeInTheDocument()
+    expect(screen.getByText('完成检查已运行；修改正文后自动进入修订。')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '完成本场景并提取事实' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '进入修订' }))
+    expect(update).toHaveBeenCalledWith({ status: 'revising' })
   })
 
   it('shows recognized preset canon separately from continuity conflicts and refreshes after save', async () => {

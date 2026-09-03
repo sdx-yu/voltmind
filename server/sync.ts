@@ -332,7 +332,7 @@ export class SyncService {
   private writeSceneState(projectId: string, remote: SyncScenePayload, stateBase64: string, merged: boolean) {
     const doc = new Y.Doc(); Y.applyUpdate(doc, fromBase64(stateBase64)); const text = doc.getText('body').toString()
     this.database.db.prepare('UPDATE manuscript_nodes SET title=?,status=?,story_time=?,story_time_json=?,deleted_at=? WHERE id=?').run(remote.node.title, remote.node.status, remote.node.storyTime, JSON.stringify(remote.node.storyTimeSpec ?? null), remote.deleted ? remote.node.deletedAt ?? nowIso() : null, remote.node.id)
-    this.database.saveScene(remote.node.id, merged ? plainTextDoc(text) : remote.document.contentJson, text, 'merge')
+    this.database.saveScene(remote.node.id, merged ? plainTextDoc(text) : remote.document.contentJson, text, 'merge', null, true)
     const stateVectorBase64 = toBase64(Y.encodeStateVector(doc)); const updatedAt = nowIso()
     this.database.db.prepare(`INSERT INTO sync_scene_states(node_id,project_id,state_base64,state_vector_base64,plain_hash,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(node_id) DO UPDATE SET state_base64=excluded.state_base64,state_vector_base64=excluded.state_vector_base64,plain_hash=excluded.plain_hash,updated_at=excluded.updated_at`).run(remote.node.id, projectId, stateBase64, stateVectorBase64, sha256(text), updatedAt)
   }

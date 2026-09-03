@@ -16,7 +16,7 @@ interface Props {
   node: ManuscriptNode
   focusMode: boolean
   onFocusMode: (value: boolean) => void
-  onSaved: (document: SceneDocument, wordCount: number) => void
+  onSaved: (document: SceneDocument, node: ManuscriptNode) => void
   notify: (type: 'success' | 'error', message: string) => void
 }
 
@@ -38,7 +38,7 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
     extensions: [StarterKit, Placeholder.configure({ placeholder: '从这里开始。先写下一句话，故事就会继续。' }), CharacterCount],
     content: { type: 'doc', content: [{ type: 'paragraph' }] },
     autofocus: 'end',
-    editorProps: { attributes: { class: 'prose-editor', 'aria-label': '正文编辑器' } },
+    editorProps: { attributes: { class: 'prose-editor', role: 'textbox', 'aria-label': '正文编辑器' } },
     onUpdate: ({ editor }) => {
       if (loadingRef.current) return
       setWords(countWords(editor.getText()))
@@ -52,9 +52,10 @@ export function WritingEditor({ node, focusMode, onFocusMode, onSaved, notify }:
   async function persist(nodeId: string, json: Record<string, unknown>, text: string, sourceType: 'human' | 'ai_accepted' = 'human', sourceTaskId: string | null = null): Promise<SceneDocument | null> {
     saveStateRef.current = 'saving'; setSaveState('saving')
     try {
-      const saved = await api.saveScene(nodeId, json, text, sourceType, sourceTaskId)
+      const result = await api.saveScene(nodeId, json, text, sourceType, sourceTaskId)
+      const saved = result.document
       if (activeNodeRef.current === nodeId) {
-        documentRef.current = saved; saveStateRef.current = 'saved'; setDocument(saved); setSaveState('saved'); onSaved(saved, countWords(text)); nextSourceRef.current = 'human'; nextTaskRef.current = null
+        documentRef.current = saved; saveStateRef.current = 'saved'; setDocument(saved); setSaveState('saved'); onSaved(saved, result.node); nextSourceRef.current = 'human'; nextTaskRef.current = null
       }
       return saved
     } catch (error) { saveStateRef.current = 'error'; setSaveState('error'); notify('error', error instanceof Error ? error.message : '保存失败'); return null }

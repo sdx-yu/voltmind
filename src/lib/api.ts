@@ -181,7 +181,7 @@ export const api = {
   splitScene: (id: string, offset: number) => request<ManuscriptNode>(`/api/nodes/${id}/split`, { method: 'POST', body: JSON.stringify({ offset }) }),
   mergeNextScene: (id: string) => request<{ node: ManuscriptNode; mergedNodeId: string }>(`/api/nodes/${id}/merge-next`, { method: 'POST' }),
   getScene: (id: string) => request<SceneDocument>(`/api/scenes/${id}`),
-  saveScene: (id: string, contentJson: Record<string, unknown>, plainText: string, sourceType = 'human', sourceTaskId: string | null = null) => request<SceneDocument>(`/api/scenes/${id}`, { method: 'PUT', body: JSON.stringify({ contentJson, plainText, sourceType, sourceTaskId }) }),
+  saveScene: (id: string, contentJson: Record<string, unknown>, plainText: string, sourceType = 'human', sourceTaskId: string | null = null) => request<{ document: SceneDocument; node: ManuscriptNode }>(`/api/scenes/${id}`, { method: 'PUT', body: JSON.stringify({ contentJson, plainText, sourceType, sourceTaskId }) }),
   listRevisions: (id: string) => request<Revision[]>(`/api/scenes/${id}/revisions`),
   restoreRevision: (id: string, revisionId: string) => request<SceneDocument>(`/api/scenes/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
   completeScene: (id: string) => request<{ node: ManuscriptNode; candidates: CandidateChange[]; issues: ContinuityIssue[] }>(`/api/scenes/${id}/complete`, { method: 'POST' }),

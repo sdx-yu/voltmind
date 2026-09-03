@@ -106,6 +106,73 @@ test('keeps branded selects keyboard-operable and viewport-bound', async ({ page
   await expect(select).toBeFocused()
 })
 
+test('keeps multi-column controls aligned when only one field has help text', async ({ page }) => {
+  await onlyProjects(page, [project])
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await page.getByRole('button', { name: project.title }).first().click()
+  await page.getByRole('button', { name: /编辑故事时间/ }).click()
+  const dialog = page.getByRole('dialog', { name: '设置本场故事时间' })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('combobox', { name: '时间方式' }).click()
+  await page.getByRole('option', { name: '古风／自定义纪年' }).click()
+
+  const era = await dialog.getByRole('textbox', { name: /纪年／年号/ }).boundingBox()
+  const eraOrder = await dialog.getByRole('spinbutton', { name: '纪年顺序' }).boundingBox()
+  expect(era).not.toBeNull(); expect(eraOrder).not.toBeNull()
+  expect(Math.abs(era!.y - eraOrder!.y)).toBeLessThanOrEqual(1)
+
+  const dates = await Promise.all(['年', '月 选填', '日 选填'].map((name) => dialog.getByRole('spinbutton', { name, exact: true }).boundingBox()))
+  expect(dates.every(Boolean)).toBe(true)
+  expect(Math.max(...dates.map((box) => box!.y)) - Math.min(...dates.map((box) => box!.y))).toBeLessThanOrEqual(1)
+  await assertA11y(page)
+})
+
+test('keeps scene status controls separated and visually ordered', async ({ page }) => {
+  await onlyProjects(page, [project])
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await page.getByRole('button', { name: project.title }).first().click()
+
+  const section = page.locator('.scene-status-section')
+  const progress = section.getByRole('combobox', { name: '进度' })
+  const storyTime = section.getByRole('button', { name: /编辑故事时间/ })
+  const pov = section.getByRole('combobox', { name: '视角人物' })
+  const action = section.getByRole('button', { name: '完成本场景并提取事实' })
+  await expect(section).toBeVisible()
+
+  const boxes = await Promise.all([progress, storyTime, pov, action].map((item) => item.boundingBox()))
+  expect(boxes.every(Boolean)).toBe(true)
+  expect(boxes[1]!.y - (boxes[0]!.y + boxes[0]!.height)).toBeGreaterThanOrEqual(12)
+  expect(boxes[2]!.y - (boxes[1]!.y + boxes[1]!.height)).toBeGreaterThanOrEqual(28)
+  expect(boxes[3]!.y - (boxes[2]!.y + boxes[2]!.height)).toBeGreaterThanOrEqual(24)
+  await assertA11y(page)
+})
+
+test('requires the completion workflow and reopens a completed scene after editing', async ({ page, request }) => {
+  await session(request)
+  const scene = (await json<Node[]>(request.get(`/api/projects/${project.id}/tree`))).find((item) => item.type === 'scene')!
+  await request.patch(`/api/nodes/${scene.id}`, { data: { status: 'draft' } })
+  await request.post(`/api/scenes/${scene.id}/complete`)
+  await onlyProjects(page, [project])
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await page.getByRole('button', { name: project.title }).first().click()
+
+  const section = page.locator('.scene-status-section')
+  await expect(section.getByText('已完成', { exact: true })).toBeVisible()
+  await expect(section.getByRole('combobox', { name: '进度' })).toHaveCount(0)
+  await expect(section.getByRole('button', { name: '完成本场景并提取事实' })).toHaveCount(0)
+
+  const editor = page.getByRole('textbox', { name: '正文编辑器' })
+  await editor.click()
+  await page.keyboard.press('End')
+  await page.keyboard.type(' 又写了一句。')
+  await expect(page.getByText('修订中', { exact: true }).first()).toBeVisible({ timeout: 8_000 })
+  await expect(section.getByRole('combobox', { name: '进度' })).toBeVisible()
+  await assertA11y(page)
+})
+
 test('projects dossier and temporal relationships from canon into an accessible graph', async ({ page, request }) => {
   await session(request)
   const scene = (await json<Node[]>(request.get(`/api/projects/${project.id}/tree`))).find((item) => item.type === 'scene')!
@@ -221,8 +288,10 @@ test('loads, scrolls and switches a 200k-character manuscript within a bounded b
   await onlyProjects(page, [longProject])
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')
+  const projectButton = page.getByRole('button', { name: longProject.title }).first()
+  await expect(projectButton).toBeVisible()
   const started = Date.now()
-  await page.getByRole('button', { name: longProject.title }).first().click()
+  await projectButton.click()
   await expect(page.getByRole('heading', { name: '场景 1' })).toBeVisible({ timeout: 8_000 })
   expect(Date.now() - started).toBeLessThan(8_000)
   const scrollDuration = await page.locator('.paper-scroll').evaluate(async (scroller) => {

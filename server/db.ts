@@ -1390,18 +1390,18 @@ export class AppDatabase {
     return row ? mapScene(row) : null
   }
 
-  saveScene(nodeId: string, contentJson: Record<string, unknown>, plainText: string, sourceType: Revision['sourceType'] = 'human', sourceTaskId: string | null = null): SceneDocument {
+  saveScene(nodeId: string, contentJson: Record<string, unknown>, plainText: string, sourceType: Revision['sourceType'] = 'human', sourceTaskId: string | null = null, preserveFinalStatus = false): SceneDocument {
     const node = this.getNode(nodeId)
     if (!node || node.type !== 'scene') throw new Error('Scene not found')
     const current = this.getScene(nodeId)
     const content = JSON.stringify(contentJson)
     const hash = sha256(content)
     if (current?.contentHash === hash) return current
-    this.transaction(() => this.saveSceneRaw(node, contentJson, plainText, sourceType, sourceTaskId))
+    this.transaction(() => this.saveSceneRaw(node, contentJson, plainText, sourceType, sourceTaskId, preserveFinalStatus))
     return this.getScene(nodeId)!
   }
 
-  private saveSceneRaw(node: ManuscriptNode, contentJson: Record<string, unknown>, plainText: string, sourceType: Revision['sourceType'], sourceTaskId: string | null = null) {
+  private saveSceneRaw(node: ManuscriptNode, contentJson: Record<string, unknown>, plainText: string, sourceType: Revision['sourceType'], sourceTaskId: string | null = null, preserveFinalStatus = false) {
     const current = this.getScene(node.id)
     const content = JSON.stringify(contentJson)
     const hash = sha256(content)
@@ -1416,6 +1416,9 @@ export class AppDatabase {
       VALUES(?,?,?,?,?,?) ON CONFLICT(node_id) DO UPDATE SET content_json=excluded.content_json,plain_text=excluded.plain_text,content_hash=excluded.content_hash,current_revision_id=excluded.current_revision_id,updated_at=excluded.updated_at`).run(
       node.id, content, plainText, hash, revisionId, createdAt,
     )
+    if (!preserveFinalStatus && (node.status === 'complete' || node.status === 'published')) {
+      this.db.prepare("UPDATE manuscript_nodes SET status='revising' WHERE id=?").run(node.id)
+    }
     this.repairMentionAnchors(node.id, plainText)
     this.upsertSearch(node.id, node.title, plainText)
     this.touchProject(node.projectId)

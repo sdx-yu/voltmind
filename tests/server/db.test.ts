@@ -61,6 +61,18 @@ describe('AppDatabase', () => {
     expect(database.listRevisions(scene.id)[0].sourceType).toBe('restore')
   })
 
+  it('reopens finalized scenes only when their content actually changes', () => {
+    const project = database.createProject('完成态真值')
+    const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    database.saveScene(scene.id, doc('定稿正文'), '定稿正文')
+    database.updateNode(scene.id, { status: 'published' })
+
+    database.saveScene(scene.id, doc('定稿正文'), '定稿正文')
+    expect(database.getNode(scene.id)?.status).toBe('published')
+    database.saveScene(scene.id, doc('定稿正文又改了'), '定稿正文又改了')
+    expect(database.getNode(scene.id)?.status).toBe('revising')
+  })
+
   it('indexes Chinese scene text for project search', () => {
     const project = database.createProject('长夜')
     const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!

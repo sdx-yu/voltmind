@@ -70,11 +70,11 @@
 @keyframes ui-spin { to { transform: rotate(360deg); } }
 
 /* Fields and choices */
-.ui-field { min-width: 0; display: grid; gap: var(--space-2); }
+.ui-field { min-width: 0; width: 100%; display: grid; align-self: start; align-content: start; gap: var(--space-2); }
 .ui-field-label { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); color: var(--text-primary); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: 650; }
 .ui-field-label-text { min-width: 0; }
 .ui-field-required { margin-left: .2em; color: var(--status-danger); font-weight: 750; }
-.ui-field-optional { flex: 0 0 auto; color: var(--text-tertiary); font-size: var(--type-caption-size); font-weight: 500; }
+.ui-field-optional { flex: 0 0 auto; color: var(--text-secondary); font-size: var(--type-caption-size); font-weight: 500; }
 .ui-input,
 .ui-textarea {
   width: 100%;
@@ -93,7 +93,7 @@
 .ui-input::placeholder, .ui-textarea::placeholder, .ui-search-input::placeholder { color: var(--text-tertiary); opacity: 1; }
 .ui-field-meta { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--space-3); }
 .ui-field-message { min-width: 0; margin: 0; color: var(--text-secondary); font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
-.ui-field-count { color: var(--text-tertiary); font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ui-field-count { color: var(--text-secondary); font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ui-field.has-error .ui-input, .ui-field.has-error .ui-select-trigger, .ui-field.has-error .ui-textarea { border-color: var(--status-danger); }
 .ui-field.has-error .ui-field-message { color: var(--status-danger); }
 .ui-field.is-disabled .ui-field-label, .ui-field.is-disabled .ui-field-message, .ui-field.is-disabled .ui-field-count { color: var(--text-tertiary); }

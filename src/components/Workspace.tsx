@@ -189,8 +189,8 @@ export function Workspace({ project, initialView, onProjectUpdated, onBack, noti
   async function openTrash() { const [allNodes, allEntities] = await Promise.all([api.listNodes(project.id, true), api.listEntities(project.id, true)]); setDeletedNodes(allNodes.filter((node) => node.deletedAt)); setDeletedEntities(allEntities.filter((entity) => entity.deletedAt)); setTrashOpen(true) }
   async function restoreNode(node: ManuscriptNode) { const parentId = restoreParents[node.id] || node.parentId; await api.restoreNode(node.id, parentId); await refreshTree(); setDeletedNodes((await api.listNodes(project.id, true)).filter((item) => item.deletedAt)); notify('success', parentId === node.parentId ? '书稿节点及其下级内容已恢复到原位置' : '书稿节点已恢复到所选新位置') }
   async function restoreEntity(id: string) { await api.restoreEntity(id); setDeletedEntities((current) => current.filter((entity) => entity.id !== id)); await refreshEntities(); notify('success', '正典项已恢复') }
-  function onSaved(_document: SceneDocument, wordCount: number) {
-    setNodes((current) => current.map((node) => node.id === selectedId ? { ...node, wordCount } : node))
+  function onSaved(_document: SceneDocument, savedNode: ManuscriptNode) {
+    setNodes((current) => current.map((node) => node.id === savedNode.id ? savedNode : node))
     setSceneContentVersion((version) => version + 1)
   }
   function selectScene(id: string) { setSelectedId(id); navigate('write') }

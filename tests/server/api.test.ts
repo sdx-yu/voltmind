@@ -54,7 +54,7 @@ describe('local API', () => {
     const project = (await request(app).post('/api/projects').set('Cookie', cookie).send({ title: '原项目' })).body
     const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
     const entity = database.createEntity({ projectId: project.id, type: 'character', canonicalName: '林照' })
-    database.saveScene(scene.id, doc('第一版'), '第一版'); database.saveScene(scene.id, doc('第二版林照'), '第二版林照')
+    database.saveScene(scene.id, doc('第一版'), '第一版'); database.saveScene(scene.id, doc('第二版林照'), '第二版林照'); database.updateNode(scene.id, { status: 'complete' })
     database.createMention({ entityId: entity.id, nodeId: scene.id, quote: '林照', startOffset: 3, endOffset: 5, confirmed: true })
     const clue = database.createForeshadow({ projectId: project.id, title: '旧信封蜡', nodeId: scene.id, evidence: '蜡印缺了一角' })
     database.transitionForeshadow(clue.id, { action: 'reinforced', nodeId: scene.id, evidence: '第二封信也是同样缺口' })
@@ -67,6 +67,7 @@ describe('local API', () => {
     expect(database.listProjects()).toHaveLength(2)
     const restoredScene = database.listNodes(restored.body.id).find((node) => node.type === 'scene')!
     expect(database.getScene(restoredScene.id)?.plainText).toBe('第二版林照')
+    expect(restoredScene.status).toBe('complete')
     expect(database.listRevisions(restoredScene.id)).toHaveLength(2)
     expect(database.listMentions(restoredScene.id)[0]?.quote).toBe('林照')
     expect(database.listForeshadows(restored.body.id)[0]).toMatchObject({ title: '旧信封蜡', status: 'reinforced' })
@@ -120,9 +121,17 @@ describe('local API', () => {
     const project = database.createProject('事实闭环'); const nodes = database.listNodes(project.id); const scene = nodes.find((node) => node.type === 'scene')!
     database.createEntity({ projectId: project.id, type: 'character', canonicalName: '沈砚' }); const item = database.createEntity({ projectId: project.id, type: 'item', canonicalName: '佩剑' }); database.createEntity({ projectId: project.id, type: 'character', canonicalName: '林照' })
     database.saveScene(scene.id, doc('沈砚把佩剑交给林照。'), '沈砚把佩剑交给林照。')
+    await request(app).patch(`/api/nodes/${scene.id}`).set('Cookie', cookie).send({ status: 'complete' }).expect(400)
     const completed = await request(app).post(`/api/scenes/${scene.id}/complete`).set('Cookie', cookie).send({}).expect(200)
     expect(completed.body.candidates[0]).toMatchObject({ targetId: item.id, evidence: { quote: '把佩剑交给林照' } })
     expect(database.getNode(scene.id)?.status).toBe('complete')
+    const unchanged = await request(app).put(`/api/scenes/${scene.id}`).set('Cookie', cookie).send({ contentJson: doc('沈砚把佩剑交给林照。'), plainText: '沈砚把佩剑交给林照。' }).expect(200)
+    expect(unchanged.body.node.status).toBe('complete')
+    await request(app).post(`/api/scenes/${scene.id}/complete`).set('Cookie', cookie).send({}).expect(409)
+    const revised = await request(app).put(`/api/scenes/${scene.id}`).set('Cookie', cookie).send({ contentJson: doc('沈砚把佩剑重新交给林照。'), plainText: '沈砚把佩剑重新交给林照。' }).expect(200)
+    expect(revised.body.document.plainText).toBe('沈砚把佩剑重新交给林照。')
+    expect(revised.body.node.status).toBe('revising')
+    expect(database.getNode(scene.id)?.status).toBe('revising')
   })
 
   it('exports selectable chapter ranges in TXT, Markdown and readable DOCX', async () => {

@@ -129,7 +129,7 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.get('/api/projects/:id/tree', route(async (req, res) => res.json(database.listNodes(param(req, 'id'), req.query.trash === '1'))))
   app.post('/api/projects/:id/nodes', route(async (req, res) => res.status(201).json(database.createNode({ projectId: param(req, 'id'), ...nodeInput.parse(req.body) }))))
   app.patch('/api/nodes/:id', route(async (req, res) => {
-    const input = z.object({ parentId: z.string().nullable().optional(), title: z.string().trim().min(1).max(200).optional(), sortKey: z.number().int().optional(), status: z.enum(['idea', 'planned', 'draft', 'revising', 'complete', 'published']).optional(), povEntityId: z.string().nullable().optional(), storyTime: z.string().max(120).nullable().optional(), storyTimeSpec: storyTimeInput.nullable().optional() }).parse(req.body)
+    const input = z.object({ parentId: z.string().nullable().optional(), title: z.string().trim().min(1).max(200).optional(), sortKey: z.number().int().optional(), status: z.enum(['idea', 'planned', 'draft', 'revising']).optional(), povEntityId: z.string().nullable().optional(), storyTime: z.string().max(120).nullable().optional(), storyTimeSpec: storyTimeInput.nullable().optional() }).parse(req.body)
     const nodeId = param(req, 'id'); const current = database.getNode(nodeId)
     if (!current) return res.status(404).json({ error: 'Node not found' })
     if (input.storyTimeSpec?.anchorNodeId) {
@@ -184,12 +184,17 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     if (!scene) return res.status(404).json({ error: 'Scene not found' })
     res.json(scene)
   }))
-  app.put('/api/scenes/:id', route(async (req, res) => res.json(database.saveScene(param(req, 'id'), ...sceneArgs(sceneInput.parse(req.body))))))
+  app.put('/api/scenes/:id', route(async (req, res) => {
+    const nodeId = param(req, 'id')
+    const document = database.saveScene(nodeId, ...sceneArgs(sceneInput.parse(req.body)))
+    res.json({ document, node: database.getNode(nodeId) })
+  }))
   app.get('/api/scenes/:id/revisions', route(async (req, res) => res.json(database.listRevisions(param(req, 'id')))))
   app.post('/api/scenes/:id/revisions/:revisionId/restore', route(async (req, res) => res.json(database.restoreRevision(param(req, 'id'), param(req, 'revisionId')))))
   app.post('/api/scenes/:id/complete', route(async (req, res) => {
     const node = database.getNode(param(req, 'id')); const scene = database.getScene(param(req, 'id'))
     if (!node || !scene) return res.status(404).json({ error: 'Scene not found' })
+    if (node.status === 'complete' || node.status === 'published') return res.status(409).json({ error: '场景已经完成；如需修改，请先进入修订' })
     const candidates = database.transaction(() => { const extracted = extractFactCandidates(database, node.id); database.updateNode(node.id, { status: 'complete' }); return extracted })
     const entities = database.listEntities(node.projectId); const states = entities.flatMap((entity) => database.listStates(entity.id))
     const issues = checkContinuity({ node: database.getNode(node.id)!, plainText: scene.plainText, entities, states, nodes: database.listNodes(node.projectId) })
@@ -850,8 +855,8 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
     }
     for (const oldNode of source.nodes.filter((item: any) => item.type === 'scene') as any[]) {
       const nodeId = idMap.get(oldNode.id)!; const history = (source.revisions as any[]).filter((item) => item.nodeId === oldNode.id).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
-      if (history.length) for (const revision of history) { const saved = database.saveScene(nodeId, revision.contentJson, revision.plainText, revision.sourceType, revision.sourceTaskId ? taskMap.get(String(revision.sourceTaskId)) ?? null : null); if (saved.currentRevisionId) revisionMap.set(String(revision.id), saved.currentRevisionId) }
-      else { const doc = source.documents.find((item: any) => item.nodeId === oldNode.id) as any; if (doc) database.saveScene(nodeId, doc.contentJson, doc.plainText, 'import') }
+      if (history.length) for (const revision of history) { const saved = database.saveScene(nodeId, revision.contentJson, revision.plainText, revision.sourceType, revision.sourceTaskId ? taskMap.get(String(revision.sourceTaskId)) ?? null : null, true); if (saved.currentRevisionId) revisionMap.set(String(revision.id), saved.currentRevisionId) }
+      else { const doc = source.documents.find((item: any) => item.nodeId === oldNode.id) as any; if (doc) database.saveScene(nodeId, doc.contentJson, doc.plainText, 'import', null, true) }
     }
     for (const mention of source.mentions as any[]) {
       const created = database.createMention({ entityId: entityMap.get(mention.entityId)!, nodeId: idMap.get(mention.nodeId)!, quote: mention.quote, startOffset: mention.startOffset, endOffset: mention.endOffset, confirmed: mention.confirmed }); mentionMap.set(mention.id, created.id)
