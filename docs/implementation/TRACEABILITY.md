@@ -225,6 +225,7 @@
 | 结构化关系 | 通过 | `AppDatabase.createRelationship`、关系 API | 任意现有正典项连接、定向/双向、内置快捷类型与自定义名称；自关联和重复关系阻断 |
 | 时间关系真值 | 通过 | `relationship_states`、场景解析器 | 半开区间、故事时间/叙事顺序、连续变化自动关闭上一开放状态、其他重叠阻断；第 39/40 场景差异测试 |
 | 列表与关联图 | 通过 | `CanonRelationshipPanel`、自动径向投影 | 同源数据、场景筛选、节点切换、证据回链、12 节点上限与完整列表兜底；键盘焦点和真实浏览器闭环 |
+| 正典软删除引用真值 | 通过 | `AppDatabase.listMentions`、`listRelationships`、`AiService.buildContext`、场景 POV 投影 | 删除人物后场景反链、POV、关系图与 AI 结构化上下文同步隐藏；底层 Mention、POV ID、关系状态和知情授权保留；隐藏期间正文锚点继续修复，恢复后自动重现；服务端闭环与组件回归测试通过 |
 | 候选确认 | 通过 | `relationship_state/set_state`、`candidate_changes` | 未接受前零写入；接受/修改后接受写状态、正典事件和来源事件；连续候选关闭上一状态测试 |
 | AI 当前上下文 | 通过 | `AiService.buildContext` | 仅加入当前场景提及实体的有效关系与非本地私密档案；`local_private` 服务端排除测试 |
 | 普通备份 | 通过 | `bbd-backup-v2` | 档案、关系、状态、证据场景和候选目标恢复并重映射测试 |

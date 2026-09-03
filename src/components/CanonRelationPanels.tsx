@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, GitBranch, Link2, Plus, ShieldCheck, Trash2 } from 'lucide-react'
+import { ArrowRight, Box, CalendarRange, GitBranch, Link2, MapPin, Plus, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import type { Entity, EntityProfileField, EntityRelationship, ManuscriptNode, PrivacyLevel, RelationshipState } from '../../shared/types'
 import { api } from '../lib/api'
 import { Badge, Button, Card, IconButton, SegmentedControl, SelectControl, SelectField, TextareaField, TextField } from '../ui'
@@ -62,7 +62,7 @@ export function CanonRelationshipPanel({ projectId, entity, entities, nodes, onS
     <Card className="canon-card relationship-toolbar" title="正典关系" description="选择场景后，只突出该时点有效的关系状态。" actions={<Button size="small" variant="primary" leadingIcon={<Plus size={14}/>} disabled={entities.length < 2} onClick={() => setAdding(true)}>建立关系</Button>}>
       <div className="relationship-toolbar-controls"><label>观察时点<SelectControl value={atNodeId} onChange={(event) => setAtNodeId(event.target.value)}><option value="">最新记录</option>{scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title}{scene.storyTime ? ` · ${scene.storyTime}` : ''}</option>)}</SelectControl></label><SegmentedControl label="关系视图" value={view} onChange={(value) => setView(value as typeof view)} items={[{ id: 'list', label: '列表' }, { id: 'graph', label: '关联图' }]}/></div>
     </Card>
-    {relationships.length === 0 ? <Card className="canon-card"><div className="empty-inline"><GitBranch size={19}/><span>{entities.length < 2 ? '至少创建两个正典项后才能建立关系。' : '还没有关系。先建立一条，再按场景记录它如何变化。'}</span></div></Card> : view === 'graph' ? <RelationshipGraph entity={entity} relationships={relationships} entities={entities} onSelectEntity={onSelectEntity}/> : <div className="relationship-list">{relationships.map((relationship) => {
+    {relationships.length === 0 ? <Card className="canon-card"><div className="empty-inline"><GitBranch size={19}/><span>{entities.length < 2 ? '至少创建两个正典项后才能建立关系。' : '还没有关系。先建立一条，再按场景记录它如何变化。'}</span></div></Card> : view === 'graph' ? <RelationshipGraph entity={entity} relationships={relationships} entities={entities} onSelectEntity={onSelectEntity} onSelectScene={onSelectScene} onEdit={setEditing} onAddState={setAddingState}/> : <div className="relationship-list">{relationships.map((relationship) => {
       const otherId = relationship.sourceEntityId === entity.id ? relationship.targetEntityId : relationship.sourceEntityId
       const arrow = relationship.direction === 'mutual' ? '双向' : relationship.sourceEntityId === entity.id ? '指向' : '来自'
       return <Card key={relationship.id} className={`canon-card relationship-card${relationship.currentState ? '' : ' is-inactive'}`} title={relationship.label || relationLabel(relationship.relationType)} description={`${arrow} · ${names.get(otherId) ?? '未知正典项'}`} actions={<><Button size="small" variant="ghost" onClick={() => setEditing(relationship)}>编辑</Button><Button size="small" variant="secondary" onClick={() => setAddingState(relationship)}>添加变化</Button><IconButton label="删除关系" onClick={() => void remove(relationship)}><Trash2 size={14}/></IconButton></>}>
@@ -78,10 +78,87 @@ export function CanonRelationshipPanel({ projectId, entity, entities, nodes, onS
   </div>
 }
 
-function RelationshipGraph({ entity, relationships, entities, onSelectEntity }: { entity: Entity; relationships: EntityRelationship[]; entities: Entity[]; onSelectEntity: (id: string) => void }) {
-  const related = relationships.map((relationship) => ({ relationship, entity: entities.find((item) => item.id === (relationship.sourceEntityId === entity.id ? relationship.targetEntityId : relationship.sourceEntityId)) })).filter((item): item is { relationship: EntityRelationship; entity: Entity } => Boolean(item.entity)).slice(0, 12)
-  const nodes = related.map((item, index) => { const angle = (Math.PI * 2 * index) / Math.max(1, related.length) - Math.PI / 2; return { ...item, x: 50 + Math.cos(angle) * 36, y: 50 + Math.sin(angle) * 34 } })
-  return <Card className="canon-card relationship-graph-card" title="关联图" description="图由关系自动生成；虚线表示所选时点没有有效状态。"><div className="relationship-graph" role="group" aria-label={`${entity.canonicalName}的关系图`}><svg aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none">{nodes.map((item) => <g key={item.relationship.id}><line x1="50" y1="50" x2={item.x} y2={item.y} className={item.relationship.currentState ? '' : 'inactive'}/><text x={(50 + item.x) / 2} y={(50 + item.y) / 2 - 1}>{item.relationship.currentState?.statusLabel || item.relationship.label || relationLabel(item.relationship.relationType)}</text></g>)}</svg><div className="graph-center" aria-current="true">{entity.canonicalName}</div>{nodes.map((item) => <button key={item.relationship.id} style={{ left: `${item.x}%`, top: `${item.y}%` }} onClick={() => onSelectEntity(item.entity.id)} aria-label={`打开${item.entity.canonicalName}，关系：${item.relationship.currentState?.statusLabel || item.relationship.label || relationLabel(item.relationship.relationType)}`}><strong>{item.entity.canonicalName}</strong><small>{item.relationship.currentState?.statusLabel || '此时点无状态'}</small></button>)}</div>{relationships.length > 12 && <p className="muted">图中先显示 12 个相邻正典项；完整 {relationships.length} 条关系请切换列表查看。</p>}</Card>
+function RelationshipGraph({ entity, relationships, entities, onSelectEntity, onSelectScene, onEdit, onAddState }: { entity: Entity; relationships: EntityRelationship[]; entities: Entity[]; onSelectEntity: (id: string) => void; onSelectScene: (id: string) => void; onEdit: (relationship: EntityRelationship) => void; onAddState: (relationship: EntityRelationship) => void }) {
+  const allGroups = useMemo(() => groupRelationships(entity, relationships, entities), [entity, relationships, entities])
+  const groups = allGroups.slice(0, 12)
+  const [selectedEntityId, setSelectedEntityId] = useState(groups[0]?.entity.id ?? '')
+  const [selectedRelationshipId, setSelectedRelationshipId] = useState(groups[0]?.relationships[0]?.id ?? '')
+  useEffect(() => {
+    if (!groups.some((group) => group.entity.id === selectedEntityId)) {
+      setSelectedEntityId(groups[0]?.entity.id ?? '')
+      setSelectedRelationshipId(groups[0]?.relationships[0]?.id ?? '')
+    }
+  }, [groups, selectedEntityId])
+  const layout = graphLayout(groups.length)
+  const plotted = groups.map((group, index) => ({ ...group, ...layout.positions[index] }))
+  const selectedGroup = groups.find((group) => group.entity.id === selectedEntityId) ?? groups[0]
+  const selectedRelationship = selectedGroup?.relationships.find((item) => item.id === selectedRelationshipId) ?? selectedGroup?.relationships[0]
+  const activeCount = relationships.filter((item) => item.currentState).length
+  function selectGroup(group: RelationshipGroup) { setSelectedEntityId(group.entity.id); setSelectedRelationshipId(group.relationships[0]?.id ?? '') }
+  return <Card className="canon-card relationship-graph-card" title="局部关系图" description={`以“${entity.canonicalName}”为中心，只展示一层直接关系。`} actions={<div className="relationship-graph-summary"><span>{groups.length} 个相邻项</span><span>{activeCount} 条当前有效</span></div>}>
+    <div className={`relationship-graph-workspace${selectedGroup ? ' has-selection' : ''}`}>
+      <div className="relationship-graph-scroll"><div className={`relationship-graph graph-size-${layout.size}`} role="group" aria-label={`${entity.canonicalName}的局部关系图`}>
+        <div className="relationship-graph-legend" aria-label="图例"><span className="is-focus">当前项</span><span className="is-active">有效状态</span><span className="is-inactive">无有效状态</span></div>
+        <svg aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs><marker id="relationship-arrow-active" markerWidth="5" markerHeight="5" refX="4.2" refY="2.5" orient="auto-start-reverse"><path d="M0,0 L5,2.5 L0,5 z"/></marker><marker id="relationship-arrow-inactive" markerWidth="5" markerHeight="5" refX="4.2" refY="2.5" orient="auto-start-reverse"><path d="M0,0 L5,2.5 L0,5 z"/></marker></defs>
+          {plotted.map((item) => { const markers = relationshipMarkers(entity.id, item.relationships); const inactive = !item.relationships.some((relationship) => relationship.currentState); const edge = graphEdge(layout.centerX, 50, item.x, item.y); return <line key={item.entity.id} x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} className={inactive ? 'inactive' : ''} markerStart={markers.start ? `url(#relationship-arrow-${inactive ? 'inactive' : 'active'})` : undefined} markerEnd={markers.end ? `url(#relationship-arrow-${inactive ? 'inactive' : 'active'})` : undefined}/> })}
+        </svg>
+        <div className="graph-center" style={{ left: `${layout.centerX}%`, top: '50%' }} aria-current="true"><span className="graph-node-icon">{entityIcon(entity.type)}</span><strong>{entity.canonicalName}</strong><small>当前正典项</small></div>
+        {plotted.map((item) => { const status = groupStatus(item.relationships); return <button key={`edge-${item.entity.id}`} className={`relationship-edge-label${item.relationships.some((relationship) => relationship.currentState) ? '' : ' is-inactive'}`} aria-label={`查看${item.entity.canonicalName}的关系详情`} onClick={() => selectGroup(item)} style={{ left: `${(layout.centerX + item.x) / 2}%`, top: `${(50 + item.y) / 2}%` }}>{status}{item.relationships.length > 1 ? ` · ${item.relationships.length} 条` : ''}</button>})}
+        {plotted.map((item) => { const status = groupStatus(item.relationships); const selected = item.entity.id === selectedGroup?.entity.id; return <button key={item.entity.id} className={`relationship-graph-node${selected ? ' is-selected' : ''}`} style={{ left: `${item.x}%`, top: `${item.y}%` }} data-entity-type={item.entity.type} aria-pressed={selected} onClick={() => selectGroup(item)} aria-label={`查看${item.entity.canonicalName}的关系：${status}`}><span className="graph-node-icon">{entityIcon(item.entity.type)}</span><strong>{item.entity.canonicalName}</strong><small>{entityTypeLabel(item.entity.type)}</small></button>})}
+        <p className="relationship-graph-hint">选择节点查看关系详情；箭头表示关系方向。</p>
+      </div></div>
+      {selectedGroup && selectedRelationship && <aside className="relationship-graph-inspector" aria-label={`${selectedGroup.entity.canonicalName}关系详情`}>
+        <header><div><span>{entityIcon(selectedGroup.entity.type)}</span><div><small>已选择</small><h4>{selectedGroup.entity.canonicalName}</h4></div></div><Badge tone={selectedRelationship.currentState ? 'success' : 'neutral'}>{selectedRelationship.currentState ? '当前有效' : '此时无状态'}</Badge></header>
+        {selectedGroup.relationships.length > 1 && <div className="relationship-graph-tabs" role="tablist" aria-label="两项间的关系">{selectedGroup.relationships.map((relationship) => <button key={relationship.id} role="tab" aria-selected={relationship.id === selectedRelationship.id} onClick={() => setSelectedRelationshipId(relationship.id)}>{relationship.label || relationLabel(relationship.relationType)}</button>)}</div>}
+        <div className="relationship-graph-detail"><div><span>{selectedRelationship.label || relationLabel(selectedRelationship.relationType)}</span><small>{relationshipDirectionLabel(entity.id, selectedRelationship)}</small></div><strong>{selectedRelationship.currentState?.statusLabel || '所选时点没有有效状态'}</strong>{selectedRelationship.summary && <p>{selectedRelationship.summary}</p>}{selectedRelationship.currentState?.note && <p>{selectedRelationship.currentState.note}</p>}</div>
+        {selectedRelationship.currentState?.sourceNodeId && <button className="relationship-graph-evidence" onClick={() => onSelectScene(selectedRelationship.currentState!.sourceNodeId!)}><Link2 size={14}/>查看状态证据{selectedRelationship.currentState.evidence ? `：“${selectedRelationship.currentState.evidence}”` : ''}</button>}
+        <footer><Button size="small" variant="ghost" onClick={() => onEdit(selectedRelationship)}>编辑关系</Button><Button size="small" variant="secondary" onClick={() => onAddState(selectedRelationship)}>添加变化</Button><Button size="small" variant="primary" onClick={() => onSelectEntity(selectedGroup.entity.id)}>打开档案</Button></footer>
+      </aside>}
+    </div>
+    {allGroups.length > 12 && <p className="muted">图中先显示 12 个相邻正典项；完整关系请切换列表查看。</p>}
+  </Card>
+}
+
+interface RelationshipGroup { entity: Entity; relationships: EntityRelationship[] }
+function groupRelationships(entity: Entity, relationships: EntityRelationship[], entities: Entity[]): RelationshipGroup[] {
+  const entityMap = new Map(entities.filter((item) => !item.deletedAt).map((item) => [item.id, item]))
+  const groups = new Map<string, RelationshipGroup>()
+  for (const relationship of relationships) {
+    const otherId = relationship.sourceEntityId === entity.id ? relationship.targetEntityId : relationship.sourceEntityId
+    const other = entityMap.get(otherId)
+    if (!other) continue
+    const group = groups.get(otherId) ?? { entity: other, relationships: [] }
+    group.relationships.push(relationship); groups.set(otherId, group)
+  }
+  return [...groups.values()].sort((a, b) => Number(b.relationships.some((item) => item.currentState)) - Number(a.relationships.some((item) => item.currentState)) || a.entity.canonicalName.localeCompare(b.entity.canonicalName, 'zh-CN'))
+}
+function graphLayout(count: number): { centerX: number; size: 'compact' | 'medium' | 'large'; positions: { x: number; y: number }[] } {
+  if (count <= 4) return { centerX: 28, size: count <= 1 ? 'compact' : count <= 2 ? 'medium' : 'large', positions: Array.from({ length: count }, (_, index) => ({ x: 75, y: count === 1 ? 50 : 18 + index * (64 / (count - 1)) })) }
+  return { centerX: 50, size: 'large', positions: Array.from({ length: count }, (_, index) => { const angle = Math.PI * 2 * index / count - Math.PI / 2; return { x: 50 + Math.cos(angle) * 37, y: 50 + Math.sin(angle) * 34 } }) }
+}
+function groupStatus(relationships: EntityRelationship[]): string {
+  const active = relationships.find((item) => item.currentState)
+  const first = relationships[0]
+  return active?.currentState?.statusLabel || active?.label || (active ? relationLabel(active.relationType) : first?.label || (first ? relationLabel(first.relationType) : '关系'))
+}
+function relationshipMarkers(centerId: string, relationships: EntityRelationship[]): { start: boolean; end: boolean } {
+  if (relationships.some((item) => item.direction === 'mutual')) return { start: true, end: true }
+  return { start: relationships.some((item) => item.targetEntityId === centerId), end: relationships.some((item) => item.sourceEntityId === centerId) }
+}
+function graphEdge(x1: number, y1: number, x2: number, y2: number) {
+  const dx = x2 - x1; const dy = y2 - y1; const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy)); const inset = 10
+  return { x1: x1 + dx / distance * inset, y1: y1 + dy / distance * inset, x2: x2 - dx / distance * inset, y2: y2 - dy / distance * inset }
+}
+function relationshipDirectionLabel(centerId: string, relationship: EntityRelationship): string {
+  if (relationship.direction === 'mutual') return '双向关系'
+  return relationship.sourceEntityId === centerId ? '从当前项指向对方' : '从对方指向当前项'
+}
+function entityIcon(type: Entity['type']) {
+  if (type === 'character') return <UserRound size={15}/>
+  if (type === 'location') return <MapPin size={15}/>
+  if (type === 'item') return <Box size={15}/>
+  return <CalendarRange size={15}/>
 }
 
 function AddRelationshipModal({ projectId, entity, entities, onClose, onCreated, notify }: { projectId: string; entity: Entity; entities: Entity[]; onClose: () => void; onCreated: () => void; notify: Notify }) {

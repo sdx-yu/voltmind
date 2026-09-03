@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Foreshadow, ManuscriptNode } from '../../shared/types'
+import type { Entity, Foreshadow, ManuscriptNode } from '../../shared/types'
 import { PlotWorkspace } from './PlotWorkspace'
 
 const mocks = vi.hoisted(() => ({ listForeshadows: vi.fn(), createForeshadow: vi.fn(), transitionForeshadow: vi.fn(), trashForeshadow: vi.fn() }))
@@ -39,6 +39,13 @@ describe('PlotWorkspace', () => {
     await userEvent.type(screen.getByRole('textbox', { name: /正文证据/ }), '指针停在子夜')
     await userEvent.click(screen.getByRole('button', { name: '建立并留痕' }))
     await waitFor(() => expect(mocks.createForeshadow).toHaveBeenCalledWith('project', expect.objectContaining({ title: '停摆的怀表', nodeId: 'late', evidence: '指针停在子夜' })))
+  })
+
+  it('does not expose a deleted character name through the scene POV summary', async () => {
+    const deleted: Entity = { id: 'lin', projectId: 'project', type: 'character', canonicalName: '林照', aliases: [], summary: '', privacyLevel: 'normal', createdAt: '', updatedAt: '', deletedAt: '2026-09-03T00:00:00.000Z' }
+    render(<PlotWorkspace projectId="project" nodes={nodes.map((item) => item.id === 'late' ? { ...item, povEntityId: deleted.id } : item)} entities={[deleted]} onSelectScene={vi.fn()} notify={vi.fn()} />)
+    expect(screen.getAllByText(/未指定 POV/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/POV · 林照/)).not.toBeInTheDocument()
   })
 })
 

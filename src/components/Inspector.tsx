@@ -64,6 +64,7 @@ function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, on
   const [historyFilter, setHistoryFilter] = useState<'all' | 'human' | 'ai' | 'system'>('all')
   useEffect(() => { if (showHistory) void api.listRevisions(node.id).then(setRevisions) }, [showHistory, node.id])
   const visibleRevisions = revisions.filter((revision) => historyFilter === 'all' || revisionGroup(revision) === historyFilter)
+  const visiblePovId = entities.some((entity) => entity.id === node.povEntityId && entity.type === 'character' && !entity.deletedAt) ? node.povEntityId! : ''
 
   async function update(patch: Partial<ManuscriptNode>) {
     try { await onUpdateNode(patch) } catch (error) { notify('error', error instanceof Error ? error.message : '更新失败') }
@@ -83,7 +84,7 @@ function ScenePanel({ projectId, node, entities, onUpdateNode, onRefreshTree, on
           <option value="idea">想法</option><option value="planned">计划</option><option value="draft">草稿</option><option value="revising">修订中</option>
         </SelectField>}
         <StoryTimeControl projectId={projectId} node={node} onUpdateNode={onUpdateNode} notify={notify} onOpenSettings={onOpenTimeSettings}/>
-        <SelectField label="视角人物" value={node.povEntityId ?? ''} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character').map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
+        <SelectField label="视角人物" value={visiblePovId} onValueChange={(value) => void update({ povEntityId: value || null })}><option value="">未指定</option>{entities.filter((entity) => entity.type === 'character' && !entity.deletedAt).map((entity) => <option key={entity.id} value={entity.id}>{entity.canonicalName}</option>)}</SelectField>
       </div>
       {!finalStatus && <div className="scene-status-action"><Button variant="primary" full leadingIcon={<Check size={16} />} onClick={() => void complete()}>完成本场景并提取事实</Button></div>}
     </section>
@@ -181,7 +182,7 @@ function CanonPanel({ projectId, node, entities, contentVersion, refreshEntities
   const [currentStates, setCurrentStates] = useState<EntityState[]>([])
   const [name, setName] = useState('')
   const [type, setType] = useState<Entity['type']>('character')
-  const entityMap = useMemo(() => new Map(entities.map((entity) => [entity.id, entity])), [entities])
+  const entityMap = useMemo(() => new Map(entities.filter((entity) => !entity.deletedAt).map((entity) => [entity.id, entity])), [entities])
 
   async function refresh() {
     const [nextMentions, nextSuggestions, nextStates] = await Promise.all([api.listMentions(node.id), api.suggestMentions(node.id), api.currentStates(node.id)])
@@ -218,7 +219,7 @@ function KnowledgePanel({ projectId, node, entities, notify }: Pick<Props, 'proj
   const [nodes, setNodes] = useState<ManuscriptNode[]>([])
   const [creating, setCreating] = useState(false)
   const [granting, setGranting] = useState<KnowledgeFact | null>(null)
-  const pov = entities.find((entity) => entity.id === node.povEntityId)
+  const pov = entities.find((entity) => entity.id === node.povEntityId && entity.type === 'character' && !entity.deletedAt)
   async function refresh() { const [nextFacts, nextNodes] = await Promise.all([api.listKnowledge(projectId), api.listNodes(projectId)]); setFacts(nextFacts); setNodes(nextNodes) }
   useEffect(() => { void refresh().catch(() => notify('error', '角色知识范围加载失败')) }, [projectId, node.id])
   const [pendingTrash, setPendingTrash] = useState<KnowledgeFact | null>(null)

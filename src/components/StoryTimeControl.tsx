@@ -54,20 +54,32 @@ export function StoryTimeControl({ projectId, node, onUpdateNode, notify, onOpen
     <button type="button" className={`story-time-trigger${node.storyTime ? ' has-value' : ''}`} onClick={() => void openEditor()} aria-label={`编辑故事时间：${summary}`}>
       <span><Clock3 size={15}/><strong>故事时间</strong></span><span>{summary}</span><ChevronRight size={15}/>
     </button>
-    {editing && <Modal title="设置本场故事时间" onClose={() => setEditing(false)}>
+    {editing && <Modal
+      title="设置本场故事时间"
+      onClose={() => setEditing(false)}
+      className="story-time-dialog"
+      footer={!loading ? <div className="story-time-footer-actions">
+        <div>{(node.storyTime || node.storyTimeSpec) && <Button variant="ghost" leadingIcon={<RotateCcw size={14}/>} disabled={saving} onClick={() => void clear()}>清除时间</Button>}</div>
+        <div><Button disabled={saving} onClick={() => setEditing(false)}>取消</Button><Button variant="primary" loading={saving} onClick={() => void save()}>保存故事时间</Button></div>
+      </div> : undefined}
+    >
       <div className="story-time-editor">
-        <div className="story-time-principle"><CalendarDays size={18}/><div><strong>显示方式与排序依据分开保存</strong><span>古风文字原样展示；系统只使用结构字段判断先后，不会擅自换算为公历。</span></div></div>
+        <div className="story-time-principle"><CalendarDays size={17}/><div><strong>原样显示，结构排序</strong><span>古风纪年不会被换算成公历；这里填写的结构信息只用于判断先后。</span></div></div>
         {loading ? <p className="muted">正在读取本书时间体系…</p> : <>
-          <SelectField label="时间方式" value={draft.mode} onValueChange={(value) => changeMode(value as StoryTimeMode)}>{Object.entries(modeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
-          <SelectField label="时间精度" value={draft.precision} onValueChange={(value) => setDraft({ ...draft, precision: value as StoryTimePrecision })}>{Object.entries(precisionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField>
-          {draft.mode === 'calendar' && <div className="form-grid"><TextField label="日期" required type="date" value={draft.calendarDate} onChange={(event) => setDraft({ ...draft, calendarDate: event.target.value })}/><TextField label="时刻" optional type="time" value={draft.clockTime} onChange={(event) => setDraft({ ...draft, clockTime: event.target.value })}/></div>}
+          <section className="story-time-section" aria-labelledby="story-time-structure-title">
+            <div className="story-time-section-heading"><div><span>1</span><strong id="story-time-structure-title">确定时间结构</strong></div><small>决定系统如何理解与排序</small></div>
+            <div className="story-time-basics"><SelectField label="时间方式" value={draft.mode} onValueChange={(value) => changeMode(value as StoryTimeMode)}>{Object.entries(modeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField><SelectField label="时间精度" value={draft.precision} onValueChange={(value) => setDraft({ ...draft, precision: value as StoryTimePrecision })}>{Object.entries(precisionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></div>
+          </section>
+          {draft.mode === 'calendar' && <CalendarDateFields draft={draft} onChange={setDraft}/>}
           {draft.mode === 'custom' && <><div className="form-grid"><TextField label="纪年／年号" optional value={draft.era} onChange={(event) => setDraft({ ...draft, era: event.target.value })} placeholder="如：承平"/><TextField label="纪年顺序" type="number" min="1" value={draft.eraOrder} onChange={(event) => setDraft({ ...draft, eraOrder: Number(event.target.value) || 1 })} description="改元后依次填 2、3…"/></div><div className="story-time-number-grid"><TextField label="年" required type="number" min="0" value={draft.year ?? ''} onChange={(event) => setDraft({ ...draft, year: nullableNumber(event.target.value) })}/><TextField label="月" optional type="number" min="1" max="99" value={draft.month ?? ''} onChange={(event) => setDraft({ ...draft, month: nullableNumber(event.target.value) })}/><TextField label="日" optional type="number" min="1" max="99" value={draft.day ?? ''} onChange={(event) => setDraft({ ...draft, day: nullableNumber(event.target.value) })}/></div><SelectField label="时辰" optional value={draft.period} onValueChange={(value) => setDraft({ ...draft, period: value })}><option value="">未指定</option>{['子时','丑时','寅时','卯时','辰时','巳时','午时','未时','申时','酉时','戌时','亥时'].map((value) => <option key={value} value={value}>{value}</option>)}</SelectField></>}
           {(draft.mode === 'relative' || draft.mode === 'sequence') && <><SelectField label="锚点场景" required value={draft.anchorNodeId ?? ''} onValueChange={(value) => setDraft({ ...draft, anchorNodeId: value || null })}><option value="">请选择场景</option>{nodes.filter((item) => item.id !== node.id).map((item) => <option key={item.id} value={item.id}>{item.title}{item.storyTime ? ` · ${item.storyTime}` : ''}</option>)}</SelectField><SelectField label="相对位置" value={draft.relation} onValueChange={(value) => setDraft({ ...draft, relation: value as StoryTimeSpec['relation'] })}><option value="before">之前</option><option value="same">同时</option><option value="after">之后</option></SelectField>{draft.mode === 'relative' && draft.relation !== 'same' && <div className="form-grid"><TextField label="间隔" required type="number" min="1" value={draft.offsetValue} onChange={(event) => setDraft({ ...draft, offsetValue: Math.max(0, Number(event.target.value) || 0) })}/><SelectField label="单位" value={draft.offsetUnit} onValueChange={(value) => setDraft({ ...draft, offsetUnit: value as StoryTimeSpec['offsetUnit'] })}><option value="hour">小时</option><option value="day">日</option><option value="month">月</option><option value="year">年</option><option value="scene">场</option></SelectField></div>}</>}
-          <TextField label="作者显示文字" optional value={draft.displayLabel} onChange={(event) => setDraft({ ...draft, displayLabel: event.target.value })} placeholder={draft.mode === 'custom' ? '如：承平十二年腊月廿三子时' : draft.mode === 'relative' ? '如：三日后的雪夜' : '留空则自动生成'} description="只影响展示和 AI 描述，不改变系统排序。"/>
+          <details key={draft.mode} className="story-time-display-options" open={draft.displayLabel ? true : undefined}>
+            <summary><span>自定义显示文字</span><small>选填</small></summary>
+            <TextField label="作者显示文字" value={draft.displayLabel} onChange={(event) => setDraft({ ...draft, displayLabel: event.target.value })} placeholder={draft.mode === 'custom' ? '如：承平十二年腊月廿三子时' : draft.mode === 'relative' ? '如：三日后的雪夜' : '留空则自动生成'} description="只影响界面和 AI 描述，不改变系统排序。"/>
+          </details>
           {error && <p className="test-result error" role="alert">{error}</p>}
-          <div className="story-time-preview"><span>保存后显示</span><strong>{describeStoryTime({ ...node, storyTimeSpec: draft }, nodes) || '尚未填写完整'}</strong></div>
+          <div className="story-time-preview"><CalendarDays size={17}/><div><span>保存后显示</span><strong>{validate(draft) ? '填写完整后显示预览' : describeStoryTime({ ...node, storyTimeSpec: draft }, nodes)}</strong></div></div>
           {onOpenSettings && <button type="button" className="story-time-settings-link" onClick={() => { setEditing(false); onOpenSettings() }}><Link2 size={14}/>修改本书默认时间体系</button>}
-          <div className="modal-actions story-time-actions">{(node.storyTime || node.storyTimeSpec) && <Button variant="ghost" leadingIcon={<RotateCcw size={14}/>} disabled={saving} onClick={() => void clear()}>清除时间</Button>}<Button variant="primary" loading={saving} onClick={() => void save()}>保存故事时间</Button></div>
         </>}
       </div>
     </Modal>}
@@ -90,9 +102,50 @@ export function StoryTimeSettingsPanel({ projectId, notify }: { projectId: strin
 
 function nullableNumber(value: string): number | null { return value === '' ? null : Number(value) }
 function validate(spec: StoryTimeSpec): string {
-  if (spec.mode === 'calendar' && !spec.calendarDate) return '请选择日期。'
+  if (spec.mode === 'calendar' && !isValidCalendarDate(spec.calendarDate)) return '请填写完整、有效的日期。'
+  if (spec.mode === 'calendar' && spec.clockTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(spec.clockTime)) return '时刻请使用 00:00 至 23:59 的格式。'
   if (spec.mode === 'custom' && spec.year === null) return '请填写纪年年份。'
   if ((spec.mode === 'relative' || spec.mode === 'sequence') && !spec.anchorNodeId) return '请选择一个锚点场景。'
   if (spec.mode === 'relative' && spec.relation !== 'same' && spec.offsetValue < 1) return '相对时间的间隔至少为 1。'
   return ''
+}
+
+function CalendarDateFields({ draft, onChange }: { draft: StoryTimeSpec; onChange: (next: StoryTimeSpec) => void }) {
+  const [year = '', month = '', day = ''] = draft.calendarDate.split('-')
+  const maxDay = daysInMonth(Number(year), Number(month))
+  const setDatePart = (part: 'year' | 'month' | 'day', value: string) => {
+    let nextYear = year; let nextMonth = month; let nextDay = day
+    if (part === 'year') nextYear = value.replace(/\D/g, '').slice(0, 4)
+    if (part === 'month') nextMonth = value
+    if (part === 'day') nextDay = value
+    if (nextDay && Number(nextDay) > daysInMonth(Number(nextYear), Number(nextMonth))) nextDay = ''
+    onChange({ ...draft, calendarDate: `${nextYear}-${nextMonth}-${nextDay}` })
+  }
+  const useToday = () => {
+    const today = new Date()
+    const value = `${today.getFullYear().toString().padStart(4, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    onChange({ ...draft, calendarDate: value })
+  }
+  return <section className="story-time-calendar-card" aria-labelledby="story-time-date-title">
+    <div className="story-time-field-heading"><div><strong id="story-time-date-title">日期</strong><span className="ui-field-required" aria-hidden="true">*</span></div><button type="button" onClick={useToday}>填入今天</button></div>
+    <div className="story-time-date-grid">
+      <TextField label="年" inputMode="numeric" placeholder="YYYY" value={year} aria-required="true" onChange={(event) => setDatePart('year', event.target.value)}/>
+      <SelectField label="月" value={month} aria-required onValueChange={(value) => setDatePart('month', value)}><option value="">请选择</option>{numberOptions(12).map((value) => <option key={value} value={value}>{Number(value)} 月</option>)}</SelectField>
+      <SelectField label="日" value={day} aria-required disabled={!month} onValueChange={(value) => setDatePart('day', value)}><option value="">请选择</option>{numberOptions(maxDay).map((value) => <option key={value} value={value}>{Number(value)} 日</option>)}</SelectField>
+    </div>
+    <TextField label="时刻" optional inputMode="numeric" maxLength={5} placeholder="如：12:30" value={draft.clockTime} onChange={(event) => onChange({ ...draft, clockTime: event.target.value.replace(/[^\d:]/g, '').slice(0, 5) })}/>
+  </section>
+}
+
+function numberOptions(total: number): string[] { return Array.from({ length: total }, (_, index) => String(index + 1).padStart(2, '0')) }
+function daysInMonth(year: number, month: number): number {
+  if (!month || month < 1 || month > 12) return 31
+  if (month === 2) return year > 0 && (year % 400 === 0 || (year % 4 === 0 && year % 100 !== 0)) ? 29 : 28
+  return [4, 6, 9, 11].includes(month) ? 30 : 31
+}
+function isValidCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return false
+  const year = Number(match[1]); const month = Number(match[2]); const day = Number(match[3])
+  return year > 0 && month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(year, month)
 }

@@ -123,7 +123,7 @@ export class AiService {
       const content = [foreshadow.summary, foreshadow.plannedPayoff ? `计划回收：${foreshadow.plannedPayoff}` : '', `当前阶段：${foreshadowLabel(foreshadow.status)}`].filter(Boolean).join('\n')
       items.push({ id: `foreshadow:${foreshadow.id}`, type: 'foreshadow', title: `未回收伏笔：${foreshadow.title}`, content, reason: '避免遗忘或提前泄露伏笔', privacyLevel: 'normal', selected: true, estimatedTokens: estimateTokens(content) })
     }
-    if (node.povEntityId) {
+    if (node.povEntityId && entityById.has(node.povEntityId)) {
       const allNodes = this.database.listNodes(projectId)
       for (const fact of this.database.listKnowledgeFacts(projectId).filter((item) => knowledgeKnownAt(item, node.povEntityId!, nodeId, allNodes))) {
         const content = `${fact.title}${fact.detail ? `：${fact.detail}` : ''}`

@@ -54,7 +54,7 @@ function EntityDetail({ projectId, entity, entities, states, nodes, onRefresh, o
   const [tab, setTab] = useState<'overview' | 'profile' | 'state' | 'relationship' | 'evidence'>('overview')
   useEffect(() => { setSummary(entity.summary); setAliases(entity.aliases.join('、')); setTab('overview'); void api.listEntityMentions(entity.id).then(setMentions) }, [entity])
   async function save() { try { await api.updateEntity(entity.id, { summary, aliases: aliases.split(/[、,，]/).map((value) => value.trim()).filter(Boolean) }); await onRefresh(); notify('success', '正典已更新') } catch (error) { notify('error', error instanceof Error ? error.message : '保存失败') } }
-  async function remove() { await api.trashEntity(entity.id); notify('success', '正典项已移入回收站'); setConfirmTrash(false); onDeleted() }
+  async function remove() { await api.trashEntity(entity.id); notify('success', '已移入回收站；相关引用已隐藏，恢复后会自动出现'); setConfirmTrash(false); onDeleted() }
   const privacyLabel = entity.privacyLevel === 'local_private' ? '仅本地' : entity.privacyLevel === 'author_only' ? '仅作者' : '可用于上下文'
   return <div className="entity-detail-content">
     <PageHeader tone="editorial" eyebrow={typeLabel(entity.type)} title={entity.canonicalName} description={entity.aliases.length ? `别名：${entity.aliases.join('、')}` : '暂无别名'} actions={<><Badge tone={entity.privacyLevel === 'local_private' ? 'success' : 'neutral'}>{privacyLabel}</Badge><IconButton onClick={() => setConfirmTrash(true)} label="移入回收站"><Trash2 size={16}/></IconButton></>} />

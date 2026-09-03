@@ -1348,6 +1348,10 @@ export class AppDatabase {
   updateNode(id: string, patch: Partial<Pick<ManuscriptNode, 'parentId' | 'title' | 'sortKey' | 'status' | 'povEntityId' | 'storyTime' | 'storyTimeSpec'>>): ManuscriptNode | null {
     const current = this.getNode(id)
     if (!current) return null
+    if (patch.povEntityId) {
+      const pov = this.getEntity(patch.povEntityId)
+      if (!pov || pov.projectId !== current.projectId || pov.type !== 'character' || pov.deletedAt) throw new Error('POV character must be an active character in this project')
+    }
     this.transaction(() => {
       this.db.prepare(`UPDATE manuscript_nodes SET parent_id=?,title=?,sort_key=?,status=?,pov_entity_id=?,story_time=?,story_time_json=? WHERE id=?`).run(
         patch.parentId === undefined ? current.parentId : patch.parentId,
@@ -1428,7 +1432,7 @@ export class AppDatabase {
   }
 
   private repairMentionAnchors(nodeId: string, plainText: string) {
-    for (const mention of this.listMentions(nodeId)) {
+    for (const mention of this.listMentions(nodeId, true)) {
       if (plainText.slice(mention.startOffset, mention.endOffset) === mention.quote) continue
       const positions: number[] = []
       let at = plainText.indexOf(mention.quote)
@@ -2106,6 +2110,7 @@ export class AppDatabase {
   createRelationship(input: Omit<EntityRelationship, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'states' | 'currentState'>): EntityRelationship {
     const source = this.getEntity(input.sourceEntityId); const target = this.getEntity(input.targetEntityId)
     if (!source || !target || source.projectId !== input.projectId || target.projectId !== input.projectId) throw new Error('Relationship entities must belong to this project')
+    if (source.deletedAt || target.deletedAt) throw new Error('Relationship entities must be active')
     if (source.id === target.id) throw new Error('Relationship cannot link an entity to itself')
     const duplicate = input.direction === 'mutual'
       ? this.db.prepare("SELECT 1 FROM entity_relationships WHERE project_id=? AND relation_type=? AND direction='mutual' AND deleted_at IS NULL AND ((source_entity_id=? AND target_entity_id=?) OR (source_entity_id=? AND target_entity_id=?))").get(input.projectId, input.relationType, source.id, target.id, target.id, source.id)
@@ -2126,9 +2131,10 @@ export class AppDatabase {
   }
 
   listRelationships(projectId: string, entityId: string | null = null, atNodeId: string | null = null, includeDeleted = false): EntityRelationship[] {
+    const visible = includeDeleted ? '' : 'AND r.deleted_at IS NULL AND source.deleted_at IS NULL AND target.deleted_at IS NULL'
     const rows = entityId
-      ? this.db.prepare(`SELECT * FROM entity_relationships WHERE project_id=? AND (source_entity_id=? OR target_entity_id=?) ${includeDeleted ? '' : 'AND deleted_at IS NULL'} ORDER BY updated_at DESC,rowid DESC`).all(projectId, entityId, entityId)
-      : this.db.prepare(`SELECT * FROM entity_relationships WHERE project_id=? ${includeDeleted ? '' : 'AND deleted_at IS NULL'} ORDER BY updated_at DESC,rowid DESC`).all(projectId)
+      ? this.db.prepare(`SELECT r.* FROM entity_relationships r JOIN entities source ON source.id=r.source_entity_id JOIN entities target ON target.id=r.target_entity_id WHERE r.project_id=? AND (r.source_entity_id=? OR r.target_entity_id=?) ${visible} ORDER BY r.updated_at DESC,r.rowid DESC`).all(projectId, entityId, entityId)
+      : this.db.prepare(`SELECT r.* FROM entity_relationships r JOIN entities source ON source.id=r.source_entity_id JOIN entities target ON target.id=r.target_entity_id WHERE r.project_id=? ${visible} ORDER BY r.updated_at DESC,r.rowid DESC`).all(projectId)
     return (rows as Row[]).map((row) => this.mapRelationship(row, atNodeId))
   }
 
@@ -2189,6 +2195,9 @@ export class AppDatabase {
   }
 
   createMention(input: Omit<Mention, 'id' | 'createdAt'>): Mention {
+    const node = this.getNode(input.nodeId); const entity = this.getEntity(input.entityId)
+    if (!node || node.type !== 'scene' || node.deletedAt) throw new Error('Mention scene must be active')
+    if (!entity || entity.projectId !== node.projectId || entity.deletedAt) throw new Error('Mention entity must be active and belong to this project')
     const id = newId()
     const createdAt = nowIso()
     this.db.prepare(`INSERT INTO mentions(id,entity_id,node_id,quote,start_offset,end_offset,confirmed,created_at) VALUES(?,?,?,?,?,?,?,?)`).run(
@@ -2197,8 +2206,9 @@ export class AppDatabase {
     return { ...input, id, createdAt }
   }
 
-  listMentions(nodeId: string): Mention[] {
-    return (this.db.prepare('SELECT * FROM mentions WHERE node_id=? ORDER BY start_offset').all(nodeId) as Row[]).map(mapMention)
+  listMentions(nodeId: string, includeDeletedEntities = false): Mention[] {
+    const rows = this.db.prepare(`SELECT m.* FROM mentions m JOIN entities e ON e.id=m.entity_id WHERE m.node_id=? ${includeDeletedEntities ? '' : 'AND e.deleted_at IS NULL'} ORDER BY m.start_offset`).all(nodeId)
+    return (rows as Row[]).map(mapMention)
   }
 
   createForeshadow(input: Pick<Foreshadow, 'projectId' | 'title'> & Partial<Pick<Foreshadow, 'summary' | 'importance' | 'plannedPayoff'>> & { nodeId?: string | null; evidence?: string; note?: string }): Foreshadow {

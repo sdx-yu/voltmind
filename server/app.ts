@@ -315,6 +315,8 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     res.json(database.setStyleSamplePreference(param(req, 'id'), param(req, 'projectId'), enabled))
   }))
   app.get('/api/entities/:id/mentions', route(async (req, res) => {
+    const entity = database.getEntity(param(req, 'id'))
+    if (!entity || entity.deletedAt) return res.json([])
     const rows = database.db.prepare('SELECT * FROM mentions WHERE entity_id=? ORDER BY created_at DESC').all(param(req, 'id'))
     res.json(rows.map((row: any) => ({ id: String(row.id), entityId: String(row.entity_id), nodeId: String(row.node_id), quote: String(row.quote), startOffset: Number(row.start_offset), endOffset: Number(row.end_offset), confirmed: Boolean(row.confirmed), createdAt: String(row.created_at) })))
   }))
@@ -797,7 +799,7 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const profileFields = entities.flatMap((entity) => database.listProfileFields(entity.id))
   const relationships = database.listRelationships(projectId, null, null, true)
   const sceneIds = nodes.filter((node) => node.type === 'scene').map((node) => node.id)
-  const mentions = sceneIds.flatMap((nodeId) => database.listMentions(nodeId))
+  const mentions = sceneIds.flatMap((nodeId) => database.listMentions(nodeId, true))
   const candidates = ['pending', 'accepted', 'accepted_modified', 'ignored', 'exception'].flatMap((status) => database.listCandidates(projectId, status))
   const canonEvents = database.db.prepare('SELECT * FROM canon_events WHERE project_id=? ORDER BY created_at').all(projectId)
   const settings = database.db.prepare('SELECT key,value_json FROM project_settings WHERE project_id=?').all(projectId)

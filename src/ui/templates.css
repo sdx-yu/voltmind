@@ -160,18 +160,58 @@
 .relationship-history small { color: var(--text-tertiary); font-size: var(--type-caption-size); }
 .relationship-history p { margin: 0; color: var(--text-secondary); font-size: var(--type-caption-size); }
 .relationship-graph-card { margin-top: 0; }
-.relationship-graph { position: relative; min-height: 25rem; overflow: hidden; border: 1px solid var(--border-faint); border-radius: var(--radius-card); background: radial-gradient(circle at center, var(--action-subtle), transparent 32%), var(--surface-sunken); }
-.relationship-graph svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.relationship-graph line { stroke: var(--action-primary); stroke-width: .38; vector-effect: non-scaling-stroke; }
-.relationship-graph line.inactive { stroke: var(--border-strong); stroke-dasharray: 2 2; }
-.relationship-graph text { fill: var(--text-secondary); font: 2.3px var(--font-ui); text-anchor: middle; paint-order: stroke; stroke: var(--surface-sunken); stroke-width: .8px; }
-.relationship-graph > button, .relationship-graph .graph-center { position: absolute; width: 7.5rem; min-height: 3.5rem; padding: var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); display: grid; place-items: center; align-content: center; gap: var(--space-1); transform: translate(-50%, -50%); text-align: center; background: var(--surface-paper); color: var(--text-primary); }
-.relationship-graph > button { cursor: pointer; }
-.relationship-graph > button:hover { border-color: var(--action-primary); background: var(--action-subtle); }
-.relationship-graph > button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; z-index: 2; }
-.relationship-graph .graph-center { left: 50%; top: 50%; border-color: var(--action-primary); color: var(--action-primary); font-weight: 700; background: var(--surface-selected); z-index: 1; }
-.relationship-graph > button strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: var(--type-label-size); white-space: nowrap; }
-.relationship-graph > button small { color: var(--text-secondary); font-size: var(--type-caption-size); }
+.relationship-graph-card > header { align-items: flex-start; }
+.relationship-graph-summary { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-1); }
+.relationship-graph-summary span { min-height: 1.625rem; padding: 0 var(--space-2); border-radius: var(--radius-pill); display: inline-flex; align-items: center; color: var(--text-secondary); background: var(--surface-sunken); font-size: var(--type-caption-size); font-weight: 600; }
+.relationship-graph-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem); gap: var(--space-3); align-items: stretch; }
+.relationship-graph-scroll { min-width: 0; overflow-x: auto; border-radius: var(--radius-card); }
+.relationship-graph { position: relative; min-width: 0; overflow: hidden; border: 1px solid var(--border-faint); border-radius: var(--radius-card); background: radial-gradient(circle at 28% 50%, var(--action-subtle), transparent 36%), var(--surface-sunken); }
+.relationship-graph.graph-size-compact { min-height: 17rem; }
+.relationship-graph.graph-size-medium { min-height: 20rem; }
+.relationship-graph.graph-size-large { min-height: 26rem; }
+.relationship-graph > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.relationship-graph line { stroke: var(--action-primary); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.relationship-graph line.inactive { stroke: var(--border-strong); stroke-dasharray: 5 5; }
+.relationship-graph marker path { fill: var(--action-primary); }
+.relationship-graph marker#relationship-arrow-inactive path { fill: var(--border-strong); }
+.relationship-graph-legend { position: absolute; z-index: 3; left: var(--space-3); top: var(--space-3); display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.relationship-graph-legend span { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-secondary); font-size: var(--type-caption-size); }
+.relationship-graph-legend span::before { content: ''; width: .5rem; height: .5rem; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--surface-paper); }
+.relationship-graph-legend .is-focus::before { border-color: var(--action-primary); background: var(--surface-selected); }
+.relationship-graph-legend .is-active::before { border-color: var(--action-primary); background: var(--action-primary); }
+.relationship-graph-legend .is-inactive::before { border-style: dashed; background: transparent; }
+.relationship-graph-node, .relationship-graph .graph-center { position: absolute; z-index: 2; width: 7.75rem; min-height: 4rem; padding: var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); display: grid; grid-template-columns: auto minmax(0, 1fr); place-items: center start; align-content: center; gap: 0 var(--space-2); transform: translate(-50%, -50%); text-align: left; background: var(--surface-paper); color: var(--text-primary); box-shadow: var(--shadow-card); }
+.relationship-graph-node { cursor: pointer; }
+.relationship-graph-node:hover { border-color: color-mix(in srgb, var(--action-primary) 60%, var(--border-subtle)); background: var(--surface-control-hover); transform: translate(-50%, -50%) translateY(-1px); }
+.relationship-graph-node.is-selected { border-color: var(--action-primary); background: var(--surface-selected); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 16%, transparent); }
+.relationship-graph-node:focus-visible, .relationship-edge-label:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; z-index: 4; }
+.relationship-graph .graph-center { border-color: var(--action-primary); color: var(--action-primary); background: var(--surface-selected); }
+.relationship-graph-node .graph-node-icon, .relationship-graph .graph-center .graph-node-icon { grid-row: 1 / 3; width: 1.75rem; height: 1.75rem; border-radius: .5rem; display: grid; place-items: center; color: var(--action-primary); background: var(--action-subtle); }
+.relationship-graph-node strong, .relationship-graph .graph-center strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: var(--type-label-size); white-space: nowrap; }
+.relationship-graph-node small, .relationship-graph .graph-center small { color: var(--text-secondary); font-size: var(--type-caption-size); }
+.relationship-edge-label { position: absolute; z-index: 2; max-width: 8.5rem; min-height: 1.75rem; padding: .1875rem var(--space-2); border: 1px solid color-mix(in srgb, var(--action-primary) 28%, var(--border-subtle)); border-radius: var(--radius-pill); transform: translate(-50%, -50%); overflow: hidden; text-overflow: ellipsis; color: var(--action-primary); background: var(--surface-paper); font: 600 var(--type-caption-size)/1.25 var(--font-ui); white-space: nowrap; cursor: pointer; box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 7%, transparent); }
+.relationship-edge-label:hover { border-color: var(--action-primary); background: var(--action-subtle); }
+.relationship-edge-label.is-inactive { border-style: dashed; color: var(--text-secondary); }
+.relationship-graph-hint { position: absolute; z-index: 2; left: var(--space-3); bottom: var(--space-2); margin: 0; color: var(--text-tertiary); font-size: var(--type-caption-size); }
+.relationship-graph-inspector { min-width: 0; padding: var(--space-3); border: 1px solid var(--border-faint); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: var(--space-3); background: var(--surface-paper); }
+.relationship-graph-inspector > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.relationship-graph-inspector > header > div { min-width: 0; display: flex; align-items: center; gap: var(--space-2); }
+.relationship-graph-inspector > header > div > span { flex: none; width: 2rem; height: 2rem; border-radius: .625rem; display: grid; place-items: center; color: var(--action-primary); background: var(--action-subtle); }
+.relationship-graph-inspector > header > div > div { min-width: 0; display: grid; gap: 1px; }
+.relationship-graph-inspector h4 { margin: 0; overflow: hidden; text-overflow: ellipsis; font: 650 var(--type-label-size)/var(--type-label-line) var(--font-ui); white-space: nowrap; }
+.relationship-graph-inspector header small { color: var(--text-tertiary); font-size: var(--type-caption-size); }
+.relationship-graph-tabs { display: flex; gap: var(--space-1); padding: var(--space-1); overflow-x: auto; border-radius: var(--radius-control); background: var(--surface-sunken); }
+.relationship-graph-tabs button { flex: none; min-height: var(--control-height-sm); padding: 0 var(--space-2); border: 0; border-radius: calc(var(--radius-control) - 2px); color: var(--text-secondary); background: transparent; font-size: var(--type-caption-size); cursor: pointer; }
+.relationship-graph-tabs button[aria-selected="true"] { color: var(--action-primary); background: var(--surface-paper); font-weight: 650; box-shadow: var(--shadow-card); }
+.relationship-graph-detail { padding: var(--space-3); border-radius: var(--radius-control); display: grid; gap: var(--space-2); background: var(--surface-sunken); }
+.relationship-graph-detail > div { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.relationship-graph-detail > div span { color: var(--action-primary); font-size: var(--type-caption-size); font-weight: 650; }
+.relationship-graph-detail > div small { color: var(--text-tertiary); font-size: var(--type-caption-size); }
+.relationship-graph-detail > strong { font-size: var(--type-label-size); }
+.relationship-graph-detail > p { margin: 0; color: var(--text-secondary); font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
+.relationship-graph-evidence { padding: var(--space-2); border: 0; border-radius: var(--radius-control); display: flex; align-items: flex-start; gap: var(--space-1); color: var(--action-primary); background: var(--action-subtle); font-size: var(--type-caption-size); line-height: var(--type-caption-line); text-align: left; cursor: pointer; }
+.relationship-graph-evidence svg { flex: none; margin-top: .125rem; }
+.relationship-graph-inspector > footer { margin-top: auto; padding-top: var(--space-3); border-top: 1px solid var(--border-faint); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-1); }
 
 @media (max-width: 1279px) {
   .ui-template-editor-three { grid-template-columns: var(--workspace-tree-width, 16.25rem) minmax(0, 1fr); }
@@ -185,6 +225,8 @@
   .ui-template-library { grid-template-columns: minmax(13.5rem, 15rem) minmax(0, 1fr); }
   .ui-template-board { padding: var(--space-6); }
   .relationship-list { grid-template-columns: 1fr; }
+  .relationship-graph-workspace { grid-template-columns: minmax(0, 1fr); }
+  .relationship-graph-inspector { min-height: auto; }
   .ui-template-board > .ui-page-header { top: calc(var(--space-6) * -1); margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-4); padding: var(--space-6); }
   .ui-template-workflow { padding: var(--space-6); }
   .ui-metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -210,6 +252,12 @@
   .ui-metric-strip { margin-bottom: var(--space-4); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
   .ui-metric-strip > article { min-height: 4.25rem; padding: var(--space-2) var(--space-3); }
   .ui-metric-icon { display: none; }
+  .relationship-toolbar-controls { align-items: stretch; flex-direction: column; }
+  .relationship-toolbar label { min-width: 0; width: 100%; }
+  .relationship-toolbar-controls .ui-segmented-control { width: 100%; }
+  .relationship-graph-card > header { align-items: stretch; flex-direction: column; }
+  .relationship-graph-summary { justify-content: flex-start; }
+  .relationship-graph.graph-size-large { width: max(100%, 34rem); }
 }
 
 [data-density="touch"] .ui-template-workflow :is(.button, button, select, input:not([type="checkbox"]):not([type="radio"]), .export-row) { min-height: 2.75rem; }

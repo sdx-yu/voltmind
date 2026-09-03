@@ -107,6 +107,51 @@ describe('local API', () => {
     expect(lateContext.body).toContainEqual(expect.objectContaining({ type: 'knowledge', title: 'POV 已知：凶手身份' }))
   })
 
+  it('hides a trashed character from every consumer while preserving references for restore', async () => {
+    const project = database.createProject('软删除引用闭环'); const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    const lin = database.createEntity({ projectId: project.id, type: 'character', canonicalName: '林照' }); const shen = database.createEntity({ projectId: project.id, type: 'character', canonicalName: '沈砚' })
+    database.updateNode(scene.id, { povEntityId: lin.id })
+    database.saveScene(scene.id, doc('林照与沈砚走进旧宅。'), '林照与沈砚走进旧宅。')
+    const mention = database.createMention({ entityId: lin.id, nodeId: scene.id, quote: '林照', startOffset: 0, endOffset: 2, confirmed: true })
+    database.createProfileField({ entityId: lin.id, category: '身份', label: '职业', value: '调查员', privacyLevel: 'author_only' })
+    const relationship = database.createRelationship({ projectId: project.id, sourceEntityId: lin.id, targetEntityId: shen.id, relationType: 'friendship', direction: 'mutual', label: '旧友', summary: '', privacyLevel: 'normal' })
+    database.createRelationshipState({ relationshipId: relationship.id, statusLabel: '互相信任', note: '', validFromNodeId: scene.id, validToNodeId: null, worldTimeFrom: null, worldTimeTo: null, sourceNodeId: scene.id, evidence: '并肩进入旧宅' })
+    const secret = database.createKnowledgeFact({ projectId: project.id, title: '暗门位置', detail: '暗门在书架后', keywords: ['暗门在书架后'], firstRevealedNodeId: scene.id })
+    database.grantKnowledge(secret.id, { entityId: lin.id, knownFromNodeId: scene.id, evidence: '林照亲眼看见' })
+
+    const before = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/context`).set('Cookie', cookie).expect(200)
+    expect(before.body).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: lin.id, type: 'entity' }),
+      expect.objectContaining({ id: `relationship:${relationship.id}`, type: 'relationship' }),
+      expect.objectContaining({ id: `knowledge:${secret.id}`, type: 'knowledge' }),
+    ]))
+
+    await request(app).delete(`/api/entities/${lin.id}`).set('Cookie', cookie).expect(200)
+    await request(app).patch(`/api/nodes/${scene.id}`).set('Cookie', cookie).send({ title: '删除后仍可写作' }).expect(200)
+    await request(app).put(`/api/scenes/${scene.id}`).set('Cookie', cookie).send({ contentJson: doc('雨中，林照与沈砚走进旧宅。'), plainText: '雨中，林照与沈砚走进旧宅。' }).expect(200)
+
+    expect((await request(app).get(`/api/scenes/${scene.id}/mentions`).set('Cookie', cookie).expect(200)).body).toEqual([])
+    expect((await request(app).get(`/api/entities/${lin.id}/mentions`).set('Cookie', cookie).expect(200)).body).toEqual([])
+    expect((await request(app).get(`/api/projects/${project.id}/relationships`).set('Cookie', cookie).expect(200)).body).toEqual([])
+    expect(database.getNode(scene.id)?.povEntityId).toBe(lin.id)
+    expect(database.listMentions(scene.id, true)).toContainEqual(expect.objectContaining({ id: mention.id, startOffset: 3, endOffset: 5 }))
+    expect(database.listRelationships(project.id, lin.id, null, true)).toContainEqual(expect.objectContaining({ id: relationship.id }))
+    const hiddenContext = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/context`).set('Cookie', cookie).expect(200)
+    expect(hiddenContext.body.some((item: { id: string }) => item.id === lin.id || item.id === `relationship:${relationship.id}` || item.id === `knowledge:${secret.id}` || item.id.startsWith('profile:'))).toBe(false)
+    await request(app).patch(`/api/nodes/${scene.id}`).set('Cookie', cookie).send({ povEntityId: lin.id }).expect(400)
+    await request(app).post(`/api/scenes/${scene.id}/mentions`).set('Cookie', cookie).send({ entityId: lin.id, quote: '林照', startOffset: 3, endOffset: 5, confirmed: true }).expect(400)
+
+    await request(app).post(`/api/entities/${lin.id}/restore`).set('Cookie', cookie).expect(200)
+    expect((await request(app).get(`/api/scenes/${scene.id}/mentions`).set('Cookie', cookie).expect(200)).body).toContainEqual(expect.objectContaining({ id: mention.id, startOffset: 3, endOffset: 5 }))
+    expect((await request(app).get(`/api/projects/${project.id}/relationships`).set('Cookie', cookie).expect(200)).body).toContainEqual(expect.objectContaining({ id: relationship.id }))
+    const restoredContext = await request(app).get(`/api/projects/${project.id}/scenes/${scene.id}/context`).set('Cookie', cookie).expect(200)
+    expect(restoredContext.body).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: lin.id, type: 'entity' }),
+      expect.objectContaining({ id: `relationship:${relationship.id}`, type: 'relationship' }),
+      expect.objectContaining({ id: `knowledge:${secret.id}`, type: 'knowledge' }),
+    ]))
+  })
+
   it('imports all chapters atomically and rejects a corrupt original without a project', async () => {
     const original = Buffer.from('第一章\n正文')
     const input = { title: '旧稿', chapters: [{ title: '第一章', text: '正文', contentJson: doc('正文') }], original: { fileName: '旧稿.txt', mimeType: 'text/plain', byteSize: original.length, contentHash: (await import('node:crypto')).createHash('sha256').update(original).digest('hex'), contentBase64: original.toString('base64') } }

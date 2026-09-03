@@ -85,6 +85,23 @@ describe('Inspector knowledge panel', () => {
     expect(notify).toHaveBeenCalledWith('success', '故事时间已结构化保存')
   })
 
+  it('uses branded calendar fields instead of the native date popup', async () => {
+    mocks.getSetting.mockResolvedValueOnce({ value: { defaultMode: 'calendar', customEra: '' } })
+    const update = vi.fn().mockResolvedValue(undefined)
+    render(<Inspector projectId="p" node={nodes[2]} entities={[character]} refreshEntities={vi.fn()} onUpdateNode={update} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: '编辑故事时间：时间未定' }))
+    expect(await screen.findByRole('combobox', { name: '时间方式' })).toHaveTextContent('现代日期')
+    expect(document.querySelector('input[type="date"]')).not.toBeInTheDocument()
+    await userEvent.type(screen.getByRole('textbox', { name: '年' }), '2026')
+    await userEvent.click(screen.getByRole('combobox', { name: '月' }))
+    await userEvent.click(screen.getByRole('option', { name: '9 月' }))
+    await userEvent.click(screen.getByRole('combobox', { name: '日' }))
+    await userEvent.click(screen.getByRole('option', { name: '3 日' }))
+    await userEvent.type(screen.getByRole('textbox', { name: /时刻/ }), '12:30')
+    await userEvent.click(screen.getByRole('button', { name: '保存故事时间' }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ storyTime: '2026-09-03 12:30', storyTimeSpec: expect.objectContaining({ mode: 'calendar', calendarDate: '2026-09-03', clockTime: '12:30' }) })))
+  })
+
   it('keeps final states out of manual progress and routes completion through the evidence workflow', async () => {
     const update = vi.fn().mockResolvedValue(undefined); const refresh = vi.fn().mockResolvedValue(undefined); const notify = vi.fn()
     const props = { projectId: 'p', node: nodes[2], entities: [character], refreshEntities: vi.fn(), onUpdateNode: update, onRefreshTree: refresh, onReloadScene: vi.fn(), notify }
@@ -105,6 +122,16 @@ describe('Inspector knowledge panel', () => {
     expect(screen.queryByRole('button', { name: '完成本场景并提取事实' })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '进入修订' }))
     expect(update).toHaveBeenCalledWith({ status: 'revising' })
+  })
+
+  it('projects a deleted POV reference as unassigned without clearing the stored id', async () => {
+    const deletedCharacter = { ...character, deletedAt: '2026-09-03T00:00:00.000Z' }
+    const update = vi.fn().mockResolvedValue(undefined)
+    render(<Inspector projectId="p" node={nodes[2]} entities={[deletedCharacter]} refreshEntities={vi.fn()} onUpdateNode={update} onRefreshTree={vi.fn()} onReloadScene={vi.fn()} notify={vi.fn()} />)
+    expect(screen.getByRole('combobox', { name: '视角人物' })).toHaveTextContent('未指定')
+    await userEvent.click(screen.getByRole('tab', { name: '正典' }))
+    expect(await screen.findByText('先为场景指定视角人物，系统才会检查知识泄露。')).toBeInTheDocument()
+    expect(update).not.toHaveBeenCalled()
   })
 
   it('shows recognized preset canon separately from continuity conflicts and refreshes after save', async () => {
