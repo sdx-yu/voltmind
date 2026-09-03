@@ -1,6 +1,6 @@
 # Windows x64 自动构建与内测交付
 
-状态：工程流程已落地；GitHub Windows 云端第 10 次运行已于 2026-09-03 全量通过
+状态：工程流程已落地；GitHub Windows 云端第 11 次运行已于 2026-09-03 全量通过
 
 ## 给产品经理的结论
 
@@ -29,10 +29,10 @@ GitHub Actions 是否产生费用取决于仓库可见性、账户套餐和当�
 
 ## 已通过的真实运行
 
-- 运行：[Windows x64 desktop package #10](https://github.com/sdx-yu/voltmind/actions/runs/33734664056)
-- 源提交：`b76b9b975c6cade1cf494042a016f2446dfa0254`
+- 运行：[Windows x64 desktop package #11](https://github.com/sdx-yu/voltmind/actions/runs/33739388654)
+- 源提交：`684d128990c05d67daae512efc28ae9d49b8e0f7`
 - 结果：质量门禁、NSIS、简体中文 MSI、哈希/签名检查、MSI 静默安装和卸载、Artifact 上传全部通过
-- Artifact：`bibudai-2.8.2-windows-x64-10`，GitHub 默认保留 14 天
+- Artifact：`bibudai-2.8.2-windows-x64-11`，GitHub 默认保留 14 天
 - 当前产物未签名，只达到已知测试者内测交付标准，不是公开发行标准
 
 ## 未签名内测包
