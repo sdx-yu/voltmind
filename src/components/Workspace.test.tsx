@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ManuscriptNode, Project } from '../../shared/types'
@@ -75,7 +75,8 @@ describe('Workspace chrome', () => {
     expect(await screen.findByRole('heading', { name: '场景状态' })).toBeInTheDocument()
     const separator = await screen.findByRole('separator', { name: '调整书稿树宽度' })
     separator.focus()
-    await userEvent.keyboard('{ArrowRight}')
+    fireEvent.keyDown(separator, { key: 'ArrowRight', code: 'ArrowRight' })
+    expect(separator).toHaveAttribute('aria-valuenow', '272')
     await waitFor(() => expect(JSON.parse(localStorage.getItem('bbd-chrome') || '{}')).toMatchObject({ treeWidth: 272 }))
   })
 
