@@ -1,6 +1,6 @@
 # Windows x64 自动构建与内测交付
 
-状态：工程流程已落地；GitHub Windows 云端第 13 次运行已于 2026-09-04 全量通过
+状态：工程流程已落地；GitHub Windows 云端第 15 次运行已于 2026-09-04 全量通过
 
 ## 给产品经理的结论
 
@@ -27,14 +27,14 @@
 
 GitHub Actions 是否产生费用取决于仓库可见性、账户套餐和当月用量；本流程通过“手动/版本标签触发”和 60 分钟超时控制用量，但不承诺云端额度永远免费。
 
-## 已通过的真实运行
+## 最新通过的真实运行
 
-- 运行：[Windows x64 desktop package #13](https://github.com/sdx-yu/voltmind/actions/runs/33831766902)
-- 源提交：`aee02324398323da0b2ec0089b9b6e63ccb9f2c8`
+- 运行：[Windows x64 desktop package #15](https://github.com/sdx-yu/voltmind/actions/runs/33851951602)
+- 源提交：`8138dcf592278229ca0e90bb8c9e9b24b8827e68`
 - 结果：质量门禁、NSIS、简体中文 MSI、哈希/签名检查、MSI 静默安装和卸载、Artifact 上传全部通过
-- Artifact：`bibudai-2.9.0-windows-x64-13`，GitHub 默认保留 14 天
-- NSIS SHA-256：`d09196cdf88c407cfaa2a354404788452419a5c932d91aeddfea9003e03726f7`
-- MSI SHA-256：`77aae28dd5d0fa622126a5f080ea0a9b980bf42c7a6b08a96f9a42fe4333cf5e`
+- Artifact：`bibudai-2.9.1-windows-x64-15`，GitHub 默认保留 14 天
+- NSIS SHA-256：`cdd3eaa4abc99f4a257591b70376c96095557d0271c8d11e4c5bf4a71ec8e4a0`
+- MSI SHA-256：`28e5b09b2fe5fad8f0b4e6cd690f97f7d5d2fc05f82fbd348e72c8d85ed29012`
 - 当前产物未签名，只达到已知测试者内测交付标准，不是公开发行标准
 
 ## 未签名内测包
