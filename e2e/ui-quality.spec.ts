@@ -65,10 +65,17 @@ test('stores stable visual baselines for themes, density and overlays', async ({
 })
 
 test('stores real bookshelf, editor and workflow baselines', async ({ page }) => {
-  await onlyProjects(page, [project])
+  const bookshelfProjects = [project, ...['潮声未歇', '旧城来客', '无灯长街', '山海回信', '十二夜', '纸上迷局', '远岸', '薄雾列车', '最后一页', '春潮'].map((title, index) => ({
+    ...project,
+    id: `bookshelf-visual-${index}`,
+    title,
+    description: index % 3 === 0 ? '' : ['秘密藏在每一次潮汐之间。', '尚未说出口的故事仍在继续。'][index % 2],
+  }))]
+  await onlyProjects(page, bookshelfProjects)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')
   await expect(page.getByRole('heading', { name: '继续写下去' })).toBeVisible()
+  await expect(page.getByRole('button', { name: project.title }).first()).toBeVisible()
   await expect(page).toHaveScreenshot('bookshelf-paper-1440.png')
 
   await page.getByRole('button', { name: project.title }).first().click()

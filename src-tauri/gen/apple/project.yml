@@ -51,8 +51,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 2.8.2
-        CFBundleVersion: "2.8.2"
+        CFBundleShortVersionString: 2.9.0
+        CFBundleVersion: "2.9.0"
     entitlements:
       path: bibudai_iOS/bibudai_iOS.entitlements
     scheme:

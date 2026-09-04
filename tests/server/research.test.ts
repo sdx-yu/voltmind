@@ -20,12 +20,13 @@ describe('R1 local research evidence and release readiness', () => {
 
   it('backs up v13 before migrating through v16 and creates research, cohort and wave tables', () => {
     let db = database('migration'); const databasePath = db.databasePath
+    db.db.exec('DROP TABLE story_beat_scenes; DROP TABLE story_beats; DROP TABLE story_blueprints; DELETE FROM schema_migrations WHERE version=21;')
     db.db.exec('DROP TABLE voice_preference_stats; DROP TABLE character_voice_profiles; DROP TABLE style_analysis_runs; DROP TABLE scene_voice_profiles; DROP TABLE project_voice_defaults; DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DELETE FROM schema_migrations WHERE version IN (14,15, 16,17,18,19,20);')
     db.close(); databases.splice(databases.indexOf(db), 1)
     db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 20 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 21 })
     expect(db.db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name LIKE 'research_%'").get()).toMatchObject({ count: 9 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v13-to-v20-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v13-to-v21-'))).toBe(true)
   })
 
   it('requires explicit consent and exports only pseudonymous immutable task evidence', () => {
@@ -76,7 +77,7 @@ describe('R1 local research evidence and release readiness', () => {
     const bundle = (await request(result.app).get('/api/research/export').set('Cookie', auth).expect(200)).body
     expect((await request(result.app).post('/api/research/inspect').set('Cookie', auth).send({ package: bundle }).expect(200)).body).toMatchObject({ ok: true, completedTasks: 1 })
     const support = (await request(result.app).get('/api/support/bundle').set('Cookie', auth).expect(200)).body
-    expect(support).toMatchObject({ format: 'bbd-support-v1', manifest: { appVersion: '1.7.0', database: { schemaVersion: 20, integrity: 'ok' }, counts: { cohortParticipants: 0, researchWaves: 0 }, privacy: { containsManuscriptText: false, containsPaths: false } } })
+    expect(support).toMatchObject({ format: 'bbd-support-v1', manifest: { appVersion: '1.7.0', database: { schemaVersion: 21, integrity: 'ok' }, counts: { cohortParticipants: 0, researchWaves: 0 }, privacy: { containsManuscriptText: false, containsPaths: false } } })
     expect(JSON.stringify(support)).not.toContain(project.title)
     expect(JSON.stringify(support)).not.toContain(dir)
     const readiness = (await request(result.app).get('/api/release/readiness').set('Cookie', auth).expect(200)).body

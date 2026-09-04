@@ -21,6 +21,7 @@ import type {
   MobileInboxAction,
   MobileInboxItem,
   Project,
+  ProjectTrashSummary,
   ProvenanceEvent,
   ProvenanceEventType,
   ProvenanceExportRecord,
@@ -53,6 +54,12 @@ import type {
   SprintSample,
   SprintSession,
   SprintSnapshotScene,
+  StoryBeat,
+  StoryBeatAct,
+  StoryBeatStatus,
+  StoryBlueprint,
+  StoryPlan,
+  StoryPlanningApproach,
   SyncConflict,
   SyncProjectStatus,
   SyncVector,
@@ -79,7 +86,7 @@ export class AppDatabase {
   constructor(databasePath: string) {
     this.databasePath = databasePath
     fs.mkdirSync(path.dirname(databasePath), { recursive: true })
-    backupBeforeMigration(databasePath, 20)
+    backupBeforeMigration(databasePath, 21)
     this.db = new DatabaseSync(databasePath)
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA busy_timeout = 5000;')
     this.migrate()
@@ -1231,6 +1238,55 @@ export class AppDatabase {
         this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(20, nowIso())
       })
     }
+    if (version < 21) {
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE TABLE story_blueprints (
+            project_id TEXT PRIMARY KEY REFERENCES projects(id),
+            approach TEXT NOT NULL DEFAULT 'discovery' CHECK(approach IN ('discovery','guided','structured')),
+            genre TEXT NOT NULL DEFAULT '',
+            premise TEXT NOT NULL DEFAULT '',
+            core_conflict TEXT NOT NULL DEFAULT '',
+            protagonist_goal TEXT NOT NULL DEFAULT '',
+            protagonist_need TEXT NOT NULL DEFAULT '',
+            stakes TEXT NOT NULL DEFAULT '',
+            thematic_question TEXT NOT NULL DEFAULT '',
+            climax_choice TEXT NOT NULL DEFAULT '',
+            ending_truth TEXT NOT NULL DEFAULT '',
+            ending_state TEXT NOT NULL DEFAULT '',
+            must_keep_json TEXT NOT NULL DEFAULT '[]',
+            must_avoid_json TEXT NOT NULL DEFAULT '[]',
+            target_words INTEGER,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          CREATE TABLE story_beats (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id),
+            act TEXT NOT NULL CHECK(act IN ('opening','middle','ending','custom')),
+            title TEXT NOT NULL,
+            purpose TEXT NOT NULL DEFAULT '',
+            expected_change TEXT NOT NULL DEFAULT '',
+            caution TEXT NOT NULL DEFAULT '',
+            sort_key INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'planned' CHECK(status IN ('planned','drafting','fulfilled','skipped')),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT
+          );
+          CREATE INDEX idx_story_beats_project ON story_beats(project_id, deleted_at, sort_key);
+          CREATE TABLE story_beat_scenes (
+            beat_id TEXT NOT NULL REFERENCES story_beats(id) ON DELETE CASCADE,
+            node_id TEXT NOT NULL REFERENCES manuscript_nodes(id),
+            created_at TEXT NOT NULL,
+            PRIMARY KEY(beat_id,node_id)
+          );
+          INSERT INTO story_blueprints(project_id,created_at,updated_at)
+          SELECT id,created_at,updated_at FROM projects;
+        `)
+        this.db.prepare('INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)').run(21, nowIso())
+      })
+    }
     // A short-lived development build used schema version 18 before the full
     // style taxonomy was finalised. Repair those databases in place so a user
     // never has to delete a manuscript just to receive the completed feature.
@@ -1264,7 +1320,7 @@ export class AppDatabase {
     return String((this.db.prepare('PRAGMA integrity_check').get() as Row).integrity_check)
   }
 
-  createProject(title: string, description = ''): Project {
+  createProject(title: string, description = '', setup?: { blueprint?: Partial<Omit<StoryBlueprint, 'projectId' | 'createdAt' | 'updatedAt'>>; starter?: 'three_act' }): Project {
     const id = newId()
     const bookId = newId()
     const chapterId = newId()
@@ -1272,6 +1328,13 @@ export class AppDatabase {
     const createdAt = nowIso()
     this.transaction(() => {
       this.db.prepare('INSERT INTO projects(id,title,description,created_at,updated_at) VALUES(?,?,?,?,?)').run(id, title, description, createdAt, createdAt)
+      this.db.prepare(`INSERT INTO story_blueprints(project_id,approach,genre,premise,core_conflict,protagonist_goal,protagonist_need,stakes,thematic_question,climax_choice,ending_truth,ending_state,must_keep_json,must_avoid_json,target_words,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        id, setup?.blueprint?.approach ?? 'discovery', setup?.blueprint?.genre ?? '', setup?.blueprint?.premise ?? '', setup?.blueprint?.coreConflict ?? '',
+        setup?.blueprint?.protagonistGoal ?? '', setup?.blueprint?.protagonistNeed ?? '', setup?.blueprint?.stakes ?? '', setup?.blueprint?.thematicQuestion ?? '',
+        setup?.blueprint?.climaxChoice ?? '', setup?.blueprint?.endingTruth ?? '', setup?.blueprint?.endingState ?? '', JSON.stringify(setup?.blueprint?.mustKeep ?? []),
+        JSON.stringify(setup?.blueprint?.mustAvoid ?? []), setup?.blueprint?.targetWords ?? null, createdAt, createdAt,
+      )
       const insert = this.db.prepare('INSERT INTO manuscript_nodes(id,project_id,parent_id,type,title,sort_key,status) VALUES(?,?,?,?,?,?,?)')
       insert.run(bookId, id, null, 'book', title, 1000, 'draft')
       insert.run(chapterId, id, bookId, 'chapter', '第一章', 1000, 'draft')
@@ -1280,14 +1343,149 @@ export class AppDatabase {
       const hash = sha256(content)
       this.db.prepare('INSERT INTO scene_documents(node_id,content_json,plain_text,content_hash,updated_at) VALUES(?,?,?,?,?)').run(sceneId, content, '', hash, createdAt)
       this.upsertSearch(sceneId, '场景 1', '')
+      if (setup?.starter === 'three_act') this.installStoryStarter(id, false)
       this.logOperation(id, 'project', id, 'create', null, null, 'human')
     })
     return { id, title, description, createdAt, updatedAt: createdAt, deletedAt: null }
   }
 
+  getStoryPlan(projectId: string, includeDeleted = false): StoryPlan | null {
+    const row = this.db.prepare('SELECT * FROM story_blueprints WHERE project_id=?').get(projectId) as Row | undefined
+    if (!row) return null
+    const beatRows = this.db.prepare(`SELECT * FROM story_beats WHERE project_id=? ${includeDeleted ? '' : 'AND deleted_at IS NULL'} ORDER BY sort_key,created_at`).all(projectId) as Row[]
+    const links = this.db.prepare(`SELECT l.beat_id,l.node_id FROM story_beat_scenes l JOIN manuscript_nodes n ON n.id=l.node_id
+      WHERE n.project_id=? ${includeDeleted ? '' : 'AND n.deleted_at IS NULL'}`).all(projectId) as Row[]
+    const sceneIdsByBeat = new Map<string, string[]>()
+    for (const link of links) sceneIdsByBeat.set(String(link.beat_id), [...(sceneIdsByBeat.get(String(link.beat_id)) ?? []), String(link.node_id)])
+    return { blueprint: mapStoryBlueprint(row), beats: beatRows.map((beat) => mapStoryBeat(beat, sceneIdsByBeat.get(String(beat.id)) ?? [])) }
+  }
+
+  syncStoryPlan(projectId: string, plan: StoryPlan): boolean {
+    let changed = false
+    this.transaction(() => {
+      const localBlueprint = this.db.prepare('SELECT updated_at FROM story_blueprints WHERE project_id=?').get(projectId) as Row | undefined
+      if (!localBlueprint) this.db.prepare('INSERT INTO story_blueprints(project_id,created_at,updated_at) VALUES(?,?,?)').run(projectId, plan.blueprint.createdAt || nowIso(), plan.blueprint.updatedAt || nowIso())
+      if (!localBlueprint || String(plan.blueprint.updatedAt) > String(localBlueprint.updated_at)) {
+        const blueprint = plan.blueprint
+        this.db.prepare(`UPDATE story_blueprints SET approach=?,genre=?,premise=?,core_conflict=?,protagonist_goal=?,protagonist_need=?,stakes=?,thematic_question=?,climax_choice=?,ending_truth=?,ending_state=?,must_keep_json=?,must_avoid_json=?,target_words=?,created_at=?,updated_at=? WHERE project_id=?`).run(
+          blueprint.approach, blueprint.genre, blueprint.premise, blueprint.coreConflict, blueprint.protagonistGoal, blueprint.protagonistNeed, blueprint.stakes,
+          blueprint.thematicQuestion, blueprint.climaxChoice, blueprint.endingTruth, blueprint.endingState, JSON.stringify(blueprint.mustKeep), JSON.stringify(blueprint.mustAvoid),
+          blueprint.targetWords, blueprint.createdAt, blueprint.updatedAt, projectId,
+        )
+        changed = true
+      }
+      for (const beat of plan.beats) {
+        const local = this.db.prepare('SELECT updated_at FROM story_beats WHERE id=? AND project_id=?').get(beat.id, projectId) as Row | undefined
+        if (local && String(beat.updatedAt) <= String(local.updated_at)) continue
+        this.db.prepare(`INSERT INTO story_beats(id,project_id,act,title,purpose,expected_change,caution,sort_key,status,created_at,updated_at,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+          ON CONFLICT(id) DO UPDATE SET act=excluded.act,title=excluded.title,purpose=excluded.purpose,expected_change=excluded.expected_change,caution=excluded.caution,sort_key=excluded.sort_key,status=excluded.status,updated_at=excluded.updated_at,deleted_at=excluded.deleted_at`).run(
+          beat.id, projectId, beat.act, beat.title, beat.purpose, beat.expectedChange, beat.caution, beat.sortKey, beat.status, beat.createdAt, beat.updatedAt, beat.deletedAt,
+        )
+        this.db.prepare('DELETE FROM story_beat_scenes WHERE beat_id=?').run(beat.id)
+        const insert = this.db.prepare('INSERT OR IGNORE INTO story_beat_scenes(beat_id,node_id,created_at) VALUES(?,?,?)')
+        for (const sceneId of beat.sceneIds) {
+          const node = this.db.prepare("SELECT 1 FROM manuscript_nodes WHERE id=? AND project_id=? AND type='scene'").get(sceneId, projectId)
+          if (node) insert.run(beat.id, sceneId, beat.updatedAt)
+        }
+        changed = true
+      }
+      if (changed) this.touchProject(projectId)
+    })
+    return changed
+  }
+
+  updateStoryBlueprint(projectId: string, patch: Partial<Omit<StoryBlueprint, 'projectId' | 'createdAt' | 'updatedAt'>>): StoryBlueprint | null {
+    const current = this.getStoryPlan(projectId)?.blueprint
+    if (!current) return null
+    const updatedAt = nowIso()
+    this.transaction(() => {
+      this.db.prepare(`UPDATE story_blueprints SET approach=?,genre=?,premise=?,core_conflict=?,protagonist_goal=?,protagonist_need=?,stakes=?,thematic_question=?,climax_choice=?,ending_truth=?,ending_state=?,must_keep_json=?,must_avoid_json=?,target_words=?,updated_at=? WHERE project_id=?`).run(
+        patch.approach ?? current.approach, patch.genre ?? current.genre, patch.premise ?? current.premise, patch.coreConflict ?? current.coreConflict,
+        patch.protagonistGoal ?? current.protagonistGoal, patch.protagonistNeed ?? current.protagonistNeed, patch.stakes ?? current.stakes,
+        patch.thematicQuestion ?? current.thematicQuestion, patch.climaxChoice ?? current.climaxChoice, patch.endingTruth ?? current.endingTruth,
+        patch.endingState ?? current.endingState, JSON.stringify(patch.mustKeep ?? current.mustKeep), JSON.stringify(patch.mustAvoid ?? current.mustAvoid),
+        patch.targetWords === undefined ? current.targetWords : patch.targetWords, updatedAt, projectId,
+      )
+      this.touchProject(projectId)
+      this.logOperation(projectId, 'story_blueprint', projectId, 'update', null, null, 'human')
+    })
+    return this.getStoryPlan(projectId)!.blueprint
+  }
+
+  createStoryBeat(input: { projectId: string; act: StoryBeatAct; title: string; purpose?: string; expectedChange?: string; caution?: string; sortKey?: number; status?: StoryBeatStatus; sceneIds?: string[] }): StoryBeat {
+    const id = newId(); const createdAt = nowIso()
+    const sortKey = input.sortKey ?? Number((this.db.prepare('SELECT COALESCE(MAX(sort_key),0)+1000 AS next FROM story_beats WHERE project_id=? AND deleted_at IS NULL').get(input.projectId) as Row).next)
+    this.transaction(() => {
+      this.db.prepare('INSERT INTO story_beats(id,project_id,act,title,purpose,expected_change,caution,sort_key,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(
+        id, input.projectId, input.act, input.title, input.purpose ?? '', input.expectedChange ?? '', input.caution ?? '', sortKey, input.status ?? 'planned', createdAt, createdAt,
+      )
+      this.replaceStoryBeatScenes(id, input.projectId, input.sceneIds ?? [])
+      this.touchProject(input.projectId)
+      this.logOperation(input.projectId, 'story_beat', id, 'create', null, null, 'human')
+    })
+    return this.getStoryPlan(input.projectId)!.beats.find((beat) => beat.id === id)!
+  }
+
+  updateStoryBeat(id: string, patch: Partial<Pick<StoryBeat, 'act' | 'title' | 'purpose' | 'expectedChange' | 'caution' | 'sortKey' | 'status' | 'sceneIds' | 'deletedAt'>>): StoryBeat | null {
+    const row = this.db.prepare('SELECT * FROM story_beats WHERE id=?').get(id) as Row | undefined
+    if (!row) return null
+    const current = mapStoryBeat(row, [])
+    this.transaction(() => {
+      this.db.prepare('UPDATE story_beats SET act=?,title=?,purpose=?,expected_change=?,caution=?,sort_key=?,status=?,deleted_at=?,updated_at=? WHERE id=?').run(
+        patch.act ?? current.act, patch.title ?? current.title, patch.purpose ?? current.purpose, patch.expectedChange ?? current.expectedChange,
+        patch.caution ?? current.caution, patch.sortKey ?? current.sortKey, patch.status ?? current.status,
+        patch.deletedAt === undefined ? current.deletedAt : patch.deletedAt, nowIso(), id,
+      )
+      if (patch.sceneIds) this.replaceStoryBeatScenes(id, current.projectId, patch.sceneIds)
+      this.touchProject(current.projectId)
+      this.logOperation(current.projectId, 'story_beat', id, patch.deletedAt ? 'trash' : 'update', null, null, 'human')
+    })
+    return this.getStoryPlan(current.projectId)?.beats.find((beat) => beat.id === id) ?? null
+  }
+
+  installStoryStarter(projectId: string, replace = false): StoryPlan {
+    this.transaction(() => {
+      if (replace) this.db.prepare('UPDATE story_beats SET deleted_at=?,updated_at=? WHERE project_id=? AND deleted_at IS NULL').run(nowIso(), nowIso(), projectId)
+      const existing = Number((this.db.prepare('SELECT COUNT(*) AS count FROM story_beats WHERE project_id=? AND deleted_at IS NULL').get(projectId) as Row).count)
+      if (existing === 0) for (const [index, beat] of STORY_STARTER_BEATS.entries()) this.createStoryBeat({ projectId, ...beat, sortKey: (index + 1) * 1000 })
+      this.updateStoryBlueprint(projectId, { approach: 'guided' })
+    })
+    return this.getStoryPlan(projectId)!
+  }
+
+  private replaceStoryBeatScenes(beatId: string, projectId: string, sceneIds: string[]) {
+    const unique = [...new Set(sceneIds)]
+    if (unique.length) {
+      const placeholders = unique.map(() => '?').join(',')
+      const valid = Number((this.db.prepare(`SELECT COUNT(*) AS count FROM manuscript_nodes WHERE project_id=? AND type='scene' AND deleted_at IS NULL AND id IN (${placeholders})`).get(projectId, ...unique) as Row).count)
+      if (valid !== unique.length) throw new Error('节拍只能关联当前作品中未删除的场景')
+    }
+    this.db.prepare('DELETE FROM story_beat_scenes WHERE beat_id=?').run(beatId)
+    const insert = this.db.prepare('INSERT INTO story_beat_scenes(beat_id,node_id,created_at) VALUES(?,?,?)')
+    for (const sceneId of unique) insert.run(beatId, sceneId, nowIso())
+  }
+
   listProjects(includeDeleted = false): Project[] {
     const rows = this.db.prepare(`SELECT * FROM projects ${includeDeleted ? '' : 'WHERE deleted_at IS NULL'} ORDER BY updated_at DESC`).all() as Row[]
     return rows.map(mapProject)
+  }
+
+  listProjectTrash(): ProjectTrashSummary[] {
+    const projects = (this.db.prepare('SELECT * FROM projects WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all() as Row[]).map(mapProject)
+    if (!projects.length) return []
+    const stats = new Map(projects.map((project) => [project.id, { chapterCount: 0, sceneCount: 0, wordCount: 0 }]))
+    const rows = this.db.prepare(`
+      SELECT n.project_id,n.type,COALESCE(d.plain_text,'') AS plain_text
+      FROM manuscript_nodes n LEFT JOIN scene_documents d ON d.node_id=n.id
+      WHERE n.deleted_at IS NULL AND n.project_id IN (SELECT id FROM projects WHERE deleted_at IS NOT NULL)
+    `).all() as Row[]
+    for (const row of rows) {
+      const entry = stats.get(String(row.project_id))
+      if (!entry) continue
+      if (row.type === 'chapter') entry.chapterCount += 1
+      if (row.type === 'scene') { entry.sceneCount += 1; entry.wordCount += countWords(String(row.plain_text)) }
+    }
+    return projects.map((project) => ({ ...project, ...stats.get(project.id)! }))
   }
 
   getProject(id: string): Project | null {
@@ -1308,8 +1506,20 @@ export class AppDatabase {
         id,
       )
       if (patch.title !== undefined) this.db.prepare("UPDATE manuscript_nodes SET title=? WHERE project_id=? AND type='book'").run(patch.title, id)
+      if (patch.deletedAt !== undefined && patch.deletedAt !== current.deletedAt) {
+        this.logOperation(id, 'project', id, patch.deletedAt ? 'trash' : 'restore', null, null, 'human')
+      }
     })
     return this.getProject(id)
+  }
+
+  restoreProjects(ids: string[]): Project[] {
+    const uniqueIds = [...new Set(ids)]
+    return this.transaction(() => {
+      const projects = uniqueIds.map((id) => this.getProject(id))
+      if (projects.some((project) => !project || !project.deletedAt)) throw new Error('只能恢复仍在回收站中的作品')
+      return projects.map((project) => this.updateProject(project!.id, { deletedAt: null })!)
+    })
   }
 
   listNodes(projectId: string, includeDeleted = false): ManuscriptNode[] {
@@ -2915,8 +3125,38 @@ export class AppDatabase {
   }
 }
 
+const STORY_STARTER_BEATS: Array<{ act: StoryBeatAct; title: string; purpose: string; expectedChange: string; caution: string }> = [
+  { act: 'opening', title: '开场承诺', purpose: '用一个具体场面让读者看见主角的常态、缺口与作品气质。', expectedChange: '读者知道要跟随谁，以及这会是怎样的故事。', caution: '不要先解释完整世界观。' },
+  { act: 'opening', title: '诱发事件', purpose: '打破原有平衡，制造无法长期忽略的问题。', expectedChange: '主角原先的生活方式开始失效。', caution: '事件必须改变选择，而不只是提供信息。' },
+  { act: 'opening', title: '跨过门槛', purpose: '让主角作出不可轻易撤回的承诺，正式进入主冲突。', expectedChange: '故事目标和失败代价变得可感。', caution: '避免由旁人替主角作出全部决定。' },
+  { act: 'middle', title: '第一次推进', purpose: '让主角主动试探规则，并获得一次带代价的进展。', expectedChange: '方法看似有效，同时暴露更深阻力。', caution: '进展不能让核心冲突失去压力。' },
+  { act: 'middle', title: '中点转向', purpose: '揭示新事实或改变关系，使目标、代价或身份发生重估。', expectedChange: '主角从应对局势转为更主动的选择。', caution: '转向应由前文铺垫，而非凭空反转。' },
+  { act: 'middle', title: '压力收紧', purpose: '让外部阻力与内部缺口相互放大，旧方法连续失效。', expectedChange: '主角被迫面对真正需要改变的部分。', caution: '升级的不只是场面，还要升级选择难度。' },
+  { act: 'ending', title: '最低点与抉择', purpose: '拿走依赖，迫使主角在欲望与需要之间作出决定。', expectedChange: '最终行动的价值立场被明确。', caution: '最低点不是单纯受挫，而是旧信念崩塌。' },
+  { act: 'ending', title: '高潮兑现', purpose: '用不可回避的行动检验主角变化，并结算核心冲突。', expectedChange: '胜负、代价与主题答案同时落地。', caution: '高潮必须兑现先前建立的能力、关系或伏笔。' },
+  { act: 'ending', title: '新平衡', purpose: '展示结局后的具体状态，让读者看见获得、失去与余波。', expectedChange: '开场提出的缺口得到回答，故事闭合或有意留白。', caution: '不要用解释替代可见的变化。' },
+]
+
 function mapProject(row: Row): Project {
   return { id: String(row.id), title: String(row.title), description: String(row.description), createdAt: String(row.created_at), updatedAt: String(row.updated_at), deletedAt: row.deleted_at ? String(row.deleted_at) : null }
+}
+
+function mapStoryBlueprint(row: Row): StoryBlueprint {
+  return {
+    projectId: String(row.project_id), approach: row.approach as StoryPlanningApproach, genre: String(row.genre), premise: String(row.premise),
+    coreConflict: String(row.core_conflict), protagonistGoal: String(row.protagonist_goal), protagonistNeed: String(row.protagonist_need), stakes: String(row.stakes),
+    thematicQuestion: String(row.thematic_question), climaxChoice: String(row.climax_choice), endingTruth: String(row.ending_truth), endingState: String(row.ending_state),
+    mustKeep: jsonParse(String(row.must_keep_json), []), mustAvoid: jsonParse(String(row.must_avoid_json), []), targetWords: row.target_words === null ? null : Number(row.target_words),
+    createdAt: String(row.created_at), updatedAt: String(row.updated_at),
+  }
+}
+
+function mapStoryBeat(row: Row, sceneIds: string[]): StoryBeat {
+  return {
+    id: String(row.id), projectId: String(row.project_id), act: row.act as StoryBeatAct, title: String(row.title), purpose: String(row.purpose),
+    expectedChange: String(row.expected_change), caution: String(row.caution), sortKey: Number(row.sort_key), status: row.status as StoryBeatStatus,
+    sceneIds, createdAt: String(row.created_at), updatedAt: String(row.updated_at), deletedAt: row.deleted_at ? String(row.deleted_at) : null,
+  }
 }
 
 function mapNode(row: Row): ManuscriptNode {

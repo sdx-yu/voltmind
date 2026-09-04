@@ -30,22 +30,42 @@ describe('AppDatabase', () => {
     expect(database.listNodes(project.id).find((node) => node.type === 'book')?.title).toBe('新书名')
   })
 
+  it('keeps a story blueprint separate from the manuscript and restores hidden scene links', () => {
+    const project = database.createProject('归航', '', { blueprint: { approach: 'guided', premise: '失踪的领航员必须带仇人穿过风暴。', endingState: '灯塔重新亮起。' }, starter: 'three_act' })
+    const scene = database.listNodes(project.id).find((node) => node.type === 'scene')!
+    const plan = database.getStoryPlan(project.id)!
+    expect(plan.blueprint).toMatchObject({ approach: 'guided', premise: '失踪的领航员必须带仇人穿过风暴。', endingState: '灯塔重新亮起。' })
+    expect(plan.beats).toHaveLength(9)
+    expect(database.listNodes(project.id)).toHaveLength(3)
+
+    database.updateStoryBeat(plan.beats[0].id, { sceneIds: [scene.id], status: 'drafting' })
+    expect(database.getStoryPlan(project.id)!.beats[0]).toMatchObject({ sceneIds: [scene.id], status: 'drafting' })
+    database.softDeleteNode(scene.id, true)
+    expect(database.getStoryPlan(project.id)!.beats[0].sceneIds).toEqual([])
+    database.softDeleteNode(scene.id, false)
+    expect(database.getStoryPlan(project.id)!.beats[0].sceneIds).toEqual([scene.id])
+  })
+
   it('backs up a v2 database before applying later story schemas through v10', () => {
     const databasePath = database.databasePath
+    database.db.exec('DROP TABLE story_beat_scenes; DROP TABLE story_beats; DROP TABLE story_blueprints;')
     database.db.exec('DROP TABLE voice_preference_stats; DROP TABLE character_voice_profiles; DROP TABLE style_analysis_runs; DROP TABLE scene_voice_profiles; DROP TABLE project_voice_defaults; DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DROP TABLE mobile_inbox_actions; DROP TABLE mobile_inbox_items; DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DROP TABLE provenance_exports; DROP TABLE provenance_events; DROP TABLE delivery_check_runs; DROP TABLE project_delivery_rule_overrides; DROP TABLE delivery_rules; DROP TABLE delivery_templates; DROP TABLE read_aloud_preferences; DROP TABLE style_sample_preferences; DROP TABLE style_samples; DROP TABLE series_canon_overrides; DROP TABLE series_canon_entries; DROP TABLE series_projects; DROP TABLE series; DROP TABLE knowledge_grants; DROP TABLE knowledge_facts; DROP TABLE foreshadow_events; DROP TABLE foreshadows; DELETE FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13,14,15, 16,17,18,19,20);')
+    database.db.prepare('DELETE FROM schema_migrations WHERE version=21').run()
     database.close()
     database = new AppDatabase(databasePath)
     expect(database.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='foreshadows'").get()).toMatchObject({ name: 'foreshadows' })
     expect(database.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_facts'").get()).toMatchObject({ name: 'knowledge_facts' })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v2-to-v20-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v2-to-v21-'))).toBe(true)
   })
 
   it('backs up v3 before migrating the role-knowledge schema to v4', () => {
     const databasePath = database.databasePath
+    database.db.exec('DROP TABLE story_beat_scenes; DROP TABLE story_beats; DROP TABLE story_blueprints;')
     database.db.exec('DROP TABLE voice_preference_stats; DROP TABLE character_voice_profiles; DROP TABLE style_analysis_runs; DROP TABLE scene_voice_profiles; DROP TABLE project_voice_defaults; DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DROP TABLE mobile_inbox_actions; DROP TABLE mobile_inbox_items; DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DROP TABLE provenance_exports; DROP TABLE provenance_events; DROP TABLE delivery_check_runs; DROP TABLE project_delivery_rule_overrides; DROP TABLE delivery_rules; DROP TABLE delivery_templates; DROP TABLE read_aloud_preferences; DROP TABLE style_sample_preferences; DROP TABLE style_samples; DROP TABLE series_canon_overrides; DROP TABLE series_canon_entries; DROP TABLE series_projects; DROP TABLE series; DROP TABLE knowledge_grants; DROP TABLE knowledge_facts; DELETE FROM schema_migrations WHERE version IN (4,5,6,7,8,9,10,11,12,13,14,15, 16,17,18,19,20);')
+    database.db.prepare('DELETE FROM schema_migrations WHERE version=21').run()
     database.close(); database = new AppDatabase(databasePath)
-    expect(database.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 20 })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v3-to-v20-'))).toBe(true)
+    expect(database.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 21 })
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v3-to-v21-'))).toBe(true)
   })
 
   it('saves immutable revisions and restores as a new revision', () => {

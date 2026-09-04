@@ -24,23 +24,27 @@ describe('V1-S encrypted handoff protocol', () => {
   it('backs up v7 before adding the v8–v10 schemas', () => {
     let db = database('migration')
     const databasePath = db.databasePath
+    db.db.exec('DROP TABLE story_beat_scenes; DROP TABLE story_beats; DROP TABLE story_blueprints;')
     db.db.exec('DROP TABLE voice_preference_stats; DROP TABLE character_voice_profiles; DROP TABLE style_analysis_runs; DROP TABLE scene_voice_profiles; DROP TABLE project_voice_defaults; DROP TABLE relationship_states; DROP TABLE entity_relationships; DROP TABLE entity_profile_fields; DROP TABLE research_cohort_submissions; DROP TABLE research_cohort_participants; DROP TABLE research_cohort_deletion_receipts; DROP TABLE research_wave_events; DROP TABLE research_wave_incidents; DROP TABLE research_waves; DROP TABLE research_events; DROP TABLE research_tasks; DROP TABLE research_enrollments; DROP TABLE visual_events; DROP TABLE storyboard_cards; DROP TABLE storyboards; DROP TABLE visual_candidates; DROP TABLE visual_anchors; DROP TABLE visual_assets; DROP TABLE template_events; DROP TABLE template_applications; DROP TABLE template_grants; DROP TABLE template_package_resources; DROP TABLE template_packages; DROP TABLE template_resources; DROP TABLE sprint_board_cards; DROP TABLE sprint_boards; DROP TABLE sprint_result_cards; DROP TABLE sprint_events; DROP TABLE sprint_samples; DROP TABLE sprint_sessions; DROP TABLE review_decisions; DROP TABLE review_feedback; DROP TABLE review_sessions; DROP TABLE mobile_inbox_actions; DROP TABLE mobile_inbox_items; DROP TABLE sync_conflicts; DROP TABLE sync_updates; DROP TABLE sync_object_versions; DROP TABLE sync_scene_states; DROP TABLE sync_project_configs; DELETE FROM schema_migrations WHERE version IN (8,9,10,11,12,13,14,15, 16,17,18,19,20);')
+    db.db.prepare('DELETE FROM schema_migrations WHERE version=21').run()
     db.close(); databases.pop(); db = new AppDatabase(databasePath); databases.push(db)
-    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 20 })
+    expect(db.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()).toMatchObject({ version: 21 })
     expect(db.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sync_conflicts'").get()).toMatchObject({ name: 'sync_conflicts' })
-    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v7-to-v20-'))).toBe(true)
+    expect(fs.readdirSync(path.join(dir, 'backups')).some((name) => name.startsWith('pre-migration-v7-to-v21-'))).toBe(true)
   })
 
   it('encrypts all manuscript metadata and rejects wrong keys, missing chunks and tampering', () => {
     const db = database('crypto'); const sync = new SyncService(db); const project = db.createProject('密文中的书名')
     const scene = db.listNodes(project.id).find((node) => node.type === 'scene')!; db.saveScene(scene.id, doc('不能出现在信封里的正文'), '不能出现在信封里的正文'); db.updateNode(scene.id, { status: 'complete' })
+    db.updateStoryBlueprint(project.id, { approach: 'guided', premise: '不能出现在信封里的蓝图', endingState: '灯塔重新亮起' })
+    db.createStoryBeat({ projectId: project.id, act: 'ending', title: '最后抉择', sceneIds: [scene.id] })
     db.updateNode(scene.id, { storyTime: '承平十二年腊月廿三', storyTimeSpec: { ...emptyStoryTimeSpec('custom'), era: '承平', year: 12, month: 12, day: 23 } })
     const attachment = Buffer.from('original source bytes'); const attachmentHash = createHash('sha256').update(attachment).digest('hex')
     db.db.prepare('INSERT INTO imported_sources(id,project_id,file_name,mime_type,byte_size,content_hash,content_base64,created_at) VALUES(?,?,?,?,?,?,?,?)').run(randomUUID(), project.id, '原稿.txt', 'text/plain', attachment.length, attachmentHash, attachment.toString('base64'), new Date().toISOString())
     const { recoveryPhrase } = sync.initialize(project.id, '离线电脑 A')
     const transfer = sync.exportPackage(project.id, recoveryPhrase)
     const serialized = JSON.stringify(transfer)
-    expect(serialized).not.toContain('密文中的书名'); expect(serialized).not.toContain('不能出现在信封里的正文')
+    expect(serialized).not.toContain('密文中的书名'); expect(serialized).not.toContain('不能出现在信封里的正文'); expect(serialized).not.toContain('不能出现在信封里的蓝图')
     expect(sync.inspectPackage(transfer, recoveryPhrase)).toMatchObject({ valid: true, projectTitle: '密文中的书名', sceneCount: 1, attachmentCount: 1 })
     expect(() => sync.inspectPackage(transfer, '0000-0000-0000-0000-0000-0000-0000-0000-0000-0000-0000-0000')).toThrow()
     expect(() => sync.inspectPackage({ ...transfer, chunks: transfer.chunks.slice(1) }, recoveryPhrase)).toThrow(/分块|chunk|缺失/i)
@@ -49,6 +53,7 @@ describe('V1-S encrypted handoff protocol', () => {
     const restored = database('crypto-restore'); new SyncService(restored).importPackage(transfer, recoveryPhrase, '恢复设备')
     expect(restored.db.prepare('SELECT content_hash FROM imported_sources WHERE project_id=?').get(project.id)).toMatchObject({ content_hash: attachmentHash })
     expect(restored.getNode(scene.id)).toMatchObject({ status: 'complete', storyTime: '承平十二年腊月廿三', storyTimeSpec: { mode: 'custom', era: '承平', year: 12, month: 12, day: 23 } })
+    expect(restored.getStoryPlan(project.id)).toMatchObject({ blueprint: { premise: '不能出现在信封里的蓝图', endingState: '灯塔重新亮起' }, beats: [{ title: '最后抉择', sceneIds: [scene.id] }] })
   }, 15_000)
 
   it('bootstraps two isolated replicas, converges concurrent text and makes business forks explicit', () => {

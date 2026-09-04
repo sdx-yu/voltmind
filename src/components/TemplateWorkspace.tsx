@@ -98,7 +98,7 @@ export function TemplateWorkspace({ project, onBack, onChanged, notify }: Props)
 
   async function revert(application: TemplateApplication) {
     setBusy(true)
-    try { await api.revertTemplateApplication(application.id); await Promise.all([load(), onChanged()]); notify('success', '模板节点已整批移入项目回收站，可单独恢复') }
+    try { await api.revertTemplateApplication(application.id); await Promise.all([load(), onChanged()]); notify('success', '模板节点已整批移入内容回收站，可单独恢复') }
     catch (error) { handleError(error) } finally { setBusy(false) }
   }
 

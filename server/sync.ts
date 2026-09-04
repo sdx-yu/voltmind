@@ -12,6 +12,7 @@ import type {
   ProvenanceEvent,
   Revision,
   SceneDocument,
+  StoryPlan,
   SyncApplyResult,
   SyncConflict,
   SyncDrillResult,
@@ -66,6 +67,7 @@ interface SyncPayload {
   entities: SyncEntityPayload[]
   attachments: SyncAttachmentPayload[]
   mobileInbox?: MobileInboxItem[]
+  storyPlan?: StoryPlan
   provenance: ProvenanceEvent[]
   createdAt: string
 }
@@ -123,7 +125,7 @@ export class SyncService {
     const entities = this.database.listEntities(projectId, true).map((entity) => this.captureEntity(projectId, entity, vector))
     const attachments = this.captureAttachments(projectId)
     const mobileInbox = this.database.listMobileInbox(projectId)
-    const payload: SyncPayload = { version: 1, project, nodes, scenes, entities, attachments, mobileInbox, provenance: this.database.listProvenanceEvents(projectId), createdAt: nowIso() }
+    const payload: SyncPayload = { version: 1, project, nodes, scenes, entities, attachments, mobileInbox, storyPlan: this.database.getStoryPlan(projectId, true) ?? undefined, provenance: this.database.listProvenanceEvents(projectId), createdAt: nowIso() }
     const transfer = encryptPayload(payload, {
       projectFingerprint: projectFingerprint(projectId, config.keySalt), senderDeviceId: config.deviceId, senderDeviceName: config.deviceName,
       sequence, vector, keySalt: config.keySalt, keyVerifier: config.keyVerifier,
@@ -164,6 +166,7 @@ export class SyncService {
     let appliedScenes = 0; let mergedScenes = 0; let appliedEntities = 0; let conflictsCreated = 0
     this.database.transaction(() => {
       this.ensureMissingNodes(payload)
+      if (payload.storyPlan) this.database.syncStoryPlan(payload.project.id, payload.storyPlan)
       if (provenanceRelation === 'remote_extends') this.appendProvenance(payload.project.id, payload.provenance)
       else if (provenanceRelation === 'fork') { this.createProvenanceConflict(payload.project.id, payload.provenance, transfer); conflictsCreated += 1 }
 
@@ -368,7 +371,9 @@ export class SyncService {
     this.database.transaction(() => {
       const project = payload.project
       this.database.db.prepare('INSERT INTO projects(id,title,description,created_at,updated_at,deleted_at) VALUES(?,?,?,?,?,?)').run(project.id, project.title, project.description, project.createdAt, project.updatedAt, project.deletedAt)
+      this.database.db.prepare('INSERT INTO story_blueprints(project_id,created_at,updated_at) VALUES(?,?,?)').run(project.id, project.createdAt, payload.storyPlan ? '' : project.updatedAt)
       this.ensureMissingNodes(payload)
+      if (payload.storyPlan) this.database.syncStoryPlan(project.id, payload.storyPlan)
       for (const scene of payload.scenes) this.insertScene(scene)
       for (const entity of payload.entities) this.writeEntity(entity, false)
       for (const entity of payload.entities) { this.writeEntity(entity); this.upsertObjectVersion(project.id, 'entity', entity.entity.id, entity.vector, entity.contentHash, entity.deleted) }
@@ -502,6 +507,7 @@ function parseTransfer(value: unknown): SyncTransferPackage {
 function validatePayload(payload: SyncPayload) {
   if (payload.version !== 1 || !payload.project?.id || !Array.isArray(payload.nodes) || !Array.isArray(payload.scenes) || !Array.isArray(payload.entities) || !Array.isArray(payload.attachments) || !Array.isArray(payload.provenance)) throw new Error('接力包载荷格式不正确')
   if (payload.mobileInbox !== undefined && !Array.isArray(payload.mobileInbox)) throw new Error('接力包中的移动收集项格式不正确')
+  if (payload.storyPlan !== undefined && (!payload.storyPlan?.blueprint || !Array.isArray(payload.storyPlan.beats) || payload.storyPlan.blueprint.projectId !== payload.project.id)) throw new Error('接力包中的故事蓝图格式不正确')
   for (const item of payload.mobileInbox ?? []) {
     if (!item || typeof item.id !== 'string' || item.id.length < 8 || (item.projectId !== null && item.projectId !== payload.project.id) || !['inspiration', 'scene_idea', 'review_note'].includes(item.kind) || typeof item.content !== 'string' || !item.content.trim() || !Array.isArray(item.actions) || Number.isNaN(Date.parse(item.createdAt))) throw new Error('接力包中的移动收集项格式不正确')
     for (const action of item.actions) if (!action || typeof action.id !== 'string' || action.itemId !== item.id || !['filed', 'dismissed', 'revisit', 'approved'].includes(action.action) || typeof action.note !== 'string' || Number.isNaN(Date.parse(action.createdAt))) throw new Error('接力包中的移动收集动作格式不正确')

@@ -69,6 +69,18 @@ const voiceInput = z.object({
 const selectionAnchorInput = z.object({ nodeId: z.string(), sourceContentHash: z.string().length(64), startOffset: z.number().int().nonnegative(), endOffset: z.number().int().nonnegative(), originalText: z.string().min(1).max(5000), contextBefore: z.string().max(200), contextAfter: z.string().max(200) })
 const aiTaskInput = z.object({ projectId: z.string(), nodeId: z.string(), taskType: z.enum(['word_inspiration', 'style_rewrite', 'idea_to_prose', 'polish', 'beat', 'brainstorm', 'continue', 'rewrite', 'cold_read', 'continuity', 'extract_facts']), instruction: z.string().default(''), selectedContextIds: z.array(z.string()), selectionAnchor: selectionAnchorInput.optional() })
 const characterVoiceInput = z.object({ register: z.enum(['literary', 'balanced', 'vernacular']).optional(), sentence: z.enum(['short', 'mixed', 'long']).optional(), directness: z.enum(['indirect', 'balanced', 'direct']).optional(), emotion: z.enum(['restrained', 'balanced', 'expressive']).optional(), signature: z.string().max(200).optional(), avoid: z.string().max(200).optional() })
+const blueprintInput = z.object({
+  approach: z.enum(['discovery', 'guided', 'structured']).optional(), genre: z.string().trim().max(80).optional(), premise: z.string().trim().max(1200).optional(),
+  coreConflict: z.string().trim().max(1200).optional(), protagonistGoal: z.string().trim().max(800).optional(), protagonistNeed: z.string().trim().max(800).optional(),
+  stakes: z.string().trim().max(1000).optional(), thematicQuestion: z.string().trim().max(800).optional(), climaxChoice: z.string().trim().max(1200).optional(),
+  endingTruth: z.string().trim().max(1000).optional(), endingState: z.string().trim().max(1200).optional(), mustKeep: z.array(z.string().trim().min(1).max(160)).max(12).optional(),
+  mustAvoid: z.array(z.string().trim().min(1).max(160)).max(12).optional(), targetWords: z.number().int().min(1000).max(10_000_000).nullable().optional(),
+})
+const beatInput = z.object({
+  act: z.enum(['opening', 'middle', 'ending', 'custom']), title: z.string().trim().min(1).max(120), purpose: z.string().trim().max(1200).default(''),
+  expectedChange: z.string().trim().max(1000).default(''), caution: z.string().trim().max(800).default(''), sortKey: z.number().int().optional(),
+  status: z.enum(['planned', 'drafting', 'fulfilled', 'skipped']).default('planned'), sceneIds: z.array(z.string()).max(30).default([]),
+})
 const reviewPhraseInput = z.object({ recoveryPhrase: z.string().min(1).max(200) })
 const reviewPackageInput = reviewPhraseInput.extend({ package: z.unknown() })
 
@@ -106,9 +118,15 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   })
 
   app.get('/api/projects', (req, res) => res.json(database.listProjects(req.query.trash === '1')))
+  app.get('/api/projects/trash', (_req, res) => res.json(database.listProjectTrash()))
+  app.post('/api/projects/trash/restore', route(async (req, res) => {
+    const input = z.object({ ids: z.array(z.string().min(1)).min(1).max(100) }).parse(req.body)
+    try { res.json(database.restoreProjects(input.ids)) }
+    catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : '批量恢复失败' }) }
+  }))
   app.post('/api/projects', route(async (req, res) => {
-    const input = z.object({ title: z.string().trim().min(1).max(200), description: z.string().default('') }).parse(req.body)
-    res.status(201).json(database.createProject(input.title, input.description))
+    const input = z.object({ title: z.string().trim().min(1).max(200), description: z.string().default(''), blueprint: blueprintInput.optional(), starter: z.enum(['three_act']).optional() }).parse(req.body)
+    res.status(201).json(database.createProject(input.title, input.description, { blueprint: input.blueprint, starter: input.starter }))
   }))
   app.patch('/api/projects/:id', route(async (req, res) => {
     const input = z.object({ title: z.string().trim().min(1).max(200).optional(), description: z.string().optional(), deletedAt: z.string().nullable().optional() }).parse(req.body)
@@ -122,9 +140,40 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     res.json(result)
   }))
   app.post('/api/projects/:id/restore', route(async (req, res) => {
-    const result = database.updateProject(param(req, 'id'), { deletedAt: null })
+    const project = database.getProject(param(req, 'id'))
+    if (!project) return res.status(404).json({ error: 'Project not found' })
+    if (!project.deletedAt) return res.status(409).json({ error: '作品已不在回收站中' })
+    res.json(database.updateProject(project.id, { deletedAt: null }))
+  }))
+  app.get('/api/projects/:id/story-plan', route(async (req, res) => {
+    const result = database.getStoryPlan(param(req, 'id'))
     if (!result) return res.status(404).json({ error: 'Project not found' })
     res.json(result)
+  }))
+  app.put('/api/projects/:id/story-plan/blueprint', route(async (req, res) => {
+    const result = database.updateStoryBlueprint(param(req, 'id'), blueprintInput.parse(req.body))
+    if (!result) return res.status(404).json({ error: 'Project not found' })
+    res.json(result)
+  }))
+  app.post('/api/projects/:id/story-plan/starter', route(async (req, res) => {
+    const input = z.object({ type: z.literal('three_act'), replace: z.boolean().default(false) }).parse(req.body)
+    if (!database.getProject(param(req, 'id'))) return res.status(404).json({ error: 'Project not found' })
+    res.json(database.installStoryStarter(param(req, 'id'), input.replace))
+  }))
+  app.post('/api/projects/:id/story-beats', route(async (req, res) => {
+    if (!database.getProject(param(req, 'id'))) return res.status(404).json({ error: 'Project not found' })
+    res.status(201).json(database.createStoryBeat({ projectId: param(req, 'id'), ...beatInput.parse(req.body) }))
+  }))
+  app.patch('/api/story-beats/:id', route(async (req, res) => {
+    const input = beatInput.partial().parse(req.body)
+    const result = database.updateStoryBeat(param(req, 'id'), input)
+    if (!result) return res.status(404).json({ error: 'Story beat not found' })
+    res.json(result)
+  }))
+  app.delete('/api/story-beats/:id', route(async (req, res) => {
+    const result = database.updateStoryBeat(param(req, 'id'), { deletedAt: nowIso() })
+    if (!result && !database.db.prepare('SELECT 1 FROM story_beats WHERE id=?').get(param(req, 'id'))) return res.status(404).json({ error: 'Story beat not found' })
+    res.json({ ok: true })
   }))
   app.get('/api/projects/:id/tree', route(async (req, res) => res.json(database.listNodes(param(req, 'id'), req.query.trash === '1'))))
   app.post('/api/projects/:id/nodes', route(async (req, res) => res.status(201).json(database.createNode({ projectId: param(req, 'id'), ...nodeInput.parse(req.body) }))))
@@ -781,7 +830,7 @@ function requireFound<T>(value: T | null, label: string): T {
 }
 
 const backupPayloadSchema = z.object({
-  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), profileFields: z.array(z.any()).optional(), relationships: z.array(z.any()).optional(), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), voice: z.object({ projectDefault: z.any().nullable(), profiles: z.array(z.any()), analyses: z.array(z.any()).optional(), characterProfiles: z.array(z.any()).optional(), preferences: z.array(z.any()).optional() }).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
+  exportedAt: z.string(), project: z.object({ title: z.string(), description: z.string() }), nodes: z.array(z.any()), documents: z.array(z.any()), revisions: z.array(z.any()), entities: z.array(z.any()), states: z.array(z.any()), profileFields: z.array(z.any()).optional(), relationships: z.array(z.any()).optional(), mentions: z.array(z.any()), candidates: z.array(z.any()), canonEvents: z.array(z.any()), settings: z.array(z.any()), sources: z.array(z.any()), foreshadows: z.array(z.any()).optional(), knowledge: z.array(z.any()).optional(), storyPlan: z.any().optional(), seriesBundle: z.any().nullable().optional(), styleSamples: z.array(z.any()).optional(), voice: z.object({ projectDefault: z.any().nullable(), profiles: z.array(z.any()), analyses: z.array(z.any()).optional(), characterProfiles: z.array(z.any()).optional(), preferences: z.array(z.any()).optional() }).optional(), delivery: z.any().optional(), aiTasks: z.array(z.any()).optional(), provenance: z.object({ events: z.array(z.any()), exports: z.array(z.any()) }).optional(), mobileInbox: z.array(z.any()).optional(), review: z.array(z.any()).optional(), sprint: z.any().optional(), templates: z.any().optional(), visuals: z.any().optional(),
 })
 const backupSchema = z.object({ format: z.literal('bbd-backup-v2'), checksum: z.string().length(64), payload: backupPayloadSchema }).superRefine((archive, context) => {
   if (sha256(JSON.stringify(archive.payload)) !== archive.checksum) context.addIssue({ code: 'custom', message: '备份校验失败，文件可能已损坏或被修改' })
@@ -806,6 +855,7 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const sources = database.db.prepare('SELECT file_name,mime_type,byte_size,content_hash,content_base64,created_at FROM imported_sources WHERE project_id=?').all(projectId)
   const foreshadows = database.listForeshadows(projectId, true)
   const knowledge = database.listKnowledgeFacts(projectId, true)
+  const storyPlan = database.getStoryPlan(projectId)
   const series = database.getSeriesForProject(projectId)
   const seriesBundle = series ? { series: { name: series.name, description: series.description }, canon: database.listSeriesCanon(series.id, projectId, true) } : null
   const styleSamples = database.listStyleSamples(projectId, true)
@@ -823,7 +873,7 @@ function exportProject(database: AppDatabase, templates: TemplateService, visual
   const sprint = { sessions: sprintSessions, boards: sprintBoards }
   const templateBundle = templates.exportProjectBundle(projectId)
   const visualBundle = visuals.exportProjectBundle(projectId)
-  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, profileFields, relationships, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, seriesBundle, styleSamples, voice, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
+  const payload = { exportedAt: nowIso(), project: { title: project.title, description: project.description }, nodes, documents, revisions, entities, states, profileFields, relationships, mentions, candidates, canonEvents, settings, sources, foreshadows, knowledge, storyPlan, seriesBundle, styleSamples, voice, delivery, aiTasks, provenance, mobileInbox, review, sprint, templates: templateBundle, visuals: visualBundle }
   return { format: 'bbd-backup-v2', checksum: sha256(JSON.stringify(payload)), payload }
 }
 
@@ -987,6 +1037,13 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
       const restoredBoard = database.createSprintBoard({ projectId: project.id, name: board.name, period: board.period, targetWords: board.targetWords, periodStartedAt: board.periodStartedAt })
       for (const sprintPackage of board.packages ?? []) database.addSprintBoardCard(restoredBoard.id, sprintPackage, board.updatedAt ?? nowIso())
     }
+    if (source.storyPlan?.blueprint) {
+      database.updateStoryBlueprint(project.id, source.storyPlan.blueprint)
+      for (const beat of source.storyPlan.beats ?? []) database.createStoryBeat({
+        projectId: project.id, act: beat.act, title: beat.title, purpose: beat.purpose ?? '', expectedChange: beat.expectedChange ?? '', caution: beat.caution ?? '', sortKey: beat.sortKey,
+        status: beat.status ?? 'planned', sceneIds: (beat.sceneIds ?? []).map((id: string) => idMap.get(String(id))).filter(Boolean) as string[],
+      })
+    }
     if (source.templates) templates.importProjectBundle(project.id, source.templates, idMap)
     for (const node of source.nodes as any[]) if (node.deletedAt && idMap.has(node.id)) database.softDeleteNode(idMap.get(node.id)!, true)
     for (const entity of source.entities as any[]) if (entity.deletedAt && entityMap.has(entity.id)) database.updateEntity(entityMap.get(entity.id)!, { deletedAt: nowIso() })
@@ -1000,6 +1057,9 @@ function importProject(database: AppDatabase, templates: TemplateService, visual
 function cleanupProject(database: AppDatabase, projectId: string) {
   database.db.exec('PRAGMA foreign_keys=OFF')
   try {
+    database.db.prepare('DELETE FROM story_beat_scenes WHERE beat_id IN (SELECT id FROM story_beats WHERE project_id=?)').run(projectId)
+    database.db.prepare('DELETE FROM story_beats WHERE project_id=?').run(projectId)
+    database.db.prepare('DELETE FROM story_blueprints WHERE project_id=?').run(projectId)
     database.db.prepare('UPDATE research_tasks SET project_id=NULL WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM visual_events WHERE project_id=?').run(projectId)
     database.db.prepare('DELETE FROM storyboard_cards WHERE storyboard_id IN (SELECT id FROM storyboards WHERE project_id=?)').run(projectId)

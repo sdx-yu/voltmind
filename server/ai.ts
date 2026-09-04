@@ -1,4 +1,4 @@
-import type { AiContextItem, AiStreamEvent, AiTaskResult, EntityState, TextSelectionAnchor } from '../shared/types.js'
+import type { AiContextItem, AiStreamEvent, AiTaskResult, EntityState, StoryBlueprint, TextSelectionAnchor } from '../shared/types.js'
 import { storyTimeContext } from '../shared/storyTime.js'
 import { compileVoiceContract } from '../shared/voice.js'
 import type { AppDatabase } from './db.js'
@@ -84,6 +84,18 @@ export class AiService {
       id: `time:${nodeId}`, type: 'time', title: '本场故事时间', content: storyTimeContext(node, projectNodes),
       reason: '用于判断人物状态、先后与倒叙；不会猜测缺失日期', privacyLevel: 'normal', selected: true, estimatedTokens: 30,
     }]
+    const storyPlan = this.database.getStoryPlan(projectId)
+    if (storyPlan) {
+      const blueprintContent = storyBlueprintContext(storyPlan.blueprint)
+      if (blueprintContent) items.push({
+        id: `blueprint:${projectId}`, type: 'blueprint', title: '故事蓝图', content: blueprintContent,
+        reason: '作者确认的主冲突、结局方向与不可越过边界', privacyLevel: 'author_only', selected: true, estimatedTokens: estimateTokens(blueprintContent),
+      })
+      for (const beat of storyPlan.beats.filter((item) => item.sceneIds.includes(nodeId) && item.status !== 'skipped')) {
+        const content = [`所属幕：${beatActLabel(beat.act)}`, beat.purpose && `本节拍任务：${beat.purpose}`, beat.expectedChange && `预期变化：${beat.expectedChange}`, beat.caution && `避免：${beat.caution}`].filter(Boolean).join('\n')
+        items.push({ id: `beat:${beat.id}`, type: 'beat', title: `当前节拍：${beat.title}`, content, reason: '该节拍已明确关联当前场景', privacyLevel: 'author_only', selected: true, estimatedTokens: estimateTokens(content) })
+      }
+    }
     const entities = this.database.listEntities(projectId)
     const mentionedNames = entities.filter((entity) => [entity.canonicalName, ...entity.aliases].some((name) => name.length >= 2 && scene.plainText.includes(name)))
     for (const entity of mentionedNames) {
@@ -290,6 +302,25 @@ function truncateToTokenBudget(text: string, budget: number): string {
   return low ? `${text.slice(0, Math.max(0, low - 1))}…` : ''
 }
 
+function storyBlueprintContext(blueprint: StoryBlueprint): string {
+  return [
+    blueprint.genre && `类型气质：${blueprint.genre}`,
+    blueprint.premise && `故事前提：${blueprint.premise}`,
+    blueprint.coreConflict && `核心冲突：${blueprint.coreConflict}`,
+    blueprint.protagonistGoal && `主角想要：${blueprint.protagonistGoal}`,
+    blueprint.protagonistNeed && `主角真正需要：${blueprint.protagonistNeed}`,
+    blueprint.stakes && `失败代价：${blueprint.stakes}`,
+    blueprint.thematicQuestion && `主题追问：${blueprint.thematicQuestion}`,
+    blueprint.climaxChoice && `高潮抉择：${blueprint.climaxChoice}`,
+    blueprint.endingTruth && `结局揭示：${blueprint.endingTruth}`,
+    blueprint.endingState && `结局状态：${blueprint.endingState}`,
+    blueprint.mustKeep.length && `必须保留：${blueprint.mustKeep.join('；')}`,
+    blueprint.mustAvoid.length && `不得发生：${blueprint.mustAvoid.join('；')}`,
+  ].filter(Boolean).join('\n')
+}
+
+function beatActLabel(act: string) { return ({ opening: '开端', middle: '发展', ending: '结局', custom: '自定义' } as Record<string, string>)[act] ?? act }
+
 function stateContext(state: EntityState, name: string, privacyLevel: AiContextItem['privacyLevel']): AiContextItem {
   const content = `${state.attributeKey}：${String(state.value)}${state.worldTimeFrom ? `（自 ${state.worldTimeFrom}）` : ''}`
   return { id: state.id, type: 'state', title: `${name}的当前状态`, content, reason: '该状态与当前实体相关', privacyLevel, selected: privacyLevel !== 'local_private', estimatedTokens: estimateTokens(content) }
@@ -330,7 +361,7 @@ function buildPrompt(taskType: string, instruction: string, context: string): st
     continuity: '最多列出 6 项，总长不超过 500 个中文字符。',
     extract_facts: '最多列出 8 项，总长不超过 400 个中文字符。',
   }
-  return `你是中文长篇创作助手。作者拥有最终决定权。不要展示思考过程。若上下文里有「本场景文风档」，它是这一场的文笔契约，必须先遵守作者原话，再遵守旋钮。\n任务：${taskRules[taskType] ?? taskType}\n输出约束：${lengthRules[taskType] ?? '简洁作答。'}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
+  return `你是中文长篇创作助手。作者拥有最终决定权。不要展示思考过程。若上下文里有「故事蓝图」或「当前节拍」，它们是剧情边界：不得擅自改变结局方向、跳过必要转折或触犯“不得发生”。若有「本场景文风档」，它是这一场的文笔契约，必须先遵守作者原话，再遵守旋钮。\n任务：${taskRules[taskType] ?? taskType}\n输出约束：${lengthRules[taskType] ?? '简洁作答。'}\n用户补充：${instruction || '无'}\n\n可用上下文：\n${context}`
 }
 
 function runMockTask(taskType: string, _instruction: string, text: string): string {

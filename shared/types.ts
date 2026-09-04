@@ -17,6 +17,57 @@ export interface Project {
   deletedAt: string | null
 }
 
+export type StoryPlanningApproach = 'discovery' | 'guided' | 'structured'
+export type StoryBeatAct = 'opening' | 'middle' | 'ending' | 'custom'
+export type StoryBeatStatus = 'planned' | 'drafting' | 'fulfilled' | 'skipped'
+
+export interface StoryBlueprint {
+  projectId: string
+  approach: StoryPlanningApproach
+  genre: string
+  premise: string
+  coreConflict: string
+  protagonistGoal: string
+  protagonistNeed: string
+  stakes: string
+  thematicQuestion: string
+  climaxChoice: string
+  endingTruth: string
+  endingState: string
+  mustKeep: string[]
+  mustAvoid: string[]
+  targetWords: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoryBeat {
+  id: string
+  projectId: string
+  act: StoryBeatAct
+  title: string
+  purpose: string
+  expectedChange: string
+  caution: string
+  sortKey: number
+  status: StoryBeatStatus
+  sceneIds: string[]
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
+export interface StoryPlan {
+  blueprint: StoryBlueprint
+  beats: StoryBeat[]
+}
+
+export interface ProjectTrashSummary extends Project {
+  chapterCount: number
+  sceneCount: number
+  wordCount: number
+}
+
 export interface SeriesMember {
   projectId: string
   title: string
@@ -1256,7 +1307,7 @@ export interface WritingStats {
 
 export interface AiContextItem {
   id: string
-  type: 'scene' | 'time' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'voice' | 'foreshadow' | 'knowledge'
+  type: 'scene' | 'time' | 'entity' | 'state' | 'relationship' | 'history' | 'style' | 'voice' | 'foreshadow' | 'knowledge' | 'blueprint' | 'beat'
   title: string
   content: string
   reason: string

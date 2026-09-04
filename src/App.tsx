@@ -22,7 +22,7 @@ function isMobileExperience() {
 
 export default function App() {
   const [projects, setProjects] = useState<Project[]>([])
-  const [selected, setSelected] = useState<{ project: Project; initialView?: 'write' | 'template' } | null>(null)
+  const [selected, setSelected] = useState<{ project: Project; initialView?: 'write' | 'plot' | 'template' } | null>(null)
   const [loading, setLoading] = useState(true)
   const [rescueMode, setRescueMode] = useState(false)
   const [toast, setToast] = useState<ToastState | null>(null)

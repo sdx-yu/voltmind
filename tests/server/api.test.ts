@@ -35,6 +35,49 @@ describe('local API', () => {
     expect(database.listNodes(project.id).find((node) => node.type === 'book')?.title).toBe('新书名')
   })
 
+  it('creates and edits a guided story blueprint without generating manuscript chapters', async () => {
+    const created = await request(app).post('/api/projects').set('Cookie', cookie).send({ title: '归航', blueprint: { approach: 'guided', premise: '一个逃亡者必须回到故乡。', endingState: '旧港获得新的秩序。' }, starter: 'three_act' }).expect(201)
+    const nodes = database.listNodes(created.body.id)
+    expect(nodes.map((node) => node.type)).toEqual(['book', 'chapter', 'scene'])
+    const plan = await request(app).get(`/api/projects/${created.body.id}/story-plan`).set('Cookie', cookie).expect(200)
+    expect(plan.body.beats).toHaveLength(9)
+    expect(plan.body.blueprint.premise).toBe('一个逃亡者必须回到故乡。')
+    const beat = plan.body.beats[0]
+    await request(app).patch(`/api/story-beats/${beat.id}`).set('Cookie', cookie).send({ status: 'drafting', sceneIds: [nodes.find((node) => node.type === 'scene')!.id] }).expect(200)
+    const context = await request(app).get(`/api/projects/${created.body.id}/scenes/${nodes.find((node) => node.type === 'scene')!.id}/context`).set('Cookie', cookie).expect(200)
+    expect(context.body).toContainEqual(expect.objectContaining({ type: 'blueprint', title: '故事蓝图' }))
+    expect(context.body).toContainEqual(expect.objectContaining({ type: 'beat', title: `当前节拍：${beat.title}` }))
+  })
+
+  it('exposes project trash summaries and restores selected projects atomically', async () => {
+    const first = database.createProject('雾港来信', '海雾里的旧案')
+    const initial = database.listNodes(first.id); const book = initial.find((node) => node.type === 'book')!
+    const chapter = database.createNode({ projectId: first.id, parentId: book.id, type: 'chapter', title: '第二章' })
+    const scene = database.createNode({ projectId: first.id, parentId: chapter.id, type: 'scene', title: '雨夜' })
+    database.saveScene(scene.id, doc('雨落 three'), '雨落 three')
+    const second = database.createProject('旧城来客')
+
+    await request(app).delete(`/api/projects/${first.id}`).set('Cookie', cookie).expect(200)
+    await request(app).delete(`/api/projects/${second.id}`).set('Cookie', cookie).expect(200)
+    database.db.prepare('UPDATE projects SET deleted_at=? WHERE id=?').run('2026-09-03T09:00:00.000Z', first.id)
+    database.db.prepare('UPDATE projects SET deleted_at=? WHERE id=?').run('2026-09-03T10:00:00.000Z', second.id)
+
+    const trash = await request(app).get('/api/projects/trash').set('Cookie', cookie).expect(200)
+    expect(trash.body.map((project: { id: string }) => project.id)).toEqual([second.id, first.id])
+    expect(trash.body[1]).toMatchObject({ title: '雾港来信', chapterCount: 2, sceneCount: 2, wordCount: 3, deletedAt: '2026-09-03T09:00:00.000Z' })
+    expect(database.db.prepare("SELECT COUNT(*) AS count FROM operation_log WHERE project_id=? AND operation='trash'").get(first.id)).toMatchObject({ count: 1 })
+
+    await request(app).post('/api/projects/trash/restore').set('Cookie', cookie).send({ ids: [first.id, second.id] }).expect(200)
+    expect(database.listProjects().map((project) => project.id)).toEqual(expect.arrayContaining([first.id, second.id]))
+    expect(database.db.prepare("SELECT COUNT(*) AS count FROM operation_log WHERE project_id=? AND operation='restore'").get(first.id)).toMatchObject({ count: 1 })
+
+    await request(app).delete(`/api/projects/${first.id}`).set('Cookie', cookie).expect(200)
+    await request(app).post('/api/projects/trash/restore').set('Cookie', cookie).send({ ids: [first.id, 'missing'] }).expect(409)
+    expect(database.getProject(first.id)?.deletedAt).not.toBeNull()
+    await request(app).post(`/api/projects/${first.id}/restore`).set('Cookie', cookie).expect(200)
+    await request(app).post(`/api/projects/${first.id}/restore`).set('Cookie', cookie).expect(409)
+  })
+
   it('runs project, scene, search and mock AI flow', async () => {
     const project = (await request(app).post('/api/projects').set('Cookie', cookie).send({ title: '验收项目' }).expect(201)).body
     const nodes = (await request(app).get(`/api/projects/${project.id}/tree`).set('Cookie', cookie).expect(200)).body
@@ -60,6 +103,8 @@ describe('local API', () => {
     database.transitionForeshadow(clue.id, { action: 'reinforced', nodeId: scene.id, evidence: '第二封信也是同样缺口' })
     const secret = database.createKnowledgeFact({ projectId: project.id, title: '密信落款', detail: '沈砚写了密信', keywords: ['沈砚写了密信'], firstRevealedNodeId: scene.id })
     database.grantKnowledge(secret.id, { entityId: entity.id, knownFromNodeId: scene.id, evidence: '林照看见落款' })
+    database.updateStoryBlueprint(project.id, { approach: 'guided', premise: '林照必须查明密信来源。', endingState: '真相公开，但同盟破裂。' })
+    const beat = database.createStoryBeat({ projectId: project.id, act: 'ending', title: '公开真相', purpose: '让选择产生代价', sceneIds: [scene.id] })
     database.setSetting(project.id, 'dailyGoal', 1234)
     const backup = await request(app).get(`/api/projects/${project.id}/backup`).set('Cookie', cookie).expect(200)
     const restored = await request(app).post('/api/backups/restore').set('Cookie', cookie).send(backup.body).expect(201)
@@ -74,6 +119,8 @@ describe('local API', () => {
     expect(database.listForeshadows(restored.body.id)[0].events).toHaveLength(2)
     expect(database.listKnowledgeFacts(restored.body.id)[0]).toMatchObject({ title: '密信落款', keywords: ['沈砚写了密信'] })
     expect(database.listKnowledgeFacts(restored.body.id)[0].grants).toHaveLength(1)
+    expect(database.getStoryPlan(restored.body.id)?.blueprint).toMatchObject({ premise: '林照必须查明密信来源。', endingState: '真相公开，但同盟破裂。' })
+    expect(database.getStoryPlan(restored.body.id)?.beats[0]).toMatchObject({ title: beat.title, sceneIds: [restoredScene.id] })
     expect(database.getSetting(restored.body.id, 'dailyGoal', 0)).toBe(1234)
     await request(app).post('/api/backups/restore').set('Cookie', cookie).send({ ...backup.body, checksum: '0'.repeat(64) }).expect(400)
     expect(database.listProjects()).toHaveLength(2)
