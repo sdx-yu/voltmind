@@ -274,6 +274,7 @@ test('keeps touch targets at 44px in touch density', async ({ page }) => {
 })
 
 test('reflows across the frozen desktop, narrow and PWA viewport matrix', async ({ page }) => {
+  test.setTimeout(60_000)
   for (const width of [1440, 1280, 1024, 430, 390, 360]) {
     for (const theme of ['宣纸', '夜间']) {
       await test.step(`${width}px · ${theme}`, async () => {

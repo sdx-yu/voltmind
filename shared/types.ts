@@ -66,6 +66,18 @@ export interface ProjectTrashSummary extends Project {
   chapterCount: number
   sceneCount: number
   wordCount: number
+  estimatedByteSize: number
+}
+
+export interface StorageStatus {
+  databaseByteSize: number
+  backupByteSize: number
+  backupCount: number
+  trashEstimatedByteSize: number
+  trashCount: number
+  trashRetentionDays: 30 | 90 | null
+  libraryPresent: boolean
+  availableByteSize: number
 }
 
 export interface SeriesMember {

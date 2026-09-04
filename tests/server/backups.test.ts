@@ -32,6 +32,21 @@ describe('automatic database snapshots', () => {
     expect(new Set(retained.map((name) => name.slice(8, 18))).size).toBeGreaterThanOrEqual(7)
   })
 
+  it('caps pre-migration safety copies independently', () => {
+    const backupDir = path.join(dir, 'backups'); fs.mkdirSync(backupDir)
+    for (let index = 0; index < 9; index += 1) fs.writeFileSync(path.join(backupDir, `pre-migration-v${index}-to-v21-2026-08-${String(index + 1).padStart(2, '0')}.sqlite`), '')
+    rotateSnapshots(backupDir)
+    expect(fs.readdirSync(backupDir).filter((name) => name.startsWith('pre-migration-'))).toHaveLength(6)
+  })
+
+  it('removes timestamped and interrupted snapshot temporary files', () => {
+    const backupDir = path.join(dir, 'backups'); fs.mkdirSync(backupDir)
+    fs.writeFileSync(path.join(backupDir, 'bibudai-test.sqlite.partial'), 'incomplete')
+    fs.writeFileSync(path.join(backupDir, 'bibudai-test.sqlite.partial-123'), 'incomplete')
+    rotateSnapshots(backupDir)
+    expect(fs.readdirSync(backupDir)).toEqual([])
+  })
+
   it('restores only a valid snapshot and preserves the corrupt database', () => {
     const databasePath = path.join(dir, 'main.sqlite')
     const database = new AppDatabase(databasePath)

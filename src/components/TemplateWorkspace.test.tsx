@@ -18,7 +18,12 @@ describe('TemplateWorkspace', () => {
   afterEach(() => cleanup())
 
   it('shows per-project least privilege and permanently unavailable capabilities', async () => {
-    render(<TemplateWorkspace project={project} onBack={vi.fn()} onChanged={vi.fn()} notify={vi.fn()}/>)
+    const onBack = vi.fn()
+    render(<TemplateWorkspace project={project} onBack={onBack} onChanged={vi.fn()} notify={vi.fn()}/>)
+    const back = screen.getByRole('button', { name: '返回规划' })
+    expect(back).toHaveClass('ui-button-ghost', 'template-header-back')
+    await userEvent.click(back)
+    expect(onBack).toHaveBeenCalledOnce()
     expect(await screen.findByText('当前项目授权')).toBeInTheDocument()
     expect(screen.getByText(/正文读取 · 网络访问 · 密钥与恢复短语/)).toBeInTheDocument()
     expect(screen.getByText('发布者身份未经认证；包已通过本地结构与 SHA-256 完整性校验，但不是数字签名。')).toBeInTheDocument()

@@ -25,7 +25,7 @@ export function createDatabaseSnapshot(database: AppDatabase, dataDir: string): 
 }
 
 export function rotateSnapshots(backupDir: string) {
-  for (const name of fs.readdirSync(backupDir).filter((item) => item.includes('.partial-'))) fs.unlinkSync(path.join(backupDir, name))
+  for (const name of fs.readdirSync(backupDir).filter((item) => item.includes('.partial-') || item.endsWith('.partial'))) fs.unlinkSync(path.join(backupDir, name))
   const files = fs.readdirSync(backupDir).filter((name) => /^bibudai-\d{4}-\d{2}-\d{2}T.*\.sqlite$/.test(name)).sort().reverse()
   const keep = new Set(files.slice(0, 20))
   const days = new Set<string>()
@@ -34,6 +34,8 @@ export function rotateSnapshots(backupDir: string) {
     if (days.size < 7 && !days.has(day)) { days.add(day); keep.add(file) }
   }
   for (const file of files) if (!keep.has(file)) fs.unlinkSync(path.join(backupDir, file))
+  const migrations = fs.readdirSync(backupDir).filter((name) => /^pre-migration-v\d+-to-v\d+-.+\.sqlite$/.test(name)).sort().reverse()
+  for (const file of migrations.slice(6)) fs.unlinkSync(path.join(backupDir, file))
 }
 
 export interface DatabaseSnapshot {

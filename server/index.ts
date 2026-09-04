@@ -4,6 +4,7 @@ import { getConfig } from './config.js'
 import { createApp } from './app.js'
 import { createDatabaseSnapshot } from './backups.js'
 import { createRescueApp } from './rescue.js'
+import { assertLibraryCanOpen, ensureLibraryMarker } from './storage.js'
 
 const config = getConfig()
 let database: AppDatabase | null = null
@@ -14,6 +15,7 @@ function activate() {
   try {
     database?.close()
     database = null
+    assertLibraryCanOpen(config)
     const runtime = createApp(config)
     const integrity = runtime.database.integrityCheck()
     if (integrity !== 'ok') {
@@ -21,6 +23,7 @@ function activate() {
       throw new Error(`SQLite integrity_check: ${integrity}`)
     }
     database = runtime.database
+    ensureLibraryMarker(config)
     handler = runtime.app as RequestListener
     lastFailure = ''
     return true

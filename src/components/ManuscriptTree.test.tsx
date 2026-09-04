@@ -42,10 +42,36 @@ describe('ManuscriptTree footer actions', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: '展开全部' }))
     expect(document.querySelector('.scene-select')).toBeInTheDocument()
   })
+
+  it('labels structural counts and keeps secondary scene actions in one contextual menu', async () => {
+    renderTree()
+
+    expect(screen.getByText('1 场')).toBeInTheDocument()
+    expect(screen.getByText('0 字')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '场景 1 更多操作' }))
+    expect(screen.getByRole('menuitem', { name: '重命名场景' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: '拆分场景' })).toHaveAttribute('data-disabled')
+    expect(screen.getByRole('menuitem', { name: '移到回收站' })).toBeInTheDocument()
+  })
+
+  it('keeps a volume compact and moves its occasional actions into one menu', async () => {
+    const volumeNodes = [
+      node('book', '小说', null, 'book', 1000),
+      node('volume', '第 1 卷', 'book', 'volume', 1000),
+      node('chapter', '第一章', 'volume', 'chapter', 1000),
+      node('scene', '场景 1', 'chapter', 'scene', 1000),
+    ]
+    renderTree(vi.fn(), volumeNodes)
+
+    expect(screen.getByText('1 章')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '第 1 卷 更多操作' }))
+    expect(screen.getByRole('menuitem', { name: '添加章节' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: '重命名卷' })).toBeInTheDocument()
+  })
 })
 
-function renderTree(onSearch = vi.fn()) {
-  return render(<ManuscriptTree nodes={nodes} selectedId="scene" onSelect={vi.fn()} onCreateVolume={vi.fn()} onCreateChapter={vi.fn()} onCreateScene={vi.fn()} onUpdate={vi.fn()} onTrash={vi.fn()} onSplit={vi.fn()} onMerge={vi.fn()} onSearch={onSearch} />)
+function renderTree(onSearch = vi.fn(), treeNodes = nodes) {
+  return render(<ManuscriptTree nodes={treeNodes} selectedId="scene" onSelect={vi.fn()} onCreateVolume={vi.fn()} onCreateChapter={vi.fn()} onCreateScene={vi.fn()} onUpdate={vi.fn()} onTrash={vi.fn()} onSplit={vi.fn()} onMerge={vi.fn()} onSearch={onSearch} />)
 }
 
 function node(id: string, title: string, parentId: string | null, type: ManuscriptNode['type'], sortKey: number): ManuscriptNode {

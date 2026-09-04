@@ -1473,7 +1473,7 @@ export class AppDatabase {
   listProjectTrash(): ProjectTrashSummary[] {
     const projects = (this.db.prepare('SELECT * FROM projects WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all() as Row[]).map(mapProject)
     if (!projects.length) return []
-    const stats = new Map(projects.map((project) => [project.id, { chapterCount: 0, sceneCount: 0, wordCount: 0 }]))
+    const stats = new Map(projects.map((project) => [project.id, { chapterCount: 0, sceneCount: 0, wordCount: 0, estimatedByteSize: this.estimateProjectByteSize(project.id) }]))
     const rows = this.db.prepare(`
       SELECT n.project_id,n.type,COALESCE(d.plain_text,'') AS plain_text
       FROM manuscript_nodes n LEFT JOIN scene_documents d ON d.node_id=n.id
@@ -1520,6 +1520,94 @@ export class AppDatabase {
       if (projects.some((project) => !project || !project.deletedAt)) throw new Error('只能恢复仍在回收站中的作品')
       return projects.map((project) => this.updateProject(project!.id, { deletedAt: null })!)
     })
+  }
+
+  purgeProjects(ids: string[]): Project[] {
+    const uniqueIds = [...new Set(ids)]
+    if (!uniqueIds.length) return []
+    if (this.transactionDepth > 0) throw new Error('不能在其他资料库操作中永久删除作品')
+    const projects = uniqueIds.map((id) => this.getProject(id))
+    if (projects.some((project) => !project || !project.deletedAt)) throw new Error('只能永久删除仍在回收站中的作品')
+    const tables = (this.db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all() as Row[])
+      .filter((row) => !String(row.name).startsWith('scene_search_'))
+
+    this.checkpoint()
+    this.db.exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE')
+    try {
+      this.db.exec('CREATE TEMP TABLE IF NOT EXISTS purge_project_ids(id TEXT PRIMARY KEY); DELETE FROM purge_project_ids')
+      const rememberProject = this.db.prepare('INSERT INTO purge_project_ids(id) VALUES(?)')
+      for (const id of uniqueIds) rememberProject.run(id)
+      this.db.prepare(`DELETE FROM scene_search WHERE node_id IN (
+        SELECT node.id FROM manuscript_nodes node JOIN purge_project_ids target ON target.id=node.project_id
+      )`).run()
+      for (const row of tables) {
+        const table = String(row.name)
+        if (table === 'projects' || table === 'scene_search') continue
+        const columns = this.db.prepare(`PRAGMA table_info(${quoteIdentifier(table)})`).all() as Row[]
+        if (columns.some((column) => String(column.name) === 'project_id')) {
+          this.db.prepare(`DELETE FROM ${quoteIdentifier(table)} WHERE project_id IN (SELECT id FROM purge_project_ids)`).run()
+        }
+      }
+      this.db.prepare('DELETE FROM projects WHERE id IN (SELECT id FROM purge_project_ids)').run()
+      this.removeForeignKeyOrphans(tables)
+      this.db.prepare('DELETE FROM series WHERE NOT EXISTS (SELECT 1 FROM series_projects WHERE series_projects.series_id=series.id)').run()
+      this.removeForeignKeyOrphans(tables)
+      this.db.prepare(`DELETE FROM visual_assets
+        WHERE NOT EXISTS (SELECT 1 FROM visual_candidates WHERE visual_candidates.asset_hash=visual_assets.content_hash)
+          AND NOT EXISTS (SELECT 1 FROM visual_anchors WHERE visual_anchors.accepted_asset_hash=visual_assets.content_hash)
+          AND NOT EXISTS (SELECT 1 FROM storyboard_cards WHERE storyboard_cards.asset_hash=visual_assets.content_hash)`).run()
+      const violations = this.db.prepare('PRAGMA foreign_key_check').all() as Row[]
+      if (violations.length) throw new Error('永久删除后的资料库关联检查未通过，操作已取消')
+      this.db.exec('COMMIT')
+    } catch (error) {
+      this.db.exec('ROLLBACK')
+      throw error
+    } finally {
+      this.db.exec('PRAGMA foreign_keys=ON')
+      try { this.db.exec('DELETE FROM purge_project_ids') } catch { /* the temp table may have rolled back with the transaction */ }
+    }
+    try { this.db.exec('VACUUM') } catch { /* deletion is complete even if compaction must wait */ }
+    return projects as Project[]
+  }
+
+  private estimateProjectByteSize(projectId: string) {
+    const scalar = (sql: string) => Number((this.db.prepare(sql).get(projectId) as Row | undefined)?.bytes ?? 0)
+    const documents = scalar(`SELECT COALESCE(SUM(LENGTH(d.content_json)+LENGTH(d.plain_text)),0) AS bytes FROM scene_documents d JOIN manuscript_nodes n ON n.id=d.node_id WHERE n.project_id=?`)
+    const revisions = scalar(`SELECT COALESCE(SUM(LENGTH(r.content_json)+LENGTH(r.plain_text)),0) AS bytes FROM revisions r JOIN manuscript_nodes n ON n.id=r.node_id WHERE n.project_id=?`)
+    const imports = scalar('SELECT COALESCE(SUM(byte_size),0) AS bytes FROM imported_sources WHERE project_id=?')
+    const visuals = scalar(`SELECT COALESCE(SUM(byte_size),0) AS bytes FROM visual_assets WHERE content_hash IN (SELECT DISTINCT asset_hash FROM visual_candidates WHERE project_id=?)`)
+    const rowCount = scalar(`SELECT COUNT(*) * 256 AS bytes FROM manuscript_nodes WHERE project_id=?`)
+    return Math.max(0, documents + revisions + imports + visuals + rowCount)
+  }
+
+  private removeForeignKeyOrphans(tables: Row[]) {
+    for (let pass = 0; pass < tables.length; pass += 1) {
+      let changes = 0
+      for (const row of tables) {
+        const table = String(row.name)
+        if (table === 'projects' || table === 'scene_search' || table === 'schema_migrations') continue
+        const foreignKeys = this.db.prepare(`PRAGMA foreign_key_list(${quoteIdentifier(table)})`).all() as Row[]
+        const groups = new Map<number, Row[]>()
+        for (const foreignKey of foreignKeys) {
+          const id = Number(foreignKey.id)
+          groups.set(id, [...(groups.get(id) ?? []), foreignKey])
+        }
+        for (const group of groups.values()) {
+          const parent = String(group[0].table)
+          const present = group.map((foreignKey) => `child.${quoteIdentifier(String(foreignKey.from))} IS NOT NULL`).join(' AND ')
+          const match = group.map((foreignKey) => `parent.${quoteIdentifier(String(foreignKey.to))}=child.${quoteIdentifier(String(foreignKey.from))}`).join(' AND ')
+          const orphan = `${present} AND NOT EXISTS (SELECT 1 FROM ${quoteIdentifier(parent)} parent WHERE ${match})`
+          if (String(group[0].on_delete).toUpperCase() === 'SET NULL') {
+            const assignments = group.map((foreignKey) => `${quoteIdentifier(String(foreignKey.from))}=NULL`).join(',')
+            changes += Number(this.db.prepare(`UPDATE ${quoteIdentifier(table)} AS child SET ${assignments} WHERE ${orphan}`).run().changes)
+          } else {
+            changes += Number(this.db.prepare(`DELETE FROM ${quoteIdentifier(table)} AS child WHERE ${orphan}`).run().changes)
+          }
+        }
+      }
+      if (changes === 0) return
+    }
+    throw new Error('永久删除时未能收敛资料库关联，请保留当前数据并联系支持')
   }
 
   listNodes(projectId: string, includeDeleted = false): ManuscriptNode[] {
@@ -3139,6 +3227,10 @@ const STORY_STARTER_BEATS: Array<{ act: StoryBeatAct; title: string; purpose: st
 
 function mapProject(row: Row): Project {
   return { id: String(row.id), title: String(row.title), description: String(row.description), createdAt: String(row.created_at), updatedAt: String(row.updated_at), deletedAt: row.deleted_at ? String(row.deleted_at) : null }
+}
+
+function quoteIdentifier(value: string) {
+  return `"${value.replaceAll('"', '""')}"`
 }
 
 function mapStoryBlueprint(row: Row): StoryBlueprint {

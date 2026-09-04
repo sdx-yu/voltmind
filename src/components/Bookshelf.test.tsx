@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Project, ProjectTrashSummary } from '../../shared/types'
 import { Bookshelf } from './Bookshelf'
 
-const mocks = vi.hoisted(() => ({ createProject: vi.fn(), updateProject: vi.fn(), listProjectTrash: vi.fn(), restoreProject: vi.fn(), restoreProjects: vi.fn(), trashProject: vi.fn() }))
+const mocks = vi.hoisted(() => ({ createProject: vi.fn(), updateProject: vi.fn(), listProjectTrash: vi.fn(), restoreProject: vi.fn(), restoreProjects: vi.fn(), trashProject: vi.fn(), purgeProjects: vi.fn(), emptyProjectTrash: vi.fn(), getStorageStatus: vi.fn(), updateStoragePolicy: vi.fn() }))
 vi.mock('../lib/api', () => ({ api: mocks }))
 
 const project: Project = { id: 'p', title: '雾港', description: '海雾里的旧案', createdAt: '', updatedAt: '2026-08-28T00:00:00.000Z', deletedAt: null }
@@ -17,6 +17,10 @@ describe('Bookshelf shell', () => {
     mocks.restoreProjects.mockResolvedValue([])
     mocks.trashProject.mockResolvedValue({ ...project, deletedAt: '2026-09-03T10:00:00.000Z' })
     mocks.createProject.mockResolvedValue(project)
+    mocks.getStorageStatus.mockResolvedValue(storageStatus())
+    mocks.purgeProjects.mockResolvedValue({ purged: [] })
+    mocks.emptyProjectTrash.mockResolvedValue({ purged: [] })
+    mocks.updateStoragePolicy.mockResolvedValue({ ...storageStatus(), purgedProjects: 0 })
   })
   afterEach(() => { cleanup(); vi.clearAllMocks() })
 
@@ -32,20 +36,26 @@ describe('Bookshelf shell', () => {
 
   it('presents the bookshelf as a compact work list with truthful metadata', () => {
     const untitledDescription = { ...project, id: 'empty-description', title: '潮声', description: '' }
-    renderBookshelf(vi.fn(), vi.fn(), vi.fn().mockResolvedValue(undefined), [project, untitledDescription])
+    const { container } = renderBookshelf(vi.fn(), vi.fn(), vi.fn().mockResolvedValue(undefined), [project, untitledDescription])
 
     expect(screen.getByRole('heading', { name: '继续写下去' })).toBeInTheDocument()
     expect(screen.getByText('2 部作品')).toBeInTheDocument()
     expect(screen.getByText('尚未填写作品简介')).toBeInTheDocument()
+    expect([...container.querySelectorAll('.cover-title')].map((element) => element.textContent)).toEqual(['雾港', '潮声'])
+    expect(container.querySelector('.cover svg')).not.toBeInTheDocument()
     expect(screen.getByRole('contentinfo', { name: '创作数据保障' })).toHaveTextContent('稿件默认保存在本机自动留痕AI 不越权')
   })
 
   it('offers blank and structure-first creation paths', async () => {
     renderBookshelf()
     await userEvent.click(screen.getByRole('button', { name: '新故事' }))
+    const dialog = screen.getByRole('dialog', { name: '新建故事' })
+    expect(dialog).toHaveClass('ui-dialog-wide', 'bookshelf-create-dialog')
+    expect(within(dialog).getByRole('contentinfo')).toHaveTextContent('已选择：直接开写')
     expect(screen.getByRole('radio', { name: /直接开写/ })).toHaveAttribute('aria-checked', 'true')
     await userEvent.click(screen.getByRole('radio', { name: /从结构起步/ }))
     expect(screen.getByRole('radio', { name: /从结构起步/ })).toHaveAttribute('aria-checked', 'true')
+    expect(within(dialog).getByRole('contentinfo')).toHaveTextContent('已选择：从结构起步')
     expect(screen.getByRole('button', { name: '创建并选择结构' })).toBeInTheDocument()
   })
 
@@ -108,7 +118,7 @@ describe('Bookshelf shell', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: '作品回收站' }))
     const dialog = await screen.findByRole('dialog', { name: '作品回收站' })
     expect(dialog).toBeInTheDocument()
-    expect(screen.getByText('2 部作品')).toBeInTheDocument()
+    expect(screen.getByText(/2 部作品 · 约/)).toBeInTheDocument()
     expect(screen.getAllByText('2 章')).toHaveLength(2)
     expect(within(dialog).getAllByText('雾港')).toHaveLength(2)
 
@@ -133,6 +143,38 @@ describe('Bookshelf shell', () => {
     await waitFor(() => expect(mocks.restoreProjects).toHaveBeenCalledWith(['deleted-a', 'deleted-b']))
     expect(onRefresh).toHaveBeenCalled()
     expect(screen.getByText('作品回收站是空的')).toBeInTheDocument()
+  })
+
+  it('requires confirmation before permanently deleting a trashed work', async () => {
+    const trash = [trashedProject('deleted-a', '雾港')]
+    mocks.listProjectTrash.mockResolvedValue(trash)
+    mocks.purgeProjects.mockResolvedValue({ purged: trash })
+    renderBookshelf()
+
+    await userEvent.click(screen.getByRole('button', { name: '书架更多操作' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '作品回收站' }))
+    await screen.findByRole('dialog', { name: '作品回收站' })
+    await userEvent.click(screen.getByRole('button', { name: '永久删除' }))
+    expect(screen.getByRole('dialog', { name: '永久删除作品' })).toHaveTextContent('无法再从回收站恢复')
+    await userEvent.click(screen.getByRole('button', { name: '确认永久删除' }))
+
+    await waitFor(() => expect(mocks.purgeProjects).toHaveBeenCalledWith(['deleted-a']))
+    expect(await screen.findByText('作品回收站是空的')).toBeInTheDocument()
+  })
+
+  it('confirms a finite retention policy before applying it', async () => {
+    mocks.listProjectTrash.mockResolvedValue([trashedProject('deleted-a', '雾港')])
+    mocks.updateStoragePolicy.mockResolvedValue({ ...storageStatus(), trashRetentionDays: 30, purgedProjects: 0 })
+    renderBookshelf()
+
+    await userEvent.click(screen.getByRole('button', { name: '书架更多操作' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '作品回收站' }))
+    await screen.findByRole('dialog', { name: '作品回收站' })
+    await userEvent.click(screen.getByRole('combobox', { name: '自动清理' }))
+    await userEvent.click(screen.getByRole('option', { name: '保留 30 天' }))
+    expect(screen.getByRole('dialog', { name: '修改回收站保留策略' })).toHaveTextContent('立即清理已经到期的作品')
+    await userEvent.click(screen.getByRole('button', { name: '确认修改' }))
+    await waitFor(() => expect(mocks.updateStoragePolicy).toHaveBeenCalledWith(30))
   })
 
   it('shows a recoverable load error inside the trash center', async () => {
@@ -164,5 +206,9 @@ function renderBookshelf(onOpen = vi.fn(), notify = vi.fn(), onRefresh = vi.fn()
 }
 
 function trashedProject(id: string, title: string, description = '旧稿', deletedAt = '2026-09-03T10:00:00.000Z'): ProjectTrashSummary {
-  return { id, title, description, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: deletedAt, deletedAt, chapterCount: 2, sceneCount: 5, wordCount: 8600 }
+  return { id, title, description, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: deletedAt, deletedAt, chapterCount: 2, sceneCount: 5, wordCount: 8600, estimatedByteSize: 128 * 1024 }
+}
+
+function storageStatus() {
+  return { databaseByteSize: 4 * 1024 * 1024, backupByteSize: 20 * 1024 * 1024, backupCount: 5, trashEstimatedByteSize: 128 * 1024, trashCount: 1, trashRetentionDays: null, libraryPresent: true, availableByteSize: 8 * 1024 * 1024 * 1024 }
 }

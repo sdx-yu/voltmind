@@ -83,8 +83,8 @@ describe('Workspace chrome', () => {
   it('asks before trashing a scene instead of using window.confirm', async () => {
     const confirm = vi.spyOn(window, 'confirm')
     render(<Workspace project={project} onBack={vi.fn()} notify={vi.fn()} />)
-    expect(await screen.findByRole('button', { name: '删除 雨夜' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: '删除 雨夜' }))
+    await userEvent.click(await screen.findByRole('button', { name: '雨夜 更多操作' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: '移到回收站' }))
     expect(screen.getByRole('dialog', { name: '移到回收站' })).toBeInTheDocument()
     expect(confirm).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: '移到回收站' }))
@@ -93,8 +93,9 @@ describe('Workspace chrome', () => {
 
   it('disables scene actions whose preconditions are not met', async () => {
     render(<Workspace project={project} onBack={vi.fn()} notify={vi.fn()} />)
-    expect(await screen.findByRole('button', { name: '拆分 雨夜' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '合并 雨夜 与下一场景' })).toBeDisabled()
+    await userEvent.click(await screen.findByRole('button', { name: '雨夜 更多操作' }))
+    expect(screen.getByRole('menuitem', { name: '拆分场景' })).toHaveAttribute('data-disabled')
+    expect(screen.getByRole('menuitem', { name: '与下一场景合并' })).toHaveAttribute('data-disabled')
   })
 
   it('explains why a contextual desktop command cannot run in the current view', async () => {

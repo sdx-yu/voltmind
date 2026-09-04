@@ -21,6 +21,8 @@ import { VisualService } from './visual.js'
 import { ResearchService, buildReleaseReadiness, buildSupportBundle } from './research.js'
 import { ResearchCohortService } from './researchCohort.js'
 import { ResearchWaveService } from './researchWave.js'
+import { createDatabaseSnapshot } from './backups.js'
+import { expiredTrashIds, isLibraryPresent, readStoragePolicy, storageStatus, writeStoragePolicy } from './storage.js'
 import type { VisualSelectedField } from '../shared/types.js'
 import { compareStoryTime, describeStoryTime } from '../shared/storyTime.js'
 import { newId, nowIso, sha256 } from './utils.js'
@@ -104,7 +106,18 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
   app.use(cors({ origin: [...allowedOrigins], credentials: true }))
   app.use(express.json({ limit: '50mb' }))
 
-  app.get('/api/health', (_req, res) => res.json({ ok: true, integrity: database.integrityCheck(), rescueMode: false, time: nowIso() }))
+  const purgeExpiredTrash = () => {
+    const ids = expiredTrashIds(database, readStoragePolicy(config.dataDir).trashRetentionDays)
+    if (!ids.length) return 0
+    createDatabaseSnapshot(database, config.dataDir)
+    return database.purgeProjects(ids).length
+  }
+  purgeExpiredTrash()
+
+  app.get('/api/health', (_req, res) => {
+    const libraryPresent = isLibraryPresent(config)
+    res.json({ ok: libraryPresent, integrity: libraryPresent ? database.integrityCheck() : 'missing', rescueMode: false, libraryPresent, reason: libraryPresent ? undefined : '资料库文件已从本机移除，常规读写已经停止', time: nowIso() })
+  })
   app.post('/api/session', (req, res) => {
     if (!isLoopback(req.ip)) return res.status(403).json({ error: 'Only loopback clients are allowed' })
     res.setHeader('Set-Cookie', `bbd_session=${sessionToken}; HttpOnly; SameSite=Strict; Path=/`)
@@ -114,15 +127,36 @@ export function createApp(config: AppConfig, database = new AppDatabase(config.d
     if (req.path === '/health' || req.path === '/session') return next()
     const cookie = parseCookies(req.headers.cookie ?? '').bbd_session
     if (cookie !== sessionToken) return res.status(401).json({ error: 'Local session required' })
+    if (!isLibraryPresent(config)) return res.status(503).json({ error: '资料库文件已从本机移除，已停止写入；请重新启动后从快照恢复', code: 'LIBRARY_MISSING' })
     return next()
   })
 
   app.get('/api/projects', (req, res) => res.json(database.listProjects(req.query.trash === '1')))
-  app.get('/api/projects/trash', (_req, res) => res.json(database.listProjectTrash()))
+  app.get('/api/projects/trash', (_req, res) => { purgeExpiredTrash(); res.json(database.listProjectTrash()) })
+  app.get('/api/storage', (_req, res) => res.json(storageStatus(database, config)))
+  app.put('/api/storage/policy', route(async (req, res) => {
+    const input = z.object({ trashRetentionDays: z.union([z.literal(30), z.literal(90), z.null()]) }).parse(req.body)
+    writeStoragePolicy(config.dataDir, input)
+    const purgedProjects = purgeExpiredTrash()
+    res.json({ ...storageStatus(database, config), purgedProjects })
+  }))
   app.post('/api/projects/trash/restore', route(async (req, res) => {
     const input = z.object({ ids: z.array(z.string().min(1)).min(1).max(100) }).parse(req.body)
     try { res.json(database.restoreProjects(input.ids)) }
     catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : '批量恢复失败' }) }
+  }))
+  app.post('/api/projects/trash/purge', route(async (req, res) => {
+    const input = z.object({ ids: z.array(z.string().min(1)).min(1).max(100), confirm: z.literal(true) }).parse(req.body)
+    createDatabaseSnapshot(database, config.dataDir)
+    try { res.json({ purged: database.purgeProjects(input.ids) }) }
+    catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : '永久删除失败' }) }
+  }))
+  app.post('/api/projects/trash/empty', route(async (req, res) => {
+    z.object({ confirm: z.literal(true) }).parse(req.body)
+    const ids = database.listProjectTrash().map((project) => project.id)
+    if (!ids.length) return res.json({ purged: [] })
+    createDatabaseSnapshot(database, config.dataDir)
+    res.json({ purged: database.purgeProjects(ids) })
   }))
   app.post('/api/projects', route(async (req, res) => {
     const input = z.object({ title: z.string().trim().min(1).max(200), description: z.string().default(''), blueprint: blueprintInput.optional(), starter: z.enum(['three_act']).optional() }).parse(req.body)

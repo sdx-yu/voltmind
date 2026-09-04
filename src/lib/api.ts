@@ -76,6 +76,7 @@ import type {
   StoryBeat,
   StoryBlueprint,
   StoryPlan,
+  StorageStatus,
   SprintBoard,
   SprintPackage,
   SprintPackageInspection,
@@ -169,7 +170,7 @@ async function streamAiTask(input: AiTaskInput, onEvent: (event: AiStreamEvent) 
 }
 
 export const api = {
-  health: () => request<{ ok: boolean; integrity: string; rescueMode: boolean; reason?: string }>('/api/health'),
+  health: () => request<{ ok: boolean; integrity: string; rescueMode: boolean; libraryPresent?: boolean; reason?: string }>('/api/health'),
   rescueStatus: () => request<{ rescueMode: true; reason: string; snapshots: Array<{ fileName: string; createdAt: string; byteSize: number; integrity: 'ok' | 'failed' }> }>('/api/rescue/status'),
   restoreDatabaseSnapshot: (fileName: string) => request<{ restoredFrom: string; preserved: string[]; integrity: 'ok' }>('/api/rescue/restore', { method: 'POST', body: JSON.stringify({ fileName }) }),
   listProjects: (trash = false) => request<Project[]>(`/api/projects${trash ? '?trash=1' : ''}`),
@@ -179,6 +180,10 @@ export const api = {
   trashProject: (id: string) => request<Project>(`/api/projects/${id}`, { method: 'DELETE' }),
   restoreProject: (id: string) => request<Project>(`/api/projects/${id}/restore`, { method: 'POST' }),
   restoreProjects: (ids: string[]) => request<Project[]>('/api/projects/trash/restore', { method: 'POST', body: JSON.stringify({ ids }) }),
+  purgeProjects: (ids: string[]) => request<{ purged: Project[] }>('/api/projects/trash/purge', { method: 'POST', body: JSON.stringify({ ids, confirm: true }) }),
+  emptyProjectTrash: () => request<{ purged: Project[] }>('/api/projects/trash/empty', { method: 'POST', body: JSON.stringify({ confirm: true }) }),
+  getStorageStatus: () => request<StorageStatus>('/api/storage'),
+  updateStoragePolicy: (trashRetentionDays: 30 | 90 | null) => request<StorageStatus & { purgedProjects: number }>('/api/storage/policy', { method: 'PUT', body: JSON.stringify({ trashRetentionDays }) }),
   getStoryPlan: (projectId: string) => request<StoryPlan>(`/api/projects/${projectId}/story-plan`),
   updateStoryBlueprint: (projectId: string, patch: Partial<StoryBlueprint>) => request<StoryBlueprint>(`/api/projects/${projectId}/story-plan/blueprint`, { method: 'PUT', body: JSON.stringify(patch) }),
   installStoryStarter: (projectId: string, replace = false) => request<StoryPlan>(`/api/projects/${projectId}/story-plan/starter`, { method: 'POST', body: JSON.stringify({ type: 'three_act', replace }) }),

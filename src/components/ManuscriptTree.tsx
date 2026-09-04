@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { BookMarked, ChevronDown, ChevronRight, Combine, FilePlus2, FolderPlus, GripVertical, LibraryBig, MoreHorizontal, Search, Scissors, Trash2 } from 'lucide-react'
 import type { ManuscriptNode } from '../../shared/types'
-import { sceneStatusLabel, sceneStatusShort } from '../lib/status'
+import { sceneStatusLabel } from '../lib/status'
 import { Button, DropdownMenu, IconButton } from '../ui'
 
 interface Props {
@@ -60,11 +60,26 @@ export function ManuscriptTree({ nodes, selectedId, onSelect, onCreateVolume, on
   return <aside className="manuscript-sidebar" aria-label="书稿结构">
     <div className="sidebar-heading"><span>书稿</span><IconButton size="small" onClick={onSearch} label="全局搜索"><Search size={17} /></IconButton></div>
     <div className="tree-scroll">
-      {volumes.map((volume) => <div key={volume.id} className="tree-volume" onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(volume)}><div className="tree-row volume-row"><button className="tree-toggle" onClick={() => toggle(volume.id)} aria-label={collapsed.has(volume.id) ? '展开卷' : '折叠卷'}>{collapsed.has(volume.id) ? <ChevronRight size={15}/> : <ChevronDown size={15}/>}</button><LibraryBig size={14}/>{editing === volume.id ? <input className="inline-title" defaultValue={volume.title} autoFocus onBlur={(event) => { onUpdate(volume.id, { title: event.target.value || volume.title }); setEditing(null) }} /> : <button className="tree-title" onDoubleClick={() => setEditing(volume.id)} onClick={() => toggle(volume.id)} onKeyDown={(event) => keyboardMove(event, volume)} title="Alt+↑/↓ 排序"><span>{volume.title}</span></button>}<button className="tree-action" onClick={() => onCreateChapter(volume.id)} aria-label="在卷中添加章节"><FolderPlus size={13}/></button><button className="tree-action danger-hover" onClick={() => onTrash(volume)} aria-label={`删除 ${volume.title}`}><Trash2 size={13}/></button></div>{!collapsed.has(volume.id) && renderChapters(chapters.filter((chapter) => chapter.parentId === volume.id))}</div>)}
+      {volumes.map((volume) => {
+        const childChapters = chapters.filter((chapter) => chapter.parentId === volume.id)
+        return <div key={volume.id} className="tree-volume" onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(volume)}>
+          <div className="tree-row volume-row">
+            <button className="tree-toggle" onClick={() => toggle(volume.id)} aria-label={collapsed.has(volume.id) ? '展开卷' : '折叠卷'}>{collapsed.has(volume.id) ? <ChevronRight size={16}/> : <ChevronDown size={16}/>}</button>
+            <LibraryBig className="tree-node-icon" size={16}/>
+            {editing === volume.id ? <input className="inline-title" defaultValue={volume.title} autoFocus onBlur={(event) => { onUpdate(volume.id, { title: event.target.value || volume.title }); setEditing(null) }} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} /> : <button className="tree-title" onDoubleClick={() => setEditing(volume.id)} onClick={() => toggle(volume.id)} onKeyDown={(event) => keyboardMove(event, volume)} title="Alt+↑/↓ 排序"><span>{volume.title}</span><small>{childChapters.length} 章</small></button>}
+            <DropdownMenu label={`${volume.title} 更多操作`} align="end" onCloseAutoFocus={(event) => completeScheduledRename(event)} trigger={<button className="tree-action" aria-label={`${volume.title} 更多操作`}><MoreHorizontal size={16}/></button>} items={[
+              { id: 'add-chapter', label: '添加章节', icon: <FolderPlus size={14}/>, onSelect: () => onCreateChapter(volume.id) },
+              { id: 'rename', label: '重命名卷', onSelect: () => { renameAfterMenuClose.current = volume.id } },
+              { id: 'delete', label: '移到回收站', icon: <Trash2 size={14}/>, danger: true, onSelect: () => onTrash(volume) },
+            ]}/>
+          </div>
+          {!collapsed.has(volume.id) && renderChapters(childChapters)}
+        </div>
+      })}
       {renderChapters(chapters.filter((chapter) => chapter.parentId === book?.id || !volumes.some((volume) => volume.id === chapter.parentId)))}
     </div>
     <div className="tree-add-actions"><Button size="small" variant="ghost" leadingIcon={<FolderPlus size={15} />} onClick={() => onCreateChapter()}>添加章节</Button><Button size="small" variant="ghost" leadingIcon={<LibraryBig size={15}/>} onClick={onCreateVolume}>添加卷</Button></div>
-    <div className="tree-legend"><BookMarked size={14} /><span>双击标题重命名</span><DropdownMenu label="书稿更多操作" align="end" onCloseAutoFocus={(event) => { if (!renameAfterMenuClose.current) return; event.preventDefault(); setEditing(renameAfterMenuClose.current); renameAfterMenuClose.current = null }} trigger={<IconButton className="tree-legend-more" size="small" label="书稿更多操作"><MoreHorizontal size={15} /></IconButton>} items={[
+    <div className="tree-legend"><BookMarked size={14} /><span>双击标题重命名</span><DropdownMenu label="书稿更多操作" align="end" onCloseAutoFocus={completeScheduledRename} trigger={<IconButton className="tree-legend-more" size="small" label="书稿更多操作"><MoreHorizontal size={15} /></IconButton>} items={[
       { id: 'rename', label: '重命名当前项', hint: selectedNode?.title, disabled: !selectedNode || selectedNode.type === 'book', onSelect: () => { renameAfterMenuClose.current = selectedNode?.id ?? null } },
       { id: 'collapse-all', label: '折叠全部', icon: <ChevronRight size={14}/>, disabled: collapsibleIds.length === 0, onSelect: () => setCollapsed(new Set(collapsibleIds)) },
       { id: 'expand-all', label: '展开全部', icon: <ChevronDown size={14}/>, disabled: collapsed.size === 0, onSelect: () => setCollapsed(new Set()) },
@@ -72,5 +87,39 @@ export function ManuscriptTree({ nodes, selectedId, onSelect, onCreateVolume, on
     ]} /></div>
   </aside>
 
-  function renderChapters(items: ManuscriptNode[]) { return items.map((chapter, chapterIndex) => { const scenes = nodes.filter((node) => node.type === 'scene' && node.parentId === chapter.id && !node.deletedAt).sort((a, b) => a.sortKey - b.sortKey); const isCollapsed = collapsed.has(chapter.id); return <div key={chapter.id} className="tree-chapter" draggable onDragStart={() => setDragged(chapter)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(chapter)}><div className="tree-row chapter-row"><button className="tree-toggle" onClick={() => toggle(chapter.id)} aria-label={isCollapsed ? '展开章节' : '折叠章节'}>{isCollapsed ? <ChevronRight size={15}/> : <ChevronDown size={15}/>}</button><GripVertical className="drag-handle" size={14}/>{editing === chapter.id ? <input className="inline-title" defaultValue={chapter.title} autoFocus onBlur={(event) => { onUpdate(chapter.id, { title: event.target.value || chapter.title }); setEditing(null) }} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}/> : <button className="tree-title" onDoubleClick={() => setEditing(chapter.id)} onClick={() => toggle(chapter.id)} onKeyDown={(event) => keyboardMove(event, chapter)} title="Alt+↑/↓ 排序"><span>{chapter.title}</span><small>{chapterIndex + 1}</small></button>}<button className="tree-action" onClick={() => onCreateScene(chapter.id)} aria-label={`在 ${chapter.title} 添加场景`}><FilePlus2 size={14}/></button><button className="tree-action danger-hover" onClick={() => onTrash(chapter)} aria-label={`删除 ${chapter.title}`}><Trash2 size={13}/></button></div>{!isCollapsed && <div className="scene-list">{scenes.map((scene, sceneIndex) => <div key={scene.id} className={`tree-row scene-row ${selectedId === scene.id ? 'selected' : ''}`} draggable onDragStart={() => setDragged(scene)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(scene)}><GripVertical className="drag-handle" size={13}/>{editing === scene.id ? <input className="inline-title" defaultValue={scene.title} autoFocus onBlur={(event) => { onUpdate(scene.id, { title: event.target.value || scene.title }); setEditing(null) }} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}/> : <button className="scene-select" onClick={() => onSelect(scene.id)} onDoubleClick={() => setEditing(scene.id)} onKeyDown={(event) => keyboardMove(event, scene)} title={`${sceneStatusLabel(scene.status)} · Alt+↑/↓ 排序`}><span className={`status-dot status-${scene.status}`} /><span className="status-word">{sceneStatusShort(scene.status)}</span><span>{scene.title}</span><small>{scene.wordCount}</small></button>}<button className="tree-action" disabled={scene.wordCount === 0} title={scene.wordCount === 0 ? '有正文后才能拆分' : '拆分场景'} onClick={() => onSplit(scene)} aria-label={`拆分 ${scene.title}`}><Scissors size={13}/></button><button className="tree-action" disabled={sceneIndex === scenes.length - 1} title={sceneIndex === scenes.length - 1 ? '没有下一场景可合并' : '与下一场景合并'} onClick={() => onMerge(scene)} aria-label={`合并 ${scene.title} 与下一场景`}><Combine size={13}/></button><button className="tree-action danger-hover" onClick={() => onTrash(scene)} aria-label={`删除 ${scene.title}`}><Trash2 size={13}/></button></div>)}</div>}</div> }) }
+  function completeScheduledRename(event: Event) {
+    if (!renameAfterMenuClose.current) return
+    event.preventDefault()
+    setEditing(renameAfterMenuClose.current)
+    renameAfterMenuClose.current = null
+  }
+
+  function renderChapters(items: ManuscriptNode[]) {
+    return items.map((chapter) => {
+      const scenes = nodes.filter((node) => node.type === 'scene' && node.parentId === chapter.id && !node.deletedAt).sort((a, b) => a.sortKey - b.sortKey)
+      const isCollapsed = collapsed.has(chapter.id)
+      return <div key={chapter.id} className="tree-chapter" draggable onDragStart={() => setDragged(chapter)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(chapter)}>
+        <div className="tree-row chapter-row">
+          <button className="tree-toggle" onClick={() => toggle(chapter.id)} aria-label={isCollapsed ? '展开章节' : '折叠章节'}>{isCollapsed ? <ChevronRight size={16}/> : <ChevronDown size={16}/>}</button>
+          <GripVertical className="drag-handle" size={14}/>
+          {editing === chapter.id ? <input className="inline-title" defaultValue={chapter.title} autoFocus onBlur={(event) => { onUpdate(chapter.id, { title: event.target.value || chapter.title }); setEditing(null) }} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}/> : <button className="tree-title" onDoubleClick={() => setEditing(chapter.id)} onClick={() => toggle(chapter.id)} onKeyDown={(event) => keyboardMove(event, chapter)} title="Alt+↑/↓ 排序"><span>{chapter.title}</span><small>{scenes.length} 场</small></button>}
+          <button className="tree-action tree-primary-action" onClick={() => onCreateScene(chapter.id)} aria-label={`在 ${chapter.title} 添加场景`} title="添加场景"><FilePlus2 size={15}/></button>
+          <DropdownMenu label={`${chapter.title} 更多操作`} align="end" onCloseAutoFocus={completeScheduledRename} trigger={<button className="tree-action" aria-label={`${chapter.title} 更多操作`}><MoreHorizontal size={16}/></button>} items={[
+            { id: 'rename', label: '重命名章节', onSelect: () => { renameAfterMenuClose.current = chapter.id } },
+            { id: 'delete', label: '移到回收站', icon: <Trash2 size={14}/>, danger: true, onSelect: () => onTrash(chapter) },
+          ]}/>
+        </div>
+        {!isCollapsed && <div className="scene-list">{scenes.map((scene, sceneIndex) => <div key={scene.id} className={`tree-row scene-row ${selectedId === scene.id ? 'selected' : ''}`} draggable onDragStart={() => setDragged(scene)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(scene)}>
+          <GripVertical className="drag-handle" size={13}/>
+          {editing === scene.id ? <input className="inline-title" defaultValue={scene.title} autoFocus onBlur={(event) => { onUpdate(scene.id, { title: event.target.value || scene.title }); setEditing(null) }} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}/> : <button className="scene-select" onClick={() => onSelect(scene.id)} onDoubleClick={() => setEditing(scene.id)} onKeyDown={(event) => keyboardMove(event, scene)} title={`${sceneStatusLabel(scene.status)} · Alt+↑/↓ 排序`}><span className={`status-dot status-${scene.status}`} aria-hidden="true"/><span className="scene-title">{scene.title}</span><small className="tree-word-count">{scene.wordCount} 字</small></button>}
+          <DropdownMenu label={`${scene.title} 更多操作`} align="end" onCloseAutoFocus={completeScheduledRename} trigger={<button className="tree-action" aria-label={`${scene.title} 更多操作`}><MoreHorizontal size={16}/></button>} items={[
+            { id: 'rename', label: '重命名场景', onSelect: () => { renameAfterMenuClose.current = scene.id } },
+            { id: 'split', label: '拆分场景', icon: <Scissors size={14}/>, disabled: scene.wordCount === 0, onSelect: () => onSplit(scene) },
+            { id: 'merge', label: '与下一场景合并', icon: <Combine size={14}/>, disabled: sceneIndex === scenes.length - 1, onSelect: () => onMerge(scene) },
+            { id: 'delete', label: '移到回收站', icon: <Trash2 size={14}/>, danger: true, onSelect: () => onTrash(scene) },
+          ]}/>
+        </div>)}</div>}
+      </div>
+    })
+  }
 }

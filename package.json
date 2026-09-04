@@ -1,6 +1,6 @@
 {
   "name": "bi-bu-dai",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,7 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "ui:check": "node scripts/check-ui-foundation.mjs",
     "ui:quality": "node scripts/check-ui-quality.mjs",
-    "e2e": "playwright test",
+    "e2e": "node scripts/reset-e2e-data.mjs && playwright test",
     "e2e:update": "playwright test --update-snapshots=all",
     "check": "npm run ui:check && npm run ui:quality && npm run typecheck && npm run test && npm run build && npm run e2e",
     "sidecar:build": "node scripts/fetch-node-runtime.mjs && node scripts/build-sidecar.mjs",
