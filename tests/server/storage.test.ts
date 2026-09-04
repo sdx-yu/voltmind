@@ -63,11 +63,13 @@ describe('local storage safety', () => {
     expect(result.database.getProject(trashed.id)).toBeNull()
     const status = storageStatus(result.database, config)
     expect(status.backupCount).toBeGreaterThan(0)
+    // Windows keeps an open SQLite file locked. An external removal can only
+    // become observable after the desktop process releases that handle.
+    result.database.close()
     fs.unlinkSync(config.databasePath)
     const health = await request(result.app).get('/api/health').expect(200)
     expect(health.body).toMatchObject({ ok: false, libraryPresent: false })
     await request(result.app).get('/api/storage').set('Cookie', cookie).expect(503)
-    result.database.close()
   })
 
   it('applies retention immediately and can empty the remaining trash after confirmation', async () => {
